@@ -12,7 +12,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { command, groupAdmins, sendMessageWTyping, botNumber } = msgInfoObj;
 	try {
 		if (!msg.message.extendedTextMessage) {
-			return sendMessageWTyping(from, { text: "❎ Tag someone! or reply to a message" }, { quoted: msg });
+			return sendMessageWTyping(from, { text: "❌ Tag someone! or reply to a message" }, { quoted: msg });
 		}
 
 		let taggedJid =
@@ -71,11 +71,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		switch (command) {
 			case "warn":
 				try {
-					warnMsg = `@${phoneNumber} 😒,You've been warned. Status of warning ${++warnCount} / 3. Do not repeat this sort of action or you will be kicked!`;
-					sock.sendMessage(from, {
+					warnCount++;
+					const bars = "🔴".repeat(warnCount) + "⚪".repeat(Math.max(0, 3 - warnCount));
+					warnMsg = `⚠️ *Warning Issued*\n\n@${phoneNumber}\n${bars} *(${warnCount}/3)*\n\n${warnCount >= 3 ? "_⛔ Final warning — you will be removed for the next violation._" : "_Clean up your act or face removal._"}`;
+					sendMessageWTyping(from, {
 						text: warnMsg,
 						mentions: [taggedJid],
-					});
+					}, { quoted: msg });
 					group
 						.updateOne(
 							{ _id: from, "memberWarnCount.member": taggedJid },
@@ -98,17 +100,17 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 								);
 							if (warnCount >= 3) {
 								if (!groupAdmins.includes(botNumber[0]) && !groupAdmins.includes(botNumber[1])) {
-									sendMessageWTyping(from, { text: "❎ I'm not Admin here!" }, { quoted: msg });
+									sendMessageWTyping(from, { text: "❌ I'm not Admin here!" }, { quoted: msg });
 									return;
 								}
 								if (isGroupAdmin) {
-									sendMessageWTyping(from, { text: "❎ Cannot remove admin!" }, { quoted: msg });
+									sendMessageWTyping(from, { text: "❌ Cannot remove admin!" }, { quoted: msg });
 									return;
 								}
 								sock.groupParticipantsUpdate(from, [taggedJid], "remove");
 								sendMessageWTyping(
 									from,
-									{ text: "✅ The number has been removed from the group!" },
+									{ text: `✅ *Removed* @${phoneNumber} — reached 3 warnings.`, mentions: [taggedJid] },
 									{ quoted: msg }
 								);
 							}
@@ -124,7 +126,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				member
 					.updateOne({ _id: taggedJid, "warning.group": from }, { $pull: { warning: { group: from } } })
 					.then(() => {
-						sendMessageWTyping(from, { text: `The user's Warn Count has been reset.` }, { quoted: msg });
+						sendMessageWTyping(from, { text: `✅ Warnings cleared for @${phoneNumber}.`, mentions: [taggedJid] }, { quoted: msg });
 					});
 				group.updateOne(
 					{ _id: from, "memberWarnCount.member": taggedJid },

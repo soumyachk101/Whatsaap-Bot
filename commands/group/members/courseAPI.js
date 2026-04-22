@@ -21,10 +21,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			arg_language
 	)
 		.then((res) => {
-			res.data.results.forEach((value) => {
-				mess += "Name: " + value.name + "\n" + "URL: " + value.url + "\n\n";
+			mess = `🎓 *Free Udemy Courses*\n\n`;
+			res.data.results.forEach((value, i) => {
+				mess += `${i + 1}. *${value.name}*\n🔗 ${value.url}\n\n`;
 			});
-			sendMessageWTyping(from, { text: mess }, { quoted: msg });
+			sendMessageWTyping(from, { text: mess.trim() }, { quoted: msg });
 		})
 		.catch((err) => {
 			sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });

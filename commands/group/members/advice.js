@@ -4,7 +4,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
 	try {
 		const res = await axios(`https://api.adviceslip.com/advice`);
-		sendMessageWTyping(from, { text: `_*-Advice-*_ \n\n` + res.data.slip.advice }, { quoted: msg });
+		sendMessageWTyping(from, { text: `💭 *Advice*\n\n_${res.data.slip.advice}_` }, { quoted: msg });
 	} catch (error) {
 		console.error("Error in axios request:", error);
 		sendMessageWTyping(from, { text: error.toString() }, { quoted: msg });

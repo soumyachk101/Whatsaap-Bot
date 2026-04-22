@@ -26,3 +26,5 @@ cookie.json
 # logs
 temp/
 performance-metrics.json
+.github/copilot-instructions.md
+CLAUDE.md

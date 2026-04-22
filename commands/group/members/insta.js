@@ -6,7 +6,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping, ig } = msgInfoObj;
 
 	if (args.length === 0)
-		return sendMessageWTyping(from, { text: `❎ URL is empty! \nSend ${prefix}insta url` }, { quoted: msg });
+		return sendMessageWTyping(from, { text: `❌ URL is empty! \nSend ${prefix}insta url` }, { quoted: msg });
 	let urlInstagram = args[0];
 
 	if (
@@ -19,7 +19,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	)
 		return sendMessageWTyping(
 			from,
-			{ text: `❎ Wrong URL! Only Instagram posted videos, tv and reels can be downloaded.` },
+			{ text: `❌ Wrong URL! Only Instagram posted videos, tv and reels can be downloaded.` },
 			{ quoted: msg }
 		);
 

@@ -18,8 +18,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		// Use extractPhoneNumber for LID/PN compatibility
 		console.log(message, mention[random].id, extractPhoneNumber(mention[random].id));
 		message += " @" + extractPhoneNumber(mention[random].id);
-		if (!args[0]) sock.sendMessage(from, { text: message, mentions: [mention[random].id] }, { quoted: msg });
-		else sock.sendMessage(from, { text: message, mentions: [mention[random].id] });
+		if (!args[0]) sendMessageWTyping(from, { text: message, mentions: [mention[random].id] }, { quoted: msg });
+		else sendMessageWTyping(from, { text: message, mentions: [mention[random].id] });
 	} catch (err) {
 		console.error(err);
 		sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });

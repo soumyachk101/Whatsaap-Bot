@@ -29,9 +29,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
 
 	if (args.length < 1 || !args[0]) {
-		return sock.sendMessage(
+		return sendMessageWTyping(
 			from,
-			{ text: "Please provide right horoscopes : " + Object.keys(signs).join("\n") },
+			{ text: `⭐ *Horoscope Signs*\n\n${Object.keys(signs).map(s => `• ${s.charAt(0).toUpperCase() + s.slice(1)}`).join("\n")}\n\n_Usage: horo <sign>_` },
 			{ quoted: msg }
 		);
 	}
@@ -41,20 +41,16 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (!Object.keys(signs).includes(h_Low)) {
 		sendMessageWTyping(
 			from,
-			{ text: "Kindly enter the right spelling of " + Object.keys(signs).join(", ") },
+			{ text: `❌ *Invalid sign:* _${args[0]}_\n\n*Valid signs:*\n${Object.keys(signs).map(s => `• ${s}`).join("\n")}` },
 			{ quoted: msg }
 		);
 	} else {
 		getHoroscope(signs[h_Low]).then((res) => {
+			const reading = res.split("-")[1]?.trim() || res.trim();
 			sendMessageWTyping(
 				from,
 				{
-					text:
-						"*Data*: " +
-						new Date().toLocaleDateString() +
-						"\n" +
-						"*Nature Hold's For You*: " +
-						res.split("-")[1],
+					text: `♈ *${h_Low.charAt(0).toUpperCase() + h_Low.slice(1)} Horoscope*\n📅 *Date:* ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}\n\n${reading}`,
 				},
 				{ quoted: msg }
 			);

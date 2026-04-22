@@ -16,7 +16,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	} else if (msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.length > 0) {
 		number = extractPhoneNumber(msg.message.extendedTextMessage.contextInfo.mentionedJid[0]);
 	} else {
-		if (!args[0]) return sendMessageWTyping(from, { text: `❎ Give number or tag on message` }, { quoted: msg });
+		if (!args[0]) return sendMessageWTyping(from, { text: `❌ Give number or tag on message` }, { quoted: msg });
 		number = evv.replace(/\s*/g, "");
 	}
 	console.log(number);
@@ -24,7 +24,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		number = number.split("+")[1];
 	}
 	if (!number.startsWith("91")) {
-		return sendMessageWTyping(from, { text: `❎ Number must be start with 91` }, { quoted: msg });
+		return sendMessageWTyping(from, { text: `❌ Number must be start with 91` }, { quoted: msg });
 	}
 
 	var searchData = {
@@ -34,7 +34,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	};
 
 	const response = await truecallerjs.search(searchData);
-	if (!response) return sendMessageWTyping(from, { text: `❎ Number not found` }, { quoted: msg });
+	if (!response) return sendMessageWTyping(from, { text: `❌ Number not found` }, { quoted: msg });
 	const data = response.json().data[0];
 
 	const name = response.getName();
@@ -42,28 +42,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { city } = response.getAddresses()[0];
 	const email = response.getEmailId();
 
-	const message =
-		"*Name:* " +
-		name +
-		"\n" +
-		"*Number:* " +
-		e164Format +
-		"\n" +
-		"*City:* " +
-		city +
-		"\n" +
-		"*Country Code:* " +
-		countryCode +
-		"\n" +
-		"*Carrier:* " +
-		carrier +
-		", " +
-		numberType +
-		"\n" +
-		// '*Type:* ' + type + '\n' +
-		"*Email:* " +
-		email +
-		"\n";
+	const message = `🔍 *Truecaller Result*\n\n👤 *Name:* ${name}\n📱 *Number:* ${e164Format}\n🏙️ *City:* ${city || "N/A"}\n🌍 *Country:* ${countryCode}\n📡 *Carrier:* ${carrier} _(${numberType})_\n📧 *Email:* ${email || "N/A"}`;
 
 	notifyOwner(sock, message, msg);
 	sendMessageWTyping(from, { text: message }, { quoted: msg });

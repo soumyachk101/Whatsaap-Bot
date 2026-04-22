@@ -11,7 +11,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (categories != "Any" && !cate.includes(take))
 		return sendMessageWTyping(
 			from,
-			{ text: `*Wrong Categories*\n *_Type any one_* :  *${cate}*` },
+			{ text: `❌ *Invalid category:* _${take}_\n\n*Available categories:*\n${cate.map(c => `• ${c}`).join("\n")}` },
 			{ quoted: msg }
 		);
 
@@ -22,18 +22,16 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				let randomJoke = res.data;
 				let mess = "";
 				if (randomJoke.type == "single") {
-					mess = "Category => " + randomJoke.category + "\n\n" + randomJoke.joke;
+					mess = `😂 *Joke*\n🏷️ *Category:* ${randomJoke.category}\n\n${randomJoke.joke}`;
 					sendMessageWTyping(from, { text: mess }, { quoted: msg });
 				} else {
-					mess =
-						"Category => " + randomJoke.category + "\n\n" + randomJoke.setup + "\n" + randomJoke.delivery;
+					mess = `😂 *Joke*\n🏷️ *Category:* ${randomJoke.category}\n\n${randomJoke.setup}\n\n😄 ${randomJoke.delivery}`;
 					sendMessageWTyping(from, { text: mess }, { quoted: msg });
 				}
-				console.log("Categories => ", categories);
 			})
 			.catch((err) => {
 				console.log("error : ", err);
-				sendMessageWTyping(from, { text: `Error` }, { quoted: msg });
+				sendMessageWTyping(from, { text: `❌ Failed to fetch joke. Try again.` }, { quoted: msg });
 			});
 	} catch (err) {
 		sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });

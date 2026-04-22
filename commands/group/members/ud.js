@@ -11,9 +11,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		sendMessageWTyping(
 			from,
 			{
-				text: `*Term*: ${term}
-*Definition*: ${def}
-*Example*: ${example}`,
+				text: `📖 *Urban Dictionary*\n\n🏷️ *Term:* ${term}\n\n📝 *Definition:*\n${def}\n\n💬 *Example:*\n_${example}_`,
 			},
 			{ quoted: msg }
 		);

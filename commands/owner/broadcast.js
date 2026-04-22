@@ -8,14 +8,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const groups = await sock.groupFetchAllParticipating();
 	const res = Object.keys(groups);
 
-	let message = "*Broadcast message from owner.*\n\n" + args.join(" ");
+	let message = `📢 *Broadcast*\n\n${args.join(" ")}`;
 
 	try {
 		for (let i = 0; i < res.length; i++) {
 			await sendMessageWTyping(res[i], { text: message });
 			await delay(2000);
 			if (i == res.length - 1)
-				return sendMessageWTyping(from, { text: "Broadcasted to " + res.length + " groups" }, { quoted: msg });
+				return sendMessageWTyping(from, { text: `✅ Broadcast sent to *${res.length}* groups.` }, { quoted: msg });
 		}
 	} catch (err) {
 		console.log(err);

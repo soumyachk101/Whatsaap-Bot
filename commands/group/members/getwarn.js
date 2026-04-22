@@ -4,7 +4,7 @@ import { extractPhoneNumber } from "../../../functions/lidUtils.js";
 import { getGroupData } from "../../../mongo-DB/groupDataDb.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	let { senderJid } = msgInfoObj;
+	let { senderJid, sendMessageWTyping } = msgInfoObj;
 
 	let taggedJid;
 	if (!msg.message.extendedTextMessage) {
@@ -34,8 +34,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	// Use extractPhoneNumber for LID/PN compatibility
 	let phoneNumber = extractPhoneNumber(taggedJid);
 	let warnMsg;
-	warnMsg = `@${phoneNumber}, Your warning status is (${warnCount}/3) in this group.`;
-	sock.sendMessage(from, { text: warnMsg, mentions: [taggedJid] }, { quoted: msg });
+	const bars = "🔴".repeat(warnCount) + "⚪".repeat(3 - warnCount);
+	warnMsg = `⚠️ *Warning Status*\n\n@${phoneNumber}\n${bars} *(${warnCount}/3)*\n\n${warnCount === 0 ? "_No warnings — keep it clean!_" : warnCount >= 3 ? "_⛔ At limit — next violation = kick._" : "_Behave or risk removal._"}`;
+	sendMessageWTyping(from, { text: warnMsg, mentions: [taggedJid] }, { quoted: msg });
 };
 
 export default () => ({

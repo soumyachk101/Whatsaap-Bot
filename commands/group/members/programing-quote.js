@@ -5,7 +5,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const proURl = "https://programming-quotesapi.vercel.app/api/random";
 	await axios(proURl)
 		.then((res) => {
-			let mess = `: *Programmin Quote* :\n\n${res.data.quote}\n~By ${res.data.author}`;
+			let mess = `💻 *Programming Quote*\n\n_"${res.data.quote}"_\n\n— *${res.data.author}*`;
 			sendMessageWTyping(from, { text: mess }, { quoted: msg });
 		})
 		.catch((err) => {

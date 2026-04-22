@@ -11,7 +11,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { command, botNumber, sendMessageWTyping } = msgInfoObj;
 
 	if (!msg.message.extendedTextMessage)
-		return sendMessageWTyping(from, { text: "❎ Tag / mentioned!" }, { quoted: msg });
+		return sendMessageWTyping(from, { text: "❌ Tag / mentioned!" }, { quoted: msg });
 
 	let taggedJid;
 
@@ -33,7 +33,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (command == "block") {
 		const dbJid = targetNumber + "@lid";
 		member.updateOne({ _id: dbJid }, { $set: { isBlock: true } }).then(() => {
-			sendMessageWTyping(from, { text: `❎ Blocked` }, { quoted: msg });
+			sendMessageWTyping(from, { text: `❌ Blocked` }, { quoted: msg });
 		});
 	}
 

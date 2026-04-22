@@ -6,7 +6,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	try {
 		// Check if the message is a reply
 		if (!msg.message.extendedTextMessage) {
-			return sendMessageWTyping(from, { text: `❎ Tag a message to delete.` }, { quoted: msg });
+			return sendMessageWTyping(from, { text: `❌ Tag a message to delete.` }, { quoted: msg });
 		}
 
 		// Check if the sender is authorized to delete messages
@@ -22,7 +22,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (!senderIsAdmin) {
 				return sendMessageWTyping(
 					from,
-					{ text: `❎ Only admins can delete others' messages.` },
+					{ text: `❌ Only admins can delete others' messages.` },
 					{ quoted: msg }
 				);
 			}
@@ -30,7 +30,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (!isBotAdmin) {
 				return sendMessageWTyping(
 					from,
-					{ text: `❎ Bot needs to be admin to delete others' messages.` },
+					{ text: `❌ Bot needs to be admin to delete others' messages.` },
 					{ quoted: msg }
 				);
 			}
@@ -54,7 +54,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await sock.sendMessage(from, { delete: options });
 	} catch (err) {
 		console.error("Error deleting message:", err);
-		sendMessageWTyping(from, { text: `❎ Error deleting message: ${err.toString()}` }, { quoted: msg });
+		sendMessageWTyping(from, { text: `❌ Error deleting message: ${err.toString()}` }, { quoted: msg });
 	}
 };
 

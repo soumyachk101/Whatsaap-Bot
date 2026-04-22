@@ -5,7 +5,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	try {
 		if (!msg.message.extendedTextMessage) {
-			return sendMessageWTyping(from, { text: `❎ Reply on a message to delete.` }, { quoted: msg });
+			return sendMessageWTyping(from, { text: `❌ Reply on a message to delete.` }, { quoted: msg });
 		}
 
 		const participant = msg.message.extendedTextMessage.contextInfo.participant;
@@ -19,7 +19,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (!!groupAdmins.includes(botNumber[0]) && !groupAdmins.includes(botNumber[1]))
 				return sendMessageWTyping(
 					from,
-					{ text: `❎ Bot need to be admin in order to delete messages.` },
+					{ text: `❌ Bot need to be admin in order to delete messages.` },
 					{ quoted: msg }
 				);
 		}

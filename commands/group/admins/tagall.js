@@ -42,10 +42,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				},
 				contextInfo: { forwardingScore: 0, isForwarded: false },
 			});
-			await sock.sendMessage(
+			await sendMessageWTyping(
 				from,
 				{
-					text: "*Total Members* : " + groupMetadata.participants.length + "\n\n" + tags,
+					text: `👥 *Total Members:* ${groupMetadata.participants.length}\n\n${tags}`,
 					mentions: [...groupMetadata.participants.map((e) => e.id)],
 				},
 				{ quoted: tt }
@@ -53,7 +53,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		} else {
 			let message = msg.message.conversation ?? "";
 			message = message.includes(prefix + "tagall") ? message.split(prefix + "tagall")[1].trim() : message;
-			message = message ? message + "\n\n" : "*Total Members* :" + groupMetadata.participants.length + "\n\n";
+			message = message ? message + "\n\n" : `👥 *Total Members:* ${groupMetadata.participants.length}\n\n`;
 			// Use extractPhoneNumber for LID/PN compatibility
 			message += groupMetadata.participants.map((i) => "👉🏻 @" + extractPhoneNumber(i.id)).join("\n");
 			sendMessageWTyping(from, {

@@ -27,7 +27,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await writeFile(media, buffer);
 		await sendImage(media);
 	} else {
-		sendMessageWTyping(from, { text: `❎ *Reply to sticker only*` }, { quoted: msg });
+		sendMessageWTyping(from, { text: `❌ *Reply to sticker only*` }, { quoted: msg });
 		console.error("Error not replied");
 	}
 	async function sendImage(media) {
@@ -38,7 +38,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				console.log(err);
 				sendMessageWTyping(
 					from,
-					{ text: "❎ There is some problem!\nOnly non-animated stickers can be convert to image!" },
+					{ text: "❌ There is some problem!\nOnly non-animated stickers can be convert to image!" },
 					{ quoted: msg }
 				);
 			}).on("end", async () => {

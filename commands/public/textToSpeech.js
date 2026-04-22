@@ -38,7 +38,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(
 			from,
 			{
-				text: `❎ Text is empty! \n\nUsage:\n• ${prefix}say <text>\n• ${prefix}say hin <hindi text>\n• Reply to a message with ${prefix}say`,
+				text: `❌ Text is empty! \n\nUsage:\n• ${prefix}say <text>\n• ${prefix}say hin <hindi text>\n• Reply to a message with ${prefix}say`,
 			},
 			{ quoted: msg }
 		);
@@ -48,7 +48,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (message.length >= 200) {
 		return sendMessageWTyping(
 			from,
-			{ text: `❎ Text too long! Limit: ${message.length}/200 characters\nSend ${prefix}say <shorter text>` },
+			{ text: `❌ Text too long! Limit: ${message.length}/200 characters\nSend ${prefix}say <shorter text>` },
 			{ quoted: msg }
 		);
 	}
@@ -56,7 +56,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	try {
 		const url = await tts(message, lang, 0);
 
-		if (!url) return sendMessageWTyping(from, { text: `❎ Error generating audio!` }, { quoted: msg });
+		if (!url) return sendMessageWTyping(from, { text: `❌ Error generating audio!` }, { quoted: msg });
 
 		await sock.sendMessage(
 			from,
@@ -73,7 +73,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		console.error("TTS Error:", error);
 		return sendMessageWTyping(
 			from,
-			{ text: `❎ Error generating text-to-speech: ${error.message}` },
+			{ text: `❌ Error generating text-to-speech: ${error.message}` },
 			{ quoted: msg }
 		);
 	}

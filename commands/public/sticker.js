@@ -100,7 +100,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (!buffer || buffer.length === 0) {
 				return sendMessageWTyping(
 					from,
-					{ text: "❎ Failed to download media. Please try again." },
+					{ text: "❌ Failed to download media. Please try again." },
 					{ quoted: msg }
 				);
 			}
@@ -111,7 +111,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (!fs.existsSync(media)) {
 				return sendMessageWTyping(
 					from,
-					{ text: "❎ Failed to save media file. Please try again." },
+					{ text: "❌ Failed to save media file. Please try again." },
 					{ quoted: msg }
 				);
 			}
@@ -121,10 +121,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			console.error("Media download error:", error);
 			// Clean up any partial file
 			memoryManager.safeUnlink(media);
-			return sendMessageWTyping(from, { text: "❎ Failed to process media. Please try again." }, { quoted: msg });
+			return sendMessageWTyping(from, { text: "❌ Failed to process media. Please try again." }, { quoted: msg });
 		}
 	} else {
-		sendMessageWTyping(from, { text: `❎ *Error reply to image or video only*` }, { quoted: msg });
+		sendMessageWTyping(from, { text: `❌ *Error reply to image or video only*` }, { quoted: msg });
 		console.error("Error not replied");
 	}
 
@@ -142,7 +142,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					console.error("FFmpeg error:", err);
 					memoryManager.safeUnlink(media);
 					memoryManager.safeUnlink(ran);
-					sendMessageWTyping(from, { text: "❎ Error converting media to sticker." }, { quoted: msg });
+					sendMessageWTyping(from, { text: "❌ Error converting media to sticker." }, { quoted: msg });
 				})
 				.addOutputOptions(outputOptions)
 				.toFormat("webp")
@@ -169,7 +169,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 						}
 					} catch (fallbackError) {
 						console.error("Fallback error:", fallbackError);
-						sendMessageWTyping(from, { text: "❎ Failed to create sticker." }, { quoted: msg });
+						sendMessageWTyping(from, { text: "❌ Failed to create sticker." }, { quoted: msg });
 					}
 				} finally {
 					// Ensure cleanup happens
@@ -179,7 +179,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			});
 		} catch (err) {
 			console.error("buildSticker error:", err);
-			sendMessageWTyping(from, { text: `❎ Error: ${err.message}` }, { quoted: msg });
+			sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 			memoryManager.safeUnlink(media);
 			memoryManager.safeUnlink(ran);
 		}

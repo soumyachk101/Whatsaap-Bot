@@ -4,7 +4,7 @@ const more = String.fromCharCode(8206);
 const readMore = more.repeat(4001);
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	let { prefix } = msgInfoObj;
+	let { prefix, sendMessageWTyping } = msgInfoObj;
 	const { adminCommands } = await cmdToText();
 
 	const admin = `
@@ -19,7 +19,7 @@ ${adminCommands
 
 ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️`;
 
-	sock.sendMessage(from, { text: admin });
+	sendMessageWTyping(from, { text: admin }, { quoted: msg });
 };
 
 export default () => ({

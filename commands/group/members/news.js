@@ -23,7 +23,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(
 			from,
 			{
-				text: arr.map((e, i) => `${i + 1}. ${e}`).join("\n"),
+				text: `📋 *News Categories*\n\n${arr.map((e, i) => `${i + 1}. ${e.charAt(0).toUpperCase() + e.slice(1)}`).join("\n")}\n\n_Usage: news <category>_`,
 			},
 			{ quoted: msg }
 		);
@@ -34,7 +34,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (!arr.includes(newsType) && newsType != "") {
 		return sendMessageWTyping(
 			from,
-			{ text: `Enter a valid category :) or use ${prefix}categories for more info` },
+			{ text: `❌ *Invalid category:* _${newsType}_\n\nUse *${prefix}categories* to see all available categories.` },
 			{ quoted: msg }
 		);
 	}
@@ -46,17 +46,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	};
 
 	inshorts.get(options, function (result) {
-		let message = `☆☆☆☆💥 ${newsType == "" ? "All" : newsType.toUpperCase()} 💥☆☆☆☆ \n\n${readMore}`;
-		for (const news of result) {
-			message += "🌐 ";
-			message += `${news.title} ~ ${news.author}\n`;
-			// message += `Author: ${news.author}\n`;
-			// message += `Content: ${news.content}\n`;
-			// message += `Posted At: ${news.postedAt}\n`;
-			// message += `Source URL: ${news.sourceURL}\n`;
-			message += "\n";
-		}
-		sendMessageWTyping(from, { text: message });
+		const category = newsType === "" ? "Top Stories" : newsType.charAt(0).toUpperCase() + newsType.slice(1);
+		let message = `📰 *${category} News*\n${readMore}`;
+		result.forEach((news, i) => {
+			message += `${i + 1}. *${news.title}*\n   _— ${news.author}_\n\n`;
+		});
+		sendMessageWTyping(from, { text: message }, { quoted: msg });
 	});
 };
 

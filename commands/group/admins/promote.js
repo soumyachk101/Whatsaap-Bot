@@ -2,12 +2,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { groupAdmins, groupMetadata, sendMessageWTyping, botNumber } = msgInfoObj;
 	// return sendMessageWTyping(
 	//     from,
-	//     { text: "```❎ The admin commands are blocked for sometime to avoid ban on whatsapp!```" },
+	//     { text: "```❌ The admin commands are blocked for sometime to avoid ban on whatsapp!```" },
 	//     { quoted: msg }
 	// );
 
 	if (!groupAdmins.includes(botNumber[0]) && !groupAdmins.includes(botNumber[1])) {
-		return sendMessageWTyping(from, { text: "❎ I'm not admin here." }, { quoted: msg });
+		return sendMessageWTyping(from, { text: "❌ I'm not admin here." }, { quoted: msg });
 	}
 
 	if (!msg.message.extendedTextMessage) {
@@ -18,7 +18,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		msg.message.extendedTextMessage.contextInfo.participant ||
 		msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
 	if (taggedJid === groupMetadata.owner) {
-		return sendMessageWTyping(from, { text: "❎ *Group Owner Tagged*" }, { quoted: msg });
+		return sendMessageWTyping(from, { text: "❌ *Group Owner Tagged*" }, { quoted: msg });
 	}
 
 	try {

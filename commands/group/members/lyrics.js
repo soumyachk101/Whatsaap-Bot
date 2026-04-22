@@ -32,10 +32,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			});
 		}
 	} catch (error) {
-		sendMessageWTyping(from, { text: error.toString() }, { quoted: msg });
+		return sendMessageWTyping(from, { text: error.toString() }, { quoted: msg });
 	}
 
-	const mess = `*Name*: ${firstSong.title}\n*Artist*: ${firstSong.artist.name}\n*Lyrics*: ${readMore}${lyric}`;
+	const mess = `🎵 *${firstSong.title}*\n🎤 *Artist:* ${firstSong.artist.name}\n\n*Lyrics:*${readMore}${lyric}`;
 
 	if (lyric) {
 		sendMessageWTyping(from, { text: mess }, { quoted: msg });

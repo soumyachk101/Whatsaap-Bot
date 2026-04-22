@@ -4,12 +4,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { evv, groupAdmins, sendMessageWTyping, botNumber } = msgInfoObj;
 
 	if (!groupAdmins.includes(botNumber[0]) && !groupAdmins.includes(botNumber[1])) {
-		return sendMessageWTyping(from, { text: "❎ Bot needs to be admin to add members." }, { quoted: msg });
+		return sendMessageWTyping(from, { text: "❌ Bot needs to be admin to add members." }, { quoted: msg });
 	}
 	if (!evv && !msg.message.extendedTextMessage && !args[0]) {
 		return sendMessageWTyping(
 			from,
-			{ text: "❎ Provide a number or reply to a member's message." },
+			{ text: "❌ Provide a number or reply to a member's message." },
 			{ quoted: msg }
 		);
 	}
@@ -36,14 +36,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const res = await sock.groupParticipantsUpdate(from, [participant], "add");
 		const status = res[0].status;
 		const statusMessages = {
-			400: "❎ Invalid number, include country code.",
-			403: "❎ Number has privacy setting on adding to group.",
-			408: "❎ Number has left the group recently.",
-			409: "❎ Number is already in group.",
-			500: "❎ Group is full.",
+			400: "❌ Invalid number, include country code.",
+			403: "❌ Number has privacy setting on adding to group.",
+			408: "❌ Number has left the group recently.",
+			409: "❌ Number is already in group.",
+			500: "❌ Group is full.",
 			200: "✅ Number added to group.",
 		};
-		const text = statusMessages[status] || "❎ An error has occurred. Try again later.";
+		const text = statusMessages[status] || "❌ An error has occurred. Try again later.";
 		sendMessageWTyping(from, { text: text }, { quoted: msg });
 	} catch (error) {
 		sendMessageWTyping(from, { text: error.toString() }, { quoted: msg });
