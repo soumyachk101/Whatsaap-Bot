@@ -4,7 +4,7 @@ const myNumber = [
 	process.env.MY_NUMBER.split(",")[0] + "@s.whatsapp.net",
 	process.env.MY_NUMBER.split(",")[1] + "@lid",
 ];
-import { member } from "../../mongo-DB/membersDataDb.js";
+import { member } from "../../sqlite-DB/membersDataDb.js";
 import { extractPhoneNumber, normalizeJID } from "../../functions/lidUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {

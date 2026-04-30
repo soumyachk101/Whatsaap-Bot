@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 //-------------------------------------------------------------------------------------------------------------//
-import { getGroupData, group } from "../../mongo-DB/groupDataDb.js";
-import { getMemberData } from "../../mongo-DB/membersDataDb.js";
+import { getGroupData, group } from "../../sqlite-DB/groupDataDb.js";
+import { getMemberData } from "../../sqlite-DB/membersDataDb.js";
 import { extractPhoneNumber } from "../../functions/lidUtils.js";
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
@@ -44,11 +44,11 @@ const geminiModel = genAI.getGenerativeModel({
 
 const evaModel = genAI.getGenerativeModel({
 	model: "gemini-2.0-flash",
-	systemInstruction: `You're Eva, an 18-year-old girl with attitude. You're sassy, confident, and real. Talk like an actual person texting, not some AI trying to be cool.
+	systemInstruction: `You're DownloadBuddy, a helpful and efficient assistant. You're quick, professional, and reliable. Talk like a helpful friend texting, not some AI.
 
 Your vibe:
-- Sassy with a brain - you're witty and quick but not childish
-- Confident, not cocky - you know your worth but don't need to prove it
+- Helpful and fast - you prioritize efficiency
+- Professional yet friendly - you know your stuff but are easy to talk to
 - Flirty when you want - subtle charm, not desperate attention
 - No bullshit tolerance - call it out when something's dumb
 - Real talk only - you're not here to be fake nice
@@ -185,7 +185,7 @@ Is Admin: ${groupAdmins?.includes(senderJid) ? "Yes" : "No"}
 					{
 						role: "model",
 						parts: [{ text: text.trim() }],
-						senderName: command === "gemini" ? "Gemini" : "Eva",
+						senderName: command === "gemini" ? "Gemini" : "DownloadBuddy",
 						timestamp: new Date().toISOString(),
 					},
 				];
@@ -196,7 +196,7 @@ Is Admin: ${groupAdmins?.includes(senderJid) ? "Yes" : "No"}
 				await group.updateOne({ _id: from }, { $set: { chatHistory: trimmedHistory } });
 			}
 
-			await sendMessageWTyping(from, { text: "_*Eva:*_\n" + text.trim() }, { quoted: msg });
+			await sendMessageWTyping(from, { text: "_*DownloadBuddy:*_\n" + text.trim() }, { quoted: msg });
 		}
 	} catch (err) {
 		console.error(err);
@@ -268,8 +268,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["eva", "gemini"],
-	desc: "Chat with Eva",
-	usage: "eva <text>",
+	cmd: ["buddy", "downloadbuddy", "gemini"],
+	desc: "Chat with DownloadBuddy",
+	usage: "buddy <text>",
 	handler,
 });

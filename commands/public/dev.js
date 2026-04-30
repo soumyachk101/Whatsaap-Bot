@@ -1,25 +1,25 @@
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
 
-	const text = `*👨‍💻 Developer — Mahesh Kumar*
+	const response =
+		`*👨💻 Developer — Soumya Chakraborty*\n\n` +
+		`╭───────────────────────────\n` +
+		`│ *🔗 GitHub*\n` +
+		`│ github.com/soumyachk101\n` +
+		`│\n` +
+		`│ *☕ Support My Work*\n` +
+		`│ buymeacoffee.com/soumyachk101\n` +
+		`│\n` +
+		`│ *🌐 Portfolio*\n` +
+		`│ chksoumya.in\n` +
+		`╰───────────────────────────`;
 
-╭───────────────────────────
-│ *🔗 GitHub*
-│ github.com/jacktheboss220
-│
-│ *☕ Support My Work*
-│ buymeacoffee.com/jacktheboss220
-│
-│ *🌐 Portfolio*
-│ jacktheboss220.com
-╰───────────────────────────`;
-
-	await sendMessageWTyping(from, { text }, { quoted: msg });
+	return sendMessageWTyping(from, { text: response }, { quoted: msg });
 };
 
 export default () => ({
 	cmd: ["dev", "developer"],
-	desc: "Developer info",
-	usage: "dev | developer",
+	desc: "Show developer information",
+	usage: "dev",
 	handler,
 });

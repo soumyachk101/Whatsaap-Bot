@@ -21,7 +21,7 @@ if (!ffmpegPath1) {
 console.log(`🎬 Sticker command using FFmpeg: ${ffmpegPath1}`);
 ffmpeg.setFfmpegPath(ffmpegPath1);
 
-import { getMemberData, member } from "../../mongo-DB/membersDataDb.js";
+import { getMemberData, member } from "../../sqlite-DB/membersDataDb.js";
 import { writeFile } from "fs/promises";
 import fs from "fs";
 

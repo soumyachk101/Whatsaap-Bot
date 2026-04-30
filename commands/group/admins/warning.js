@@ -1,5 +1,5 @@
-import { getGroupData, createGroupData, group } from "../../../mongo-DB/groupDataDb.js";
-import { createMembersData, getMemberData, member } from "../../../mongo-DB/membersDataDb.js";
+import { getGroupData, createGroupData, group } from "../../../sqlite-DB/groupDataDb.js";
+import { createMembersData, getMemberData, member } from "../../../sqlite-DB/membersDataDb.js";
 import { extractPhoneNumber } from "../../../functions/lidUtils.js";
 
 import { config } from "dotenv";

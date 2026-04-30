@@ -1,6 +1,6 @@
-import { getGroupData, group } from "../../mongo-DB/groupDataDb.js";
-import { getMemberData, member } from "../../mongo-DB/membersDataDb.js";
-import { getBotData, bot } from "../../mongo-DB/botDataDb.js";
+import { getGroupData, group } from "../../sqlite-DB/groupDataDb.js";
+import { getMemberData, member } from "../../sqlite-DB/membersDataDb.js";
+import { getBotData, bot } from "../../sqlite-DB/botDataDb.js";
 import { extractPhoneNumber } from "../../functions/lidUtils.js";
 
 const updateData = async (collection, id, data, value, sendMessageWTyping, from, msg) => {

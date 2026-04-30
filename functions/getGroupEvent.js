@@ -1,6 +1,6 @@
 import sendToTelegram, { escapeHtml } from "./telegramLogger.js";
 import { fake_quoted } from "./getFakeQuoted.js";
-import { getGroupData } from "../mongo-DB/groupDataDb.js";
+import { getGroupData } from "../sqlite-DB/groupDataDb.js";
 import { extractPhoneNumber, formatJIDForDisplay } from "./lidUtils.js";
 
 const getPhone = (p) =>

@@ -17,7 +17,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	const help = `
 ---------------------------------------------------------------
-    *Wҽʅƈσɱҽ ƚσ Eʋα Bσƚ*
+    *Wҽʅƈσɱҽ ƚσ DσɯɳʅσαԃBυԃԃყ*
 ---------------------------------------------------------------
 ${readMore}
 
@@ -34,20 +34,20 @@ ${adminCmd.map((cmd) => `*${prefix}${cmd.cmd.join(", ")}* - ${cmd.desc}\nUsage: 
 ${ownerCmd.map((cmd) => `*${prefix}${cmd.cmd.join(", ")}* - ${cmd.desc}\nUsage: ${prefix}${cmd.usage}`).join("\n\n")}
 
 
-♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️\n buymeacoffee.com/jacktheboss220`;
+♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️\n buymeacoffee.com/soumyachk101`;
 
 	const helpInDm = `
 ─「 *Dm Commands* 」─
 
 ---------------------------------------------------------------
-    *Wҽʅƈσɱҽ ƚσ Eʋα Bσƚ*
+    *Wҽʅƈσɱҽ ƚσ DσɯɳʅσαԃBυԃԃყ*
 ---------------------------------------------------------------
 
 ${directCommands
 	.map((cmd) => `*${prefix}${cmd.cmd.join(", ")}* - ${cmd.desc}\nUsage: ${prefix}${cmd.usage}`)
 	.join("\n\n")}
 
-♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️\n buymeacoffee.com/jacktheboss220`;
+♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️\n buymeacoffee.com/soumyachk101`;
 
 	await sendMessageWTyping(from, {
 		text: isGroup ? help : helpInDm,

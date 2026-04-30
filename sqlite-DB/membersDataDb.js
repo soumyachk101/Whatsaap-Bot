@@ -1,7 +1,6 @@
-import mdClient from "../mongodb.js";
-mdClient.connect();
+import db from "../sqlite.js";
 
-const member = mdClient.db("MyBotDataDB").collection("Members");
+const member = db.db().collection("Members");
 
 const createMembersData = async (jid, name) => {
 	try {

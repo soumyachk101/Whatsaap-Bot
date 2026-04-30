@@ -1,4 +1,4 @@
-import { getGroupData, group } from "../../../mongo-DB/groupDataDb.js";
+import { getGroupData, group } from "../../../sqlite-DB/groupDataDb.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;

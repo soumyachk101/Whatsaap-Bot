@@ -1,5 +1,5 @@
-import { getGroupData, createGroupData, group } from "../../mongo-DB/groupDataDb.js";
-import { getMemberData, createMembersData, member } from "../../mongo-DB/membersDataDb.js";
+import { getGroupData, createGroupData, group } from "../../sqlite-DB/groupDataDb.js";
+import { getMemberData, createMembersData, member } from "../../sqlite-DB/membersDataDb.js";
 import axios from "axios";
 import fs from "fs";
 

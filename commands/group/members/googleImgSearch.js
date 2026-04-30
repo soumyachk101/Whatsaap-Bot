@@ -6,7 +6,7 @@ const SEARCH_ENGINE_KEY = process.env.SEARCH_ENGINE_KEY || "";
 
 import fs from "fs";
 import axios from "axios";
-import { getGroupData } from "../../../mongo-DB/groupDataDb.js";
+import { getGroupData } from "../../../sqlite-DB/groupDataDb.js";
 
 const getRandom = (ext) => `${Math.floor(Math.random() * 10000)}${ext}`;
 

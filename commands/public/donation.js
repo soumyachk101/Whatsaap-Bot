@@ -9,7 +9,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			from,
 			{
 				image: imageBuffer,
-				caption: "Donate to keep this bot alive!" + "\n\n" + "https://buymeacoffee.com/jacktheboss220",
+				caption: "Donate to keep this bot alive!" + "\n\n" + "https://buymeacoffee.com/soumyachk101",
 			},
 			{ quoted: msg }
 		);
@@ -18,7 +18,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await sendMessageWTyping(
 			from,
 			{
-				text: "Donate to keep this bot alive!\n\nhttps://buymeacoffee.com/jacktheboss220",
+				text: "Donate to keep this bot alive!\n\nhttps://buymeacoffee.com/soumyachk101",
 			},
 			{ quoted: msg }
 		);

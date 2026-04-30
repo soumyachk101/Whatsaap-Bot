@@ -1,6 +1,6 @@
 import axiox from "axios";
 import jsdom from "jsdom";
-import { getMemberData, member } from "../../mongo-DB/membersDataDb.js";
+import { getMemberData, member } from "../../sqlite-DB/membersDataDb.js";
 
 const { JSDOM } = jsdom;
 

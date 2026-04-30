@@ -1,8 +1,6 @@
-import mdClient from "../mongodb.js";
+import db from "../sqlite.js";
 
-mdClient.connect();
-
-const bot = mdClient.db("MyBotDataDB").collection("AuthTable");
+const bot = db.db().collection("AuthTable");
 
 const createBotData = async () => {
 	try {
@@ -13,8 +11,6 @@ const createBotData = async () => {
 				youtube_session: "",
 				disabledGlobally: [],
 			});
-		} else if (!res.disabledGlobally) {
-			await bot.updateOne({ _id: "bot" }, { $set: { disabledGlobally: [] } });
 		}
 	} catch (err) {
 		console.log(err);

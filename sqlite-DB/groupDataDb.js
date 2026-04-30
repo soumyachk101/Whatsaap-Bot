@@ -1,8 +1,6 @@
-import mdClient from "../mongodb.js";
+import db from "../sqlite.js";
 
-mdClient.connect();
-
-const group = mdClient.db("MyBotDataDB").collection("Groups");
+const group = db.db().collection("Groups");
 
 const createGroupData = async (groupJid, groupMetadata) => {
 	try {

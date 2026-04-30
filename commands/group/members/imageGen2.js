@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { writeFile } from "fs/promises";
 import mime from "mime";
 import memoryManager from "../../../functions/memoryUtils.js";
-import { getGroupData } from "../../../mongo-DB/groupDataDb.js";
+import { getGroupData } from "../../../sqlite-DB/groupDataDb.js";
 
 const getRandom = (ext) => {
 	return memoryManager.generateTempFileName(ext);

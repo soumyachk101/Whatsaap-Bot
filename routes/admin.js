@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { group } from "../mongo-DB/groupDataDb.js";
-import { member } from "../mongo-DB/membersDataDb.js";
-import { bot, getBotData } from "../mongo-DB/botDataDb.js";
+import { group } from "../sqlite-DB/groupDataDb.js";
+import { member } from "../sqlite-DB/membersDataDb.js";
+import { bot, getBotData } from "../sqlite-DB/botDataDb.js";
 import { cmdToText } from "../functions/getAddCommands.js";
-import mdClient from "../mongodb.js";
+import mdClient from "../sqlite.js";
 
 const router = Router();
 

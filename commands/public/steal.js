@@ -1,4 +1,4 @@
-import { getMemberData } from "../../mongo-DB/membersDataDb.js";
+import { getMemberData } from "../../sqlite-DB/membersDataDb.js";
 import { downloadContentFromMessage } from "baileys";
 import WSF from "wa-sticker-formatter";
 

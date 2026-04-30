@@ -9,10 +9,10 @@ const prefix = process.env.PREFIX;
 const moderatos = [...process.env.MODERATORS?.split(",")];
 import getGroupAdmins from "./getGroupAdmins.js";
 import { stickerForward, forwardGroup } from "../functions/getStickerForward.js";
-import { createMembersData, getMemberData, member } from "../mongo-DB/membersDataDb.js";
-import { createGroupData, getGroupData, group } from "../mongo-DB/groupDataDb.js";
+import { createMembersData, getMemberData, member } from "../sqlite-DB/membersDataDb.js";
+import { createGroupData, getGroupData, group } from "../sqlite-DB/groupDataDb.js";
 import { commandsPublic, commandsMembers, commandsAdmins, commandsOwners } from "./getAddCommands.js";
-import { getBotData } from "../mongo-DB/botDataDb.js";
+import { getBotData } from "../sqlite-DB/botDataDb.js";
 
 // These will be used for permission checks
 const myNumber = [
@@ -295,12 +295,12 @@ const getCommand = async (sock, msg, cache) => {
 				tagMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 			}
 			if (
-				body.split(" ")[0].toLowerCase() == "eva" ||
+				body.split(" ")[0].toLowerCase() == "buddy" ||
 				(isTaggedBot &&
 					Object.keys(tagMessage)[0] == "conversation" &&
-					tagMessage?.conversation.startsWith("_*Eva:*_"))
+					tagMessage?.conversation.startsWith("_*DownloadBuddy:*_"))
 			) {
-				commandsPublic["eva"](sock, msg, from, args, {
+				commandsPublic["buddy"](sock, msg, from, args, {
 					sendMessageWTyping,
 					command,
 					updateName:
@@ -403,29 +403,14 @@ const getCommand = async (sock, msg, cache) => {
 			return result;
 		} else if (commandsMembers[command]) {
 			const t0 = Date.now();
-			let result;
-			if (isGroup || msg.key.fromMe) {
-				result = await commandsMembers[command](sock, msg, from, args, msgInfoObj);
-			} else {
-				result = await sendMessageWTyping(
-					from,
-					{ text: "```❎ This command is only applicable in Groups!```" },
-					{ quoted: msg }
-				);
-			}
+			const result = await commandsMembers[command](sock, msg, from, args, msgInfoObj);
 			const t1 = Date.now();
 			console.log(`[PROFILE] Command '${command}' (members) took ${t1 - t0}ms`);
 			return result;
 		} else if (commandsAdmins[command]) {
 			const t0 = Date.now();
 			let result;
-			if (!isGroup) {
-				result = await sendMessageWTyping(
-					from,
-					{ text: "```❎ This command is only applicable in Groups!```" },
-					{ quoted: msg }
-				);
-			} else if (isGroupAdmin || moderatos.includes(senderNumber) || myNumber.includes(senderJid)) {
+			if (isGroup || isOwner || moderatos.includes(senderNumber)) {
 				result = await commandsAdmins[command](sock, msg, from, args, msgInfoObj);
 			} else {
 				result = await sendMessageWTyping(

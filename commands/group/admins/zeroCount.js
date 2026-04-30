@@ -1,4 +1,4 @@
-import { group } from "../../../mongo-DB/groupDataDb.js";
+import { group } from "../../../sqlite-DB/groupDataDb.js";
 import { extractPhoneNumber } from "../../../functions/lidUtils.js";
 
 const more = String.fromCharCode(8206);

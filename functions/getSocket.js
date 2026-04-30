@@ -1,7 +1,7 @@
 import NodeCache from "node-cache";
 import makeWASocket from "baileys";
 import { fetchLatestBaileysVersion } from "baileys";
-import { useMongoDBAuthState } from "./useMongoDBAuthState.js";
+import { useSQLiteAuthState } from "./useSQLiteAuthState.js";
 import P from "pino";
 
 const logger = P({ level: "silent" }); // Set to "error" to allow essential logs but suppress debug spam
@@ -61,11 +61,11 @@ const socket = async () => {
 		statsInterval = null;
 	}
 
-	// Use custom MongoDB auth state instead of file-based auth
-	const { state, saveCreds, cleanup } = await useMongoDBAuthState();
+	// Use custom SQLite auth state instead of file-based auth
+	const { state, saveCreds, cleanup } = await useSQLiteAuthState();
 	authStateCleanup = cleanup;
 
-	console.log("✅ Using MongoDB auth state");
+	console.log("✅ Using SQLite auth state");
 	if (state.creds?.me) {
 		console.log(`✅ Authenticated as: ${state.creds.me.id}`);
 	} else {
@@ -167,16 +167,8 @@ const socket = async () => {
 		}
 	});
 
-	// Periodic auth state stats logging (every 10 minutes - reduced frequency)
-	statsInterval = setInterval(async () => {
-		try {
-			const { getAuthStateStats } = await import("./useMongoDBAuthState.js");
-			const stats = await getAuthStateStats();
-			console.log(`📊 Auth state: ${stats.total} documents in MongoDB`, stats.byType);
-		} catch (error) {
-			console.error("Error getting auth state stats:", error);
-		}
-	}, 10 * 60 * 1000); // Every 10 minutes (reduced from 5)
+	// SQLite session is local and stable
+
 
 	// Clear interval and cleanup on socket close
 	sock.ws.on("close", () => {

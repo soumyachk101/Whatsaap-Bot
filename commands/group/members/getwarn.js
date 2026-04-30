@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { extractPhoneNumber } from "../../../functions/lidUtils.js";
-import { getGroupData } from "../../../mongo-DB/groupDataDb.js";
+import { getGroupData } from "../../../sqlite-DB/groupDataDb.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { senderJid, sendMessageWTyping } = msgInfoObj;
