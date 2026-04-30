@@ -1,5 +1,5 @@
 import db from "../sqlite.js";
-import { proto } from "baileys";
+import { initAuthCreds, proto } from "baileys";
 import { BufferJSON } from "baileys";
 
 const useSQLiteAuthState = async () => {
@@ -18,29 +18,7 @@ const useSQLiteAuthState = async () => {
 		db.prepare("DELETE FROM AuthState WHERE id = ?").run(id);
 	};
 
-	const creds = readData("creds") || {
-		noiseKey: proto.KeyPair.fromObject({
-			public: new Uint8Array(32),
-			private: new Uint8Array(32),
-		}),
-		signedIdentityKey: proto.KeyPair.fromObject({
-			public: new Uint8Array(32),
-			private: new Uint8Array(32),
-		}),
-		signedPreKey: {
-			keyPair: proto.KeyPair.fromObject({
-				public: new Uint8Array(32),
-				private: new Uint8Array(32),
-			}),
-			signature: new Uint8Array(64),
-			keyId: 0,
-		},
-		registrationId: 0,
-		advSecretKey: "",
-		nextPreKeyId: 1,
-		firstUnuploadedPreKeyId: 1,
-		accountSettings: { unarchiveChats: false },
-	};
+	const creds = readData("creds") || initAuthCreds();
 
 	return {
 		state: {
