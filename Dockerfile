@@ -21,25 +21,24 @@ RUN wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
 
 ENV YTDL_EXTRACTOR_ARGS="youtube:player_client=default,web"
 
-# ── pnpm ─────────────────────────────────────────────────────────────────────
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
-
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+# Install root dependencies using npm
+COPY package.json package-lock.json* ./
+RUN npm install --no-audit
 
+# Install dashboard dependencies
 COPY dashboard/package.json dashboard/package-lock.json* ./dashboard/
 RUN npm install --prefix dashboard --include=dev --no-audit
 
 COPY . .
 
+# Build dashboard
 RUN cd dashboard && npm run build
 
 RUN mkdir -p temp
 
 ENV NODE_ENV=production
-
 EXPOSE 8080
 
 CMD ["node", "index.js"]
