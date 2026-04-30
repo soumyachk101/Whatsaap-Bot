@@ -1,6 +1,6 @@
 import db from "../sqlite.js";
-import { proto } from "@whiskeysockets/baileys";
-import { BufferJSON } from "@whiskeysockets/baileys";
+import { proto } from "baileys";
+import { BufferJSON } from "baileys";
 
 const useSQLiteAuthState = async () => {
 	const writeData = (data, id) => {
