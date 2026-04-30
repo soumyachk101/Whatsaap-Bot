@@ -1,19 +1,46 @@
-import { BufferJSON, initAuthCreds, proto } from "baileys";
 import db from "../sqlite.js";
+import { proto } from "@whiskeysockets/baileys";
+import { BufferJSON } from "@whiskeysockets/baileys";
 
 const useSQLiteAuthState = async () => {
+	const writeData = (data, id) => {
+		const value = JSON.stringify(data, BufferJSON.replacer);
+		db.prepare("INSERT OR REPLACE INTO AuthState (id, value) VALUES (?, ?)").run(id, value);
+	};
+
 	const readData = (id) => {
 		const row = db.prepare("SELECT value FROM AuthState WHERE id = ?").get(id);
 		if (!row) return null;
 		return JSON.parse(row.value, BufferJSON.reviver);
 	};
 
-	const writeData = (id, value) => {
-		const jsonValue = JSON.stringify(value, BufferJSON.replacer);
-		db.prepare("INSERT OR REPLACE INTO AuthState (id, value) VALUES (?, ?)").run(id, jsonValue);
+	const removeData = (id) => {
+		db.prepare("DELETE FROM AuthState WHERE id = ?").run(id);
 	};
 
-	const creds = readData("creds") || initAuthCreds();
+	const creds = readData("creds") || {
+		noiseKey: proto.KeyPair.fromObject({
+			public: new Uint8Array(32),
+			private: new Uint8Array(32),
+		}),
+		signedIdentityKey: proto.KeyPair.fromObject({
+			public: new Uint8Array(32),
+			private: new Uint8Array(32),
+		}),
+		signedPreKey: {
+			keyPair: proto.KeyPair.fromObject({
+				public: new Uint8Array(32),
+				private: new Uint8Array(32),
+			}),
+			signature: new Uint8Array(64),
+			keyId: 0,
+		},
+		registrationId: 0,
+		advSecretKey: "",
+		nextPreKeyId: 1,
+		firstUnuploadedPreKeyId: 1,
+		accountSettings: { unarchiveChats: false },
+	};
 
 	return {
 		state: {
@@ -31,25 +58,22 @@ const useSQLiteAuthState = async () => {
 					return data;
 				},
 				set: async (data) => {
-					for (const category in data) {
-						for (const id in data[category]) {
-							const value = data[category][id];
-							const key = `${category}-${id}`;
-							if (value == null) {
-								db.prepare("DELETE FROM AuthState WHERE id = ?").run(key);
+					for (const type in data) {
+						for (const id in data[type]) {
+							const value = data[type][id];
+							if (value) {
+								writeData(value, `${type}-${id}`);
 							} else {
-								writeData(key, value);
+								removeData(`${type}-${id}`);
 							}
 						}
 					}
 				},
 			},
 		},
-		saveCreds: async () => {
-			writeData("creds", creds);
-		},
-		cleanup: () => {
-			// SQLite doesn't need much cleanup here since we aren't using a background flush for now
+		saveCreds: () => {
+			writeData(creds, "creds");
+			console.log("💾 Credentials saved to SQLite");
 		},
 	};
 };

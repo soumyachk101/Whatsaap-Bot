@@ -276,8 +276,8 @@ router.post("/api/admin/request-pair", requireAdmin, async (req, res) => {
 	const sock = req.app.locals.sock;
 	if (!sock) return res.status(503).json({ error: "Bot socket is not ready." });
 
-	if (sock.authState?.creds?.registered) {
-		return res.status(400).json({ error: "Bot is already logged in. Clear auth first, then restart the bot." });
+	if (sock.authState?.creds?.registered || sock.user) {
+		return res.status(400).json({ error: "Bot is already logged in. If you want to link a new number, Logout first." });
 	}
 
 	try {
@@ -295,7 +295,7 @@ router.post("/api/admin/request-pair", requireAdmin, async (req, res) => {
 // ── API: Clear auth database (new) ────────────────────────────────────────────
 router.post("/api/admin/clear-auth", requireAdmin, async (req, res) => {
 	try {
-		const authCollection = mdClient.db("MyBotDataDB").collection("AuthState");
+		const authCollection = mdClient.db().collection("AuthState");
 		const result = await authCollection.deleteMany({});
 		res.json({ ok: true, deleted: result.deletedCount, message: "Auth cleared. Restart the bot to get a new QR code or pairing code." });
 	} catch (err) {
