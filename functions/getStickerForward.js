@@ -22,7 +22,7 @@ const stickerForward = async (sock, msg, from) => {
 
 	console.log("Message:", msg.message);
 
-	// let packName = "eva";
+	// let packName = "SOUMYA";
 	// let authorName = undefined;
 
 	// const media = getRandom(".webp");

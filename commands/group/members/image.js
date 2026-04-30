@@ -47,7 +47,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					from,
 					{
 						image: ran,
-						caption: "Sent by eva",
+						caption: "Sent by DownloadWorld",
 						mimetype: "image/png",
 					},
 					{ quoted: msg }

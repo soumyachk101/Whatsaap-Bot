@@ -69,7 +69,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					sock.sendMessage(from, {
 						image: await fs.promises.readFile("./bg.png"),
 						mimetype: "image/png",
-						caption: `*Sent by eva*`,
+						caption: `*Sent by DownloadWorld*`,
 					}).then(() => {
 						try {
 							fs.unlinkSync(media);

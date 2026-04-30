@@ -33,8 +33,8 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-card">
         <div className="login-brand">
-          <img src="/eva.jpg" alt="Eva" />
-          <h1>Eva Bot</h1>
+          <img src="/downloadworld.jpg" alt="DownloadWorld" />
+          <h1>DownloadWorld Bot</h1>
           <p>Admin Panel — Restricted Access</p>
         </div>
 

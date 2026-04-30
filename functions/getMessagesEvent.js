@@ -140,12 +140,12 @@ const getCommand = async (sock, msg, cache) => {
 		if (!types.includes(type)) return;
 
 		if (type == "buttonsResponseMessage") {
-			if (msg.message.buttonsResponseMessage.selectedButtonId == "eva")
+			if (msg.message.buttonsResponseMessage.selectedButtonId == "downloadworld")
 				body = body.startsWith(prefix) ? body : prefix + body;
 		} else if (type == "templateButtonReplyMessage") {
 			body = body.startsWith(prefix) ? body : prefix + body;
 		} else if (type == "listResponseMessage") {
-			if (msg.message.listResponseMessage.singleSelectReply.selectedRowId == "eva")
+			if (msg.message.listResponseMessage.singleSelectReply.selectedRowId == "downloadworld")
 				body = body.startsWith(prefix) ? body : prefix + body;
 		}
 
@@ -295,12 +295,12 @@ const getCommand = async (sock, msg, cache) => {
 				tagMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 			}
 			if (
-				body.split(" ")[0].toLowerCase() == "buddy" ||
+				["downloadworld", "dw"].includes(body.split(" ")[0].toLowerCase()) ||
 				(isTaggedBot &&
 					Object.keys(tagMessage)[0] == "conversation" &&
-					tagMessage?.conversation.startsWith("_*DownloadBuddy:*_"))
+					tagMessage?.conversation.startsWith("_*DownloadWorld:*_"))
 			) {
-				commandsPublic["buddy"](sock, msg, from, args, {
+				commandsPublic["downloadworld"](sock, msg, from, args, {
 					sendMessageWTyping,
 					command,
 					updateName:

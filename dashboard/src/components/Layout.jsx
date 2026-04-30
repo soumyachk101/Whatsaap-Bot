@@ -43,9 +43,9 @@ export default function Layout({ children }) {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <img src="/eva.jpg" alt="DownloadBuddy" className="brand-img" />
+          <img src="/downloadworld.jpg" alt="DownloadWorld" className="brand-img" />
           <div className="brand-text">
-            <h1>DownloadBuddy</h1>
+            <h1>DownloadWorld</h1>
             <p>{stats?.botNumber || 'Loading…'}</p>
           </div>
         </div>

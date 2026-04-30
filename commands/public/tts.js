@@ -33,8 +33,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	out.on("finish", async () => {
 		const sticker = new Sticker(`./${filename}`, {
-			pack: "Bot",
-			author: "eva",
+			pack: "SOUMYA",
+			author: "DownloadWorld",
 		});
 		await sticker.build();
 		const stickerBuffer = await sticker.get();

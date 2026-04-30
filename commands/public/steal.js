@@ -10,8 +10,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const memberData = await getMemberData(senderJid);
 
 	if (type === "extendedTextMessage" && content.includes("stickerMessage")) {
-		let packName = "eva";
-		let authorName = "jacktheboss220";
+		let packName = "SOUMYA";
+		let authorName = "DownloadWorld";
 		if (args.includes("pack")) packName = args.join(" ").split("pack ")[1].split("author")[0];
 
 		if (args.includes("author")) authorName = args.join(" ").split("author ")[1].split("pack")[0];
@@ -32,14 +32,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				command == "stealn"
 					? await WSF.setMetadata(undefined, undefined, media)
 					: await WSF.setMetadata(
-							packOrAuthor ? packName : evv ? evv : memberData.customStealText || "eva",
+							packOrAuthor ? packName : evv ? evv : memberData?.customStealText || "SOUMYA",
 							packOrAuthor
 								? authorName
 								: evv
 								? ""
-								: memberData.customStealText
+								: memberData?.customStealText
 								? undefined
-								: "jacktheboss220",
+								: "DownloadWorld",
 							media
 					  );
 			await sock.sendMessage(from, { sticker: Buffer.from(webpWithMetadata) }, { quoted: msg });

@@ -27,7 +27,7 @@ app.use(
 
 app.use(
 	session({
-		secret: process.env.SESSION_SECRET || "eva-fallback-secret",
+		secret: process.env.SESSION_SECRET || "downloadworld-fallback-secret",
 		resave: false,
 		saveUninitialized: false,
 		cookie: { secure: false, httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }, // 8 hours
