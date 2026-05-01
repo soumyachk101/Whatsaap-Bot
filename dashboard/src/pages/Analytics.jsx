@@ -5,33 +5,7 @@ import {
 } from 'recharts'
 import { getAnalytics } from '../lib/api.js'
 
-const CHART_TOOLTIP = {
-  contentStyle: {
-    background: '#0d1420',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 8,
-    color: '#f1f5f9',
-    fontSize: 12,
-    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-  },
-  itemStyle:    { color: '#e2e8f0' },
-  labelStyle:   { color: '#94a3b8', marginBottom: 4 },
-  wrapperStyle: { outline: 'none' },
-  cursor:       { fill: 'rgba(255,255,255,0.04)' },
-}
-const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
-const BAR_COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff']
-
-function Stat({ label, value, color }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-body">
-        <strong style={{ fontSize: '1.6rem', color: color || 'var(--text)' }}>{(value ?? 0).toLocaleString()}</strong>
-        <span>{label}</span>
-      </div>
-    </div>
-  )
-}
+const COLORS = ['#fafafa', '#a1a1aa', '#52525b', '#27272a', '#18181b']
 
 export default function Analytics() {
   const [data,    setData]    = useState(null)
@@ -45,11 +19,11 @@ export default function Analytics() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="loading-state"><span className="spinner" /></div>
-  if (error)   return <p className="error-state">{error}</p>
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>Loading analytics...</div>
+  if (error)   return <div className="card" style={{ padding: '1rem', color: 'var(--destructive)', borderColor: 'var(--destructive)' }}>Error: {error}</div>
   if (!data)   return null
 
-  const { topGroups, topMembers, typeBreakdown, totalMessages, activeGroups, blockedMembers, totalGroups, totalMembers } = data
+  const { topGroups, topMembers, typeBreakdown, totalMessages } = data
 
   const typeData = [
     { name: 'Text',    value: typeBreakdown.text },
@@ -61,59 +35,52 @@ export default function Analytics() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2>Analytics</h2>
-          <p className="sub">Message statistics across all groups and members.</p>
-        </div>
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.025em' }}>Analytics</h2>
+        <p className="text-muted" style={{ marginTop: '0.25rem' }}>Detailed breakdown of message types and user activity.</p>
       </div>
 
-      {/* Summary stats */}
-      <div className="stats-grid" style={{ marginBottom: 20 }}>
-        <Stat label="Total Messages"  value={totalMessages} color="var(--accent)" />
-        <Stat label="Active Groups"   value={activeGroups}  color="var(--success)" />
-        <Stat label="Blocked Members" value={blockedMembers} color="var(--danger)" />
-        <Stat label="Total Groups"    value={totalGroups} />
-        <Stat label="Total Members"   value={totalMembers} />
-        <Stat label="Avg Msgs/Member" value={totalMembers ? Math.round(totalMessages / totalMembers) : 0} />
-      </div>
-
-      {/* Type breakdown + Top groups */}
-      <div className="charts-row" style={{ marginBottom: 14 }}>
-        <div className="chart-card">
-          <p className="chart-title">Message Type Distribution</p>
-          {typeData.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={typeData} cx="50%" cy="46%" innerRadius={65} outerRadius={100} dataKey="value" paddingAngle={3}>
-                  {typeData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                </Pie>
-                <Tooltip {...CHART_TOOLTIP} formatter={v => [v.toLocaleString(), 'Messages']} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <p className="empty-state">No message data yet.</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+        {/* Type Breakdown */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Message Types</h3>
+            <p className="card-description">Distribution of media and text.</p>
+          </div>
+          <div className="card-content">
+            {typeData.length ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={typeData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} dataKey="value" paddingAngle={2} stroke="none">
+                    {typeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : <p className="text-muted" style={{ fontSize: '0.875rem' }}>No data available.</p>}
+          </div>
         </div>
 
-        <div className="chart-card">
-          <p className="chart-title">Type Breakdown (count)</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-            {[
-              { icon: '💬', label: 'Text',    value: typeBreakdown.text },
-              { icon: '🖼️', label: 'Image',   value: typeBreakdown.image },
-              { icon: '🎥', label: 'Video',   value: typeBreakdown.video },
-              { icon: '🎭', label: 'Sticker', value: typeBreakdown.sticker },
-              { icon: '📄', label: 'PDF',     value: typeBreakdown.pdf },
-            ].map(({ icon, label, value }, i) => {
+        {/* Detailed List */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Breakdown</h3>
+            <p className="card-description">Exact counts per message type.</p>
+          </div>
+          <div className="card-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {typeData.map(({ name, value }, i) => {
               const pct = totalMessages ? Math.round((value / totalMessages) * 100) : 0
               return (
-                <div key={label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 4 }}>
-                    <span style={{ color: 'var(--text-soft)' }}>{icon} {label}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{value.toLocaleString()} ({pct}%)</span>
+                <div key={name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontWeight: 500 }}>{name}</span>
+                    <span className="text-muted">{value.toLocaleString()} ({pct}%)</span>
                   </div>
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: `${pct}%`, background: PIE_COLORS[i] }} />
+                  <div style={{ height: '0.5rem', background: 'var(--muted)', borderRadius: '9999px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: COLORS[i % COLORS.length] }} />
                   </div>
                 </div>
               )
@@ -122,36 +89,29 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Top Groups */}
-      <div className="chart-card" style={{ marginBottom: 14 }}>
-        <p className="chart-title">Top 10 Groups by Messages</p>
-        {topGroups.length ? (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={topGroups} layout="vertical" margin={{ left: 0, right: 24 }}>
-              <XAxis type="number" tick={{ fill: '#4b5d72', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip {...CHART_TOOLTIP} formatter={v => [v.toLocaleString(), 'Messages']} />
-              <Bar dataKey="messages" radius={[0, 4, 4, 0]} maxBarSize={20}>
-                {topGroups.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <p className="empty-state">No group data yet.</p>}
-      </div>
-
-      {/* Top Members */}
-      <div className="chart-card">
-        <p className="chart-title">Top 10 Members by Messages</p>
-        {topMembers.length ? (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={topMembers} layout="vertical" margin={{ left: 0, right: 24 }}>
-              <XAxis type="number" tick={{ fill: '#4b5d72', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip {...CHART_TOOLTIP} formatter={v => [v.toLocaleString(), 'Messages']} />
-              <Bar dataKey="messages" fill="var(--success)" radius={[0, 4, 4, 0]} maxBarSize={20} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <p className="empty-state">No member data yet.</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Top Members</h3>
+            <p className="card-description">Users with the highest engagement.</p>
+          </div>
+          <div className="card-content">
+            {topMembers.length ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={topMembers.slice(0, 10)} layout="vertical" margin={{ left: -20 }}>
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" width={150} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                     cursor={{ fill: 'var(--muted)' }}
+                     contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}
+                     itemStyle={{ color: 'var(--foreground)' }}
+                  />
+                  <Bar dataKey="messages" fill="var(--foreground)" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="text-muted" style={{ fontSize: '0.875rem' }}>No data available.</p>}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,9 +1,10 @@
+import "dotenv/config";
 import startSock, { onNewSock } from "./connection.js";
 import getDate from "./functions/getDate.js";
 import memoryManager from "./functions/memoryUtils.js";
 import performanceMonitor from "./functions/performanceMonitor.js";
 import { normalizeJID } from "./functions/lidUtils.js";
-import adminRouter from "./routes/admin.js";
+import adminRouter, { requireAdmin } from "./routes/admin.js";
 
 import cors from "cors";
 import express from "express";
@@ -21,19 +22,27 @@ const app = express();
 app.use(
 	cors({
 		credentials: true,
+		origin: true, 
 		optionsSuccessStatus: 200,
 	})
 );
 
-app.use(
-	session({
-		secret: process.env.SESSION_SECRET || "downloadworld-fallback-secret",
-		resave: false,
-		saveUninitialized: false,
-		cookie: { secure: false, httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }, // 8 hours
-	})
-);
+// Improved session configuration for both local and production
+const sessionMiddleware = session({
+	secret: process.env.SESSION_SECRET || "downloadbuddy-fallback-fixed-secret-key",
+	resave: false,
+	saveUninitialized: false,
+	cookie: { 
+		// ONLY use secure cookies if NOT on localhost. 
+		// Browsers block secure cookies on plain HTTP (localhost).
+		secure: false, // Set to false for compatibility, we handle security via httpOnly and sameSite
+		httpOnly: true, 
+		maxAge: 24 * 60 * 60 * 1000, // 24 hours
+		sameSite: "lax"
+	}, 
+});
 
+app.use(sessionMiddleware);
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(
 	express.static(path.join(__dirname, "public"), {
@@ -53,8 +62,6 @@ app.set("view engine", "ejs");
 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-const port = process.env.PORT || 8000;
-
 app.get("/", (_req, res) => {
 	res.render("index");
 });
@@ -69,6 +76,7 @@ app.get("/admin/*", (req, res, next) => {
 	res.sendFile(reactIndex);
 });
 
+const port = process.env.PORT || 8000;
 const server = app.listen(port, () => {
 	console.log("\nWeb-server running!\n" + getDate());
 	console.log(`Memory usage at startup: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
@@ -85,9 +93,18 @@ const wss = new WebSocketServer({
 	perMessageDeflate: true,
 });
 
+// Helper to access session in WebSocket
+const getSession = (req) => {
+	return new Promise((resolve) => {
+		sessionMiddleware(req, {}, () => {
+			resolve(req.session);
+		});
+	});
+};
+
 let botConnected = false;
-let lastQR = null;   // Last QR code received; replayed to late-joining browser clients
-let lastQRTimer = null;   // Timer to clear lastQR after it expires (~60 s)
+let lastQR = null;   
+let lastQRTimer = null;   
 
 function broadcast(payload) {
 	const msg = JSON.stringify(payload);
@@ -97,7 +114,7 @@ function broadcast(payload) {
 }
 
 function handleNewSock(sock) {
-	app.locals.sock = sock; // always up-to-date reference for admin routes
+	app.locals.sock = sock; 
 
 	sock.ev.on("connection.update", (update) => {
 		const { qr, isOnline, connection } = update;
@@ -105,7 +122,6 @@ function handleNewSock(sock) {
 		if (qr) {
 			botConnected = false;
 			lastQR = qr;
-			// QR codes expire (~60 s); clear stored copy so stale QR isn't replayed
 			clearTimeout(lastQRTimer);
 			lastQRTimer = setTimeout(() => { lastQR = null; }, 60_000);
 			broadcast({ type: "qr", qr });
@@ -130,13 +146,15 @@ onNewSock(handleNewSock);
 app.locals.reconnect = () => startSock("manual-reconnect");
 
 // ── WebSocket server ──────────────────────────────────────────────────────────
-wss.on("connection", (ws) => {
+wss.on("connection", async (ws, req) => {
+	const session = await getSession(req);
+	const isAdmin = session?.isAdmin;
+
 	const isConnected = botConnected || app.locals.sock?.user != null;
 	if (isConnected) {
-		botConnected = true; // sync flag
+		botConnected = true; 
 		ws.send(JSON.stringify({ type: "status", status: "connected" }));
 	} else if (lastQR) {
-		// Browser missed the QR broadcast — replay the stored copy
 		ws.send(JSON.stringify({ type: "qr", qr: lastQR }));
 	}
 
@@ -147,6 +165,11 @@ wss.on("connection", (ws) => {
 	ws.on("pong", () => { });
 
 	ws.on("message", async (raw) => {
+		if (!isAdmin) {
+			ws.send(JSON.stringify({ type: "error", error: "Unauthorized: Admin session required" }));
+			return;
+		}
+
 		try {
 			const { to, message } = JSON.parse(raw);
 			if (!to || !message) {
@@ -158,12 +181,14 @@ wss.on("connection", (ws) => {
 				return;
 			}
 			const sock = app.locals.sock;
-			await sock.sendMessage(to + "@s.whatsapp.net", { text: message });
-			console.log("Message sent to", to, ":", message);
+			if (!sock) throw new Error("Bot not connected");
+			
+			await sock.sendMessage(to.includes("@") ? to : to + "@s.whatsapp.net", { text: message });
+			console.log("Admin message sent to", to, ":", message);
 			ws.send(JSON.stringify({ type: "success", success: "Message sent" }));
 		} catch (err) {
 			console.error("Error handling WebSocket message:", err);
-			ws.send(JSON.stringify({ type: "error", error: "Failed to send message" }));
+			ws.send(JSON.stringify({ type: "error", error: "Failed to send message: " + err.message }));
 		}
 	});
 
@@ -174,7 +199,9 @@ wss.on("connection", (ws) => {
 // ── Bot start ─────────────────────────────────────────────────────────────────
 async function startServer() {
 	await startSock("start");
-	app.post("/send", async (req, res) => {
+	
+	// Protected endpoint for sending messages via API
+	app.post("/send", requireAdmin, async (req, res) => {
 		const { to, message } = req.body;
 		if (!to || !message) {
 			performanceMonitor.incrementErrorCount();
@@ -182,24 +209,26 @@ async function startServer() {
 		}
 
 		try {
-			const sock = app.locals.sock; // live reference
+			const sock = app.locals.sock; 
+			if (!sock) return res.status(503).json({ error: "Bot not connected" });
+
 			if (Array.isArray(to)) {
 				const jids = await Promise.all(to.map((r) => normalizeJID(sock, r)));
 				await Promise.all(jids.map((jid) => sock.sendMessage(jid, { text: message })));
-				console.log("Message sent to multiple recipients");
+				console.log("Admin API: Message sent to multiple recipients");
 				performanceMonitor.incrementCommandCount();
 				return res.send({ message: "Messages sent" });
 			} else {
 				const recipientJid = await normalizeJID(sock, to);
 				await sock.sendMessage(recipientJid, { text: message });
-				console.log("Message sent to", to, ":", message);
+				console.log("Admin API: Message sent to", to, ":", message);
 				performanceMonitor.incrementCommandCount();
 				return res.send({ message: "Message sent" });
 			}
 		} catch (error) {
-			console.error("Error sending message:", error);
+			console.error("Error sending message via API:", error);
 			performanceMonitor.incrementErrorCount();
-			return res.status(500).send({ message: "Failed to send message" });
+			return res.status(500).send({ message: "Failed to send message", error: error.message });
 		}
 	});
 }

@@ -1,89 +1,108 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { getGroups, updateGroup } from '../lib/api.js'
 import { useToast } from '../App.jsx'
 
-const SORTS = [
-  { key: 'active',    label: 'Active First' },
-  { key: 'name-asc',  label: 'Name A→Z' },
-  { key: 'name-desc', label: 'Name Z→A' },
-  { key: 'msg-desc',  label: 'Most Messages' },
-  { key: 'msg-asc',   label: 'Least Messages' },
-]
-
-const TOGGLES = [
-  { field: 'isBotOn',         label: 'Bot Active' },
-  { field: 'isChatBotOn',     label: 'Chatbot' },
-  { field: 'isImgOn',         label: 'Image Search' },
-  { field: 'isAutoStickerOn', label: 'Auto-Sticker' },
-  { field: 'is91Only',        label: 'India-Only (+91)' },
-]
-
 function GroupCard({ grp, onUpdate, onAddBlock, onRemoveBlock }) {
-  const addRef = useRef()
+  const [blockInput, setBlockInput] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleToggle = async (field, val) => {
+    setLoading(true)
+    await onUpdate(grp._id, { [field]: val })
+    setLoading(false)
+  }
 
   return (
-    <div className="grp-card">
-      <div className="grp-header">
-        <div style={{ minWidth: 0 }}>
-          <h3>{grp.grpName || 'Unnamed Group'}</h3>
-          <div className="jid">{grp._id}</div>
+    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="card-header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h3 className="card-title" style={{ fontSize: '1rem', fontWeight: 600, wordBreak: 'break-word' }}>{grp.grpName || 'Unknown Group'}</h3>
+            <p className="text-muted" style={{ fontSize: '0.75rem', fontFamily: 'monospace', marginTop: '0.25rem' }}>{grp._id.replace('@g.us', '')}</p>
+          </div>
+          <div className={`badge ${grp.isBotOn ? 'badge-success' : 'badge-destructive'}`}>
+            {grp.isBotOn ? 'Active' : 'Inactive'}
+          </div>
         </div>
-        <span className={`badge ${grp.isBotOn ? 'badge-on' : 'badge-off'}`} style={{ flexShrink: 0 }}>
-          {grp.isBotOn ? 'ON' : 'OFF'}
-        </span>
       </div>
 
-      {grp.desc && <p className="grp-desc">{grp.desc}</p>}
+      <div className="card-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--secondary)', borderRadius: 'var(--radius)' }}>
+            <span className="text-muted">Total Msgs</span>
+            <span style={{ fontWeight: 500 }}>{grp.totalmsg || 0}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--secondary)', borderRadius: 'var(--radius)' }}>
+            <span className="text-muted">Members</span>
+            <span style={{ fontWeight: 500 }}>{grp.memberCount || 0}</span>
+          </div>
+        </div>
 
-      <div className="toggle-grid">
-        {TOGGLES.map(({ field, label }) => (
-          <div key={field} className="toggle-row">
-            <span>{label}</span>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Bot Enabled</span>
             <label className="toggle">
-              <input
-                type="checkbox"
-                checked={!!grp[field]}
-                onChange={e => onUpdate(grp._id, field, e.target.checked)}
-              />
+              <input type="checkbox" checked={grp.isBotOn} onChange={(e) => handleToggle('isBotOn', e.target.checked)} disabled={loading} />
               <span className="slider" />
             </label>
           </div>
-        ))}
-      </div>
-
-      <div className="blocked-section">
-        <p className="blocked-label">Blocked Commands <span className="count">{(grp.cmdBlocked || []).length}</span></p>
-        <div className="chips-row">
-          {(grp.cmdBlocked || []).map(cmd => (
-            <span key={cmd} className="chip-cmd">
-              {cmd}
-              <button onClick={() => onRemoveBlock(grp._id, cmd)} title="Unblock">✕</button>
-            </span>
-          ))}
-          <div className="add-blocked">
-            <input ref={addRef} type="text" placeholder="add command…" />
-            <button className="btn-sm" onClick={() => {
-              const v = addRef.current?.value?.trim().toLowerCase()
-              if (v) { onAddBlock(grp._id, v); addRef.current.value = '' }
-            }}>Add</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Anti-Link</span>
+            <label className="toggle">
+              <input type="checkbox" checked={grp.antilink} onChange={(e) => handleToggle('antilink', e.target.checked)} disabled={loading} />
+              <span className="slider" />
+            </label>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>NSFW Filter</span>
+            <label className="toggle">
+              <input type="checkbox" checked={grp.nsfw} onChange={(e) => handleToggle('nsfw', e.target.checked)} disabled={loading} />
+              <span className="slider" />
+            </label>
           </div>
         </div>
-      </div>
 
-      <div className="grp-meta">
-        <span>💬 {grp.totalMsgCount || 0} messages</span>
-        <span>👥 {(grp.members || []).length} members</span>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Blocked Commands</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.75rem' }}>
+            {grp.cmdBlocked?.length ? grp.cmdBlocked.map(c => (
+              <span key={c} className="badge" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.125rem 0.25rem 0.125rem 0.5rem' }}>
+                {c}
+                <button onClick={() => onRemoveBlock(grp._id, c)} style={{ background: 'transparent', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1 }}>×</button>
+              </span>
+            )) : <span className="text-muted" style={{ fontSize: '0.75rem' }}>None</span>}
+          </div>
+          <form 
+            onSubmit={e => { e.preventDefault(); if (blockInput) { onAddBlock(grp._id, blockInput); setBlockInput('') } }}
+            style={{ display: 'flex', gap: '0.5rem' }}
+          >
+            <input
+              className="input"
+              style={{ height: '2rem', fontSize: '0.75rem' }}
+              placeholder="Command name..."
+              value={blockInput}
+              onChange={e => setBlockInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+            />
+            <button className="btn btn-secondary" type="submit" style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem' }}>Block</button>
+          </form>
+        </div>
       </div>
     </div>
   )
 }
 
+const SORTS = [
+  { key: 'totalmsg', label: 'By Volume' },
+  { key: 'memberCount', label: 'By Members' },
+  { key: 'isBotOn', label: 'Active First' }
+]
+
 export default function Groups() {
   const toast = useToast()
   const [groups,  setGroups]  = useState([])
   const [loading, setLoading] = useState(true)
-  const [sort,    setSort]    = useState('active')
   const [search,  setSearch]  = useState('')
+  const [sort,    setSort]    = useState('totalmsg')
 
   useEffect(() => {
     getGroups()
@@ -92,24 +111,25 @@ export default function Groups() {
       .finally(() => setLoading(false))
   }, [])
 
-  const rows = useMemo(() => {
+  const rows = [...groups].filter(g => {
+    if (!search) return true
     const q = search.toLowerCase()
-    let list = groups.filter(g => !q || (g.grpName || '').toLowerCase().includes(q) || g._id.includes(q))
-    if (sort === 'active')    list = [...list].sort((a, b) => (b.isBotOn ? 1 : 0) - (a.isBotOn ? 1 : 0))
-    if (sort === 'name-asc')  list = [...list].sort((a, b) => (a.grpName || '').localeCompare(b.grpName || ''))
-    if (sort === 'name-desc') list = [...list].sort((a, b) => (b.grpName || '').localeCompare(a.grpName || ''))
-    if (sort === 'msg-desc')  list = [...list].sort((a, b) => (b.totalMsgCount || 0) - (a.totalMsgCount || 0))
-    if (sort === 'msg-asc')   list = [...list].sort((a, b) => (a.totalMsgCount || 0) - (b.totalMsgCount || 0))
-    return list
-  }, [groups, sort, search])
+    return (g.grpName || '').toLowerCase().includes(q) || g._id.includes(q)
+  }).sort((a, b) => {
+    if (sort === 'totalmsg') return (b.totalmsg || 0) - (a.totalmsg || 0)
+    if (sort === 'memberCount') return (b.memberCount || 0) - (a.memberCount || 0)
+    if (sort === 'isBotOn') return (a.isBotOn === b.isBotOn) ? 0 : a.isBotOn ? -1 : 1
+    return 0
+  })
 
-  async function handleUpdate(jid, field, val) {
-    setGroups(prev => prev.map(g => g._id === jid ? { ...g, [field]: val } : g))
+  async function handleUpdate(jid, data) {
+    const prev = [...groups]
+    setGroups(g => g.map(x => x._id === jid ? { ...x, ...data } : x))
     try {
-      await updateGroup(jid, { [field]: val })
-      toast(`${field} → ${val}`)
+      await updateGroup(jid, data)
+      toast('Group updated')
     } catch (err) {
-      setGroups(prev => prev.map(g => g._id === jid ? { ...g, [field]: !val } : g))
+      setGroups(prev)
       toast(err.message, false)
     }
   }
@@ -146,33 +166,39 @@ export default function Groups() {
 
   return (
     <div>
-      <div className="page-header">
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h2>Groups</h2>
-          <p className="sub">{groups.length} total · <span style={{ color: 'var(--success)' }}>{activeCount} active</span></p>
-        </div>
-        <div className="page-actions">
-          <input
-            className="search-input"
-            placeholder="Search groups…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <h2 style={{ fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.025em' }}>Groups</h2>
+          <p className="text-muted" style={{ marginTop: '0.25rem' }}>{groups.length} total · <span className="text-success">{activeCount} active</span></p>
         </div>
       </div>
 
-      <div className="chips">
-        {SORTS.map(s => (
-          <button key={s.key} className={`chip ${sort === s.key ? 'active' : ''}`} onClick={() => setSort(s.key)}>
-            {s.label}
-          </button>
-        ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {SORTS.map(s => (
+            <button 
+              key={s.key} 
+              className={`btn ${sort === s.key ? 'btn-secondary' : 'btn-ghost'}`} 
+              onClick={() => setSort(s.key)}
+              style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem', border: '1px solid var(--border)' }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <input
+          className="input"
+          placeholder="Search groups..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ width: '300px', height: '2.5rem' }}
+        />
       </div>
 
       {loading ? (
-        <div className="loading-state"><span className="spinner" /></div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Loading groups...</div>
       ) : rows.length ? (
-        <div className="group-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {rows.map(g => (
             <GroupCard
               key={g._id}
@@ -184,7 +210,7 @@ export default function Groups() {
           ))}
         </div>
       ) : (
-        <p className="empty-state">No groups found.</p>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>No groups found.</div>
       )}
     </div>
   )

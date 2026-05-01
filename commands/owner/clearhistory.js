@@ -13,7 +13,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		return sendMessageWTyping(
 			from,
-			{ text: "✅ DownloadWorld's conversation history has been cleared for this group!" },
+			{ text: "✅ DownloadBuddy's conversation history has been cleared for this group!" },
 			{ quoted: msg }
 		);
 	} catch (err) {
@@ -23,8 +23,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["clearhistory", "cleardownloadworld", "resetdownloadworld", "forgetdownloadworld"],
-	desc: "Clear DownloadWorld's conversation history for this group",
+	cmd: ["clearhistory", "cleardownloadbuddy", "resetdownloadbuddy", "forgetdownloadbuddy"],
+	desc: "Clear DownloadBuddy's conversation history for this group",
 	usage: "clearhistory",
 	handler,
 });

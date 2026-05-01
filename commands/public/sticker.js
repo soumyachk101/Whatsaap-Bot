@@ -50,7 +50,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	let packName = memberData?.customStealText || "SOUMYA";
-	let authorName = memberData?.customStealText ? undefined : "DownloadWorld";
+	let authorName = memberData?.customStealText ? undefined : "DownloadBuddy";
 
 	const isPackIncluded = args.includes("pack");
 	const isAuthorIncluded = args.includes("author");

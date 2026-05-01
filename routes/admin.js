@@ -8,7 +8,7 @@ import mdClient from "../sqlite.js";
 const router = Router();
 
 // ── Auth middleware ────────────────────────────────────────────────────────────
-function requireAdmin(req, res, next) {
+export function requireAdmin(req, res, next) {
 	if (req.session && req.session.isAdmin) return next();
 	if (req.path.startsWith("/api/")) return res.status(401).json({ error: "Unauthorized" });
 	return res.redirect("/admin/login");
@@ -23,9 +23,8 @@ router.get("/api/status", (req, res) => {
 	});
 });
 
-// ── Public pairing code endpoint (same trust level as the QR page) ───────────
-// Anyone who can see the QR page can also request a pairing code.
-router.post("/api/pair", async (req, res) => {
+// ── Public pairing code endpoint (PROTECTED) ───────────
+router.post("/api/pair", requireAdmin, async (req, res) => {
 	const { phoneNumber } = req.body;
 	if (!phoneNumber) return res.status(400).json({ error: "Phone number required." });
 

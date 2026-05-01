@@ -3,12 +3,12 @@ import { getMembers, memberAction } from '../lib/api.js'
 import { useToast } from '../App.jsx'
 
 const SORTS = [
-  { key: 'totalmsg',    label: 'Total ↕' },
-  { key: 'texttotal',   label: '💬 Text' },
-  { key: 'imagetotal',  label: '🖼️ Image' },
-  { key: 'videototal',  label: '🎥 Video' },
-  { key: 'stickertotal',label: '🎭 Sticker' },
-  { key: 'pdftotal',    label: '📄 PDF' },
+  { key: 'totalmsg',    label: 'Total Messages' },
+  { key: 'texttotal',   label: 'Text' },
+  { key: 'imagetotal',  label: 'Image' },
+  { key: 'videototal',  label: 'Video' },
+  { key: 'stickertotal',label: 'Sticker' },
+  { key: 'pdftotal',    label: 'PDF' },
 ]
 
 const LIMIT = 50
@@ -51,57 +51,63 @@ export default function Members() {
   async function handleAction(jid, action) {
     try {
       await memberAction(jid, action)
-      toast(`Done: ${action}`)
+      toast(`Action applied: ${action}`)
       load()
     } catch (err) { toast(err.message, false) }
   }
 
   function Arrow({ field }) {
-    if (sort !== field) return <span style={{ opacity: 0.22 }}>↕</span>
-    return order === 'desc' ? '↓' : '↑'
+    if (sort !== field) return <span style={{ opacity: 0.3, marginLeft: '4px' }}>↕</span>
+    return <span style={{ marginLeft: '4px' }}>{order === 'desc' ? '↓' : '↑'}</span>
   }
 
   const pages = data ? Math.ceil(data.total / LIMIT) : 0
 
   return (
     <div>
-      <div className="page-header">
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h2>Members</h2>
-          <p className="sub">{data ? `${data.total.toLocaleString()} members found` : 'Loading…'}</p>
-        </div>
-        <div className="page-actions">
-          <input
-            className="search-input"
-            placeholder="Search by JID or name…"
-            value={search}
-            onChange={e => handleSearch(e.target.value)}
-          />
+          <h2 style={{ fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.025em' }}>Members</h2>
+          <p className="text-muted" style={{ marginTop: '0.25rem' }}>{data ? `${data.total.toLocaleString()} members found` : 'Loading...'}</p>
         </div>
       </div>
 
-      <div className="chips">
-        {SORTS.map(s => (
-          <button key={s.key} className={`chip ${sort === s.key ? 'active' : ''}`} onClick={() => handleSort(s.key)}>
-            {s.label}
-          </button>
-        ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {SORTS.map(s => (
+            <button 
+              key={s.key} 
+              className={`btn ${sort === s.key ? 'btn-secondary' : 'btn-ghost'}`} 
+              onClick={() => handleSort(s.key)}
+              style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem', border: '1px solid var(--border)' }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <input
+          className="input"
+          placeholder="Search by JID or name..."
+          value={search}
+          onChange={e => handleSearch(e.target.value)}
+          style={{ width: '300px', height: '2.5rem' }}
+        />
       </div>
 
       <div className="table-wrap">
         {loading ? (
-          <div className="loading-state"><span className="spinner" /></div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Loading members...</div>
         ) : !data?.members?.length ? (
-          <p className="empty-state">No members found.</p>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>No members found.</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>JID</th>
                 <th>Name</th>
-                {[['totalmsg','Total'],['texttotal','Text'],['imagetotal','Image'],['videototal','Video'],['stickertotal','Sticker'],['pdftotal','PDF']].map(([f,l]) => (
-                  <th key={f} className="sortable" onClick={() => handleSort(f)}>
-                    {l} <Arrow field={f} />
+                {[['totalmsg','Total'],['texttotal','Text'],['imagetotal','Img'],['videototal','Vid'],['stickertotal','Sticker'],['pdftotal','PDF']].map(([f,l]) => (
+                  <th key={f} onClick={() => handleSort(f)} style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>{l} <Arrow field={f} /></div>
                   </th>
                 ))}
                 <th>Status</th>
@@ -111,29 +117,31 @@ export default function Members() {
             </thead>
             <tbody>
               {data.members.map(m => (
-                <tr key={m._id} className={m.isBlock ? 'row-blocked' : ''}>
-                  <td><code className="jid-sm">{m._id}</code></td>
-                  <td style={{ color: 'var(--text-soft)' }}>{m.username || '—'}</td>
-                  <td>{m.totalmsg    || 0}</td>
+                <tr key={m._id} style={{ opacity: m.isBlock ? 0.6 : 1 }}>
+                  <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{m._id.replace('@s.whatsapp.net', '')}</td>
+                  <td className="text-muted">{m.username || '—'}</td>
+                  <td style={{ fontWeight: 500 }}>{m.totalmsg    || 0}</td>
                   <td>{m.texttotal  || 0}</td>
                   <td>{m.imagetotal || 0}</td>
                   <td>{m.videototal || 0}</td>
                   <td>{m.stickertotal || 0}</td>
                   <td>{m.pdftotal   || 0}</td>
                   <td>
-                    <span className={`badge ${m.isBlock ? 'badge-err' : 'badge-on'}`}>
+                    <span className={`badge ${m.isBlock ? 'badge-destructive' : 'badge-success'}`}>
                       {m.isBlock ? 'Blocked' : 'Active'}
                     </span>
                   </td>
-                  <td>{(m.warning || []).length}</td>
                   <td>
-                    <div className="actions">
+                     {m.warning?.length > 0 ? <span className="text-warning font-medium">{m.warning.length}</span> : 0}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
                       {m.isBlock
-                        ? <button className="btn-sm" onClick={() => handleAction(m._id, 'unblock')}>Unblock</button>
-                        : <button className="btn-sm danger" onClick={() => handleAction(m._id, 'block')}>Block</button>
+                        ? <button className="btn btn-secondary" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem' }} onClick={() => handleAction(m._id, 'unblock')}>Unblock</button>
+                        : <button className="btn btn-danger-ghost" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem' }} onClick={() => handleAction(m._id, 'block')}>Block</button>
                       }
-                      <button className="btn-sm" onClick={() => handleAction(m._id, 'resetWarnings')}>Reset Warns</button>
-                      <button className="btn-sm" onClick={() => handleAction(m._id, 'resetMsgCount')}>Reset Count</button>
+                      <button className="btn btn-ghost" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem', border: '1px solid var(--border)' }} onClick={() => handleAction(m._id, 'resetWarnings')}>Unwarn</button>
+                      <button className="btn btn-ghost" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem', border: '1px solid var(--border)' }} onClick={() => handleAction(m._id, 'resetMsgCount')}>Zero</button>
                     </div>
                   </td>
                 </tr>
@@ -145,9 +153,9 @@ export default function Members() {
 
       {pages > 1 && (
         <div className="pagination">
-          <button disabled={page <= 1} onClick={() => handlePage(page - 1)}>← Prev</button>
-          <span>Page {page} / {pages} &nbsp;({data?.total?.toLocaleString()} total)</span>
-          <button disabled={page >= pages} onClick={() => handlePage(page + 1)}>Next →</button>
+          <button disabled={page <= 1} onClick={() => handlePage(page - 1)}>Previous</button>
+          <span>Page {page} of {pages}</span>
+          <button disabled={page >= pages} onClick={() => handlePage(page + 1)}>Next</button>
         </div>
       )}
     </div>

@@ -42,9 +42,9 @@ const geminiModel = genAI.getGenerativeModel({
 	systemInstruction: `You are a helpful, professional AI assistant. You provide clear, accurate, and informative responses. Pay attention to who is speaking in each message. Reply in WhatsApp format only. No markdown, no backticks.`,
 });
 
-const downloadWorldModel = genAI.getGenerativeModel({
+const downloadBuddyModel = genAI.getGenerativeModel({
 	model: "gemini-2.0-flash",
-	systemInstruction: `You're DownloadWorld, a helpful and efficient assistant. You're quick, professional, and reliable. Talk like a helpful friend texting, not some AI.
+	systemInstruction: `You're DownloadBuddy, a helpful and efficient assistant. You're quick, professional, and reliable. Talk like a helpful friend texting, not some AI.
 
 Your vibe:
 - Helpful and fast - you prioritize efficiency
@@ -116,7 +116,7 @@ async function chat(prompt, from, msg, taggedMember, msgInfoObj, data, tagMessag
 	}
 
 	// Choose model based on command
-	const model = command === "gemini" ? geminiModel : downloadWorldModel;
+	const model = command === "gemini" ? geminiModel : downloadBuddyModel;
 
 	// Build the actual prompt with sender name included
 	let fullPrompt = `[${updateName}]: ${prompt} ${replyInfo}`;
@@ -185,7 +185,7 @@ Is Admin: ${groupAdmins?.includes(senderJid) ? "Yes" : "No"}
 					{
 						role: "model",
 						parts: [{ text: text.trim() }],
-						senderName: command === "gemini" ? "Gemini" : "DownloadWorld",
+						senderName: command === "gemini" ? "Gemini" : "DownloadBuddy",
 						timestamp: new Date().toISOString(),
 					},
 				];
@@ -196,7 +196,7 @@ Is Admin: ${groupAdmins?.includes(senderJid) ? "Yes" : "No"}
 				await group.updateOne({ _id: from }, { $set: { chatHistory: trimmedHistory } });
 			}
 
-			await sendMessageWTyping(from, { text: "_*DownloadWorld:*_\n" + text.trim() }, { quoted: msg });
+			await sendMessageWTyping(from, { text: "_*DownloadBuddy:*_\n" + text.trim() }, { quoted: msg });
 		}
 	} catch (err) {
 		console.error(err);
@@ -268,8 +268,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["downloadworld", "dw", "gemini"],
-	desc: "Chat with DownloadWorld",
-	usage: "downloadworld <text>",
+	cmd: ["downloadbuddy", "db", "gemini"],
+	desc: "Chat with DownloadBuddy",
+	usage: "downloadbuddy <text>",
 	handler,
 });

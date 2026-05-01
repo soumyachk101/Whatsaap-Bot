@@ -77,7 +77,7 @@ const getCommand = async (sock, msg, cache) => {
 							mediaUploadTimeoutMs: isGroupChat ? 1000 * 60 * 10 : 1000 * 60 * 5, // 10min for groups, 5min for DMs
 						};
 
-						await sock.sendMessage(to, msgObj, sendOptions);
+						return await sock.sendMessage(to, msgObj, sendOptions);
 					} catch (err) {
 						console.error("❌ Error sending message:", err.message);
 						throw err;
@@ -90,12 +90,10 @@ const getCommand = async (sock, msg, cache) => {
 
 				if (isGroupChat) {
 					const priority = mediaTypes.includes(messageType) ? 2 : 1;
-					messageQueue.enqueue(to, doSend, priority).catch((e) => console.error("[queue enqueue error]", e.message));
-					return;
+					return await messageQueue.enqueue(to, doSend, priority);
 				} else {
-					await messageQueue.enqueue(to, doSend, 0); // Highest priority for DMs
+					return await messageQueue.enqueue(to, doSend, 0); // Highest priority for DMs
 				}
-				return;
 			} catch (error) {
 				console.error("❌ Error in sendMessageWTyping:", error.message);
 				throw error;
@@ -295,12 +293,12 @@ const getCommand = async (sock, msg, cache) => {
 				tagMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 			}
 			if (
-				["downloadworld", "dw"].includes(body.split(" ")[0].toLowerCase()) ||
+				["downloadbuddy", "db"].includes(body.split(" ")[0].toLowerCase()) ||
 				(isTaggedBot &&
 					Object.keys(tagMessage)[0] == "conversation" &&
-					tagMessage?.conversation.startsWith("_*DownloadWorld:*_"))
+					tagMessage?.conversation.startsWith("_*DownloadBuddy:*_"))
 			) {
-				commandsPublic["downloadworld"](sock, msg, from, args, {
+				commandsPublic["downloadbuddy"](sock, msg, from, args, {
 					sendMessageWTyping,
 					command,
 					updateName:

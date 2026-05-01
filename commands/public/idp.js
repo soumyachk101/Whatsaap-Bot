@@ -6,6 +6,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(from, { text: `*Provide Username*` }, { quoted: msg });
 	let prof = args[0];
 
+	const igCookie = process.env.INSTAGRAM_COOKIE || "";
+
 	let config = {
 		method: "get",
 		maxBodyLength: Infinity,
@@ -13,14 +15,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		headers: {
 			"User-Agent": "iphone_ua",
 			"x-ig-app-id": "936619743392459",
-			Cookie: "csrftoken=dOj8Cg7x7dcopcYjfdyb2CXn5Q5q8Nae; ig_did=23EC9D92-710B-4E35-81C6-302661C68C7A; ig_nrcb=1; mid=aSVNkwAAAAHSQh6TfnudZMPSYyKd",
+			Cookie: igCookie,
 		},
 	};
 
 	axios
 		.request(config)
 		.then((res) => {
-			if (res.data.status === "ok") {
+			if (res.data.status === "ok" && res.data.data.user) {
 				sendMessageWTyping(
 					from,
 					{
@@ -30,11 +32,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					{ quoted: msg }
 				);
 			} else {
-				sendMessageWTyping(from, { text: `*No Data Found*` }, { quoted: msg });
+				sendMessageWTyping(from, { text: `*No Data Found or User is Private*` }, { quoted: msg });
 			}
 		})
 		.catch(async (err) => {
-			sendMessageWTyping(from, { text: "*Error fetching profile picture*" }, { quoted: msg });
+			console.error("IDP Error:", err.message);
+			sendMessageWTyping(from, { text: "*Error fetching profile picture. Check bot logs.*" }, { quoted: msg });
 		});
 };
 

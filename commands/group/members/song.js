@@ -1,7 +1,7 @@
 import fs from "fs";
 import yts from "yt-search";
 import ytdl from "@distube/ytdl-core";
-import youtubedl from "youtube-dl-exec";
+import execYtdlp from "../../../functions/ytdlpHelper.js";
 import memoryManager from "../../../functions/memoryUtils.js";
 import { readFileEfficiently, isValidAudioFile } from "../../../functions/fileUtils.js";
 import {
@@ -10,7 +10,6 @@ import {
 	retryWithBackoff,
 	isBotDetectionError,
 	isYtdlCoreParsingError,
-	delay,
 	checkYtDlpBinary,
 	isPyInstallerError,
 	getNextSharedAgent,
@@ -87,7 +86,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 				await retryWithBackoff(
 					async () => {
-						await youtubedl(URL, ytdlpOptions);
+						await execYtdlp(URL, ytdlpOptions);
 					},
 					3,
 					2000
@@ -96,7 +95,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				// Get title from yt-dlp info
 				const info = await retryWithBackoff(
 					async () => {
-						return await youtubedl(
+						return await execYtdlp(
 							URL,
 							getYtDlpOptions({
 								dumpSingleJson: true,
@@ -134,8 +133,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				await retryWithBackoff(
 					async () => {
 						const currentAgent = getNextSharedAgent(ytdl);
-						console.log(`Attempting ytdl with agent ${currentAgentIndex + 1}`);
-
 						const ytdlOptions = getYtdlCoreOptions(currentAgent);
 
 						const info = await ytdl.getBasicInfo(URL, ytdlOptions);
@@ -203,9 +200,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		// Send the audio file
 		try {
-			// Read file efficiently
-			const audioBuffer = await readFileEfficiently(fileDown);
-
 			let sock_data;
 			if (command === "song") {
 				sock_data = {

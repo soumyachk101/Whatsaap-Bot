@@ -1,4 +1,5 @@
 import { DisconnectReason } from "baileys";
+import { clearSQLiteAuthState } from "./useSQLiteAuthState.js";
 import sendToTelegram from "./telegramLogger.js";
 
 const getConnectionUpdate = async (startSock, events) => {
@@ -22,12 +23,16 @@ const getConnectionUpdate = async (startSock, events) => {
 
 		if (isTrueLogout) {
 			console.log("❌ Device logged out, manual re-authentication required");
+			clearSQLiteAuthState();
 			sendToTelegram(
 				`🚨 <b>Bot Logged Out</b>\n` +
 				`━━━━━━━━━━━━━━\n` +
 				`⚠️ Device was logged out from WhatsApp.\n` +
 				`🔑 Manual re-authentication required.`
 			);
+			setTimeout(() => {
+				startSock("logged-out-reauth");
+			}, 5000);
 		} else {
 			const reason = isConflict
 				? "Session conflict (another device connected)"

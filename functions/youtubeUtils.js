@@ -1,12 +1,18 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { spawnSync } from "child_process";
+import { fileURLToPath } from "url";
 dotenv.config();
 
 /**
  * YouTube anti-bot utilities
  * Provides rotating user agents, cookie management, and proxy support
  */
+
+// ES module equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration from environment variables
 const CONFIG = {
@@ -194,14 +200,17 @@ async function checkYtDlpBinary() {
 	}
 
 	try {
-		// Use dynamic import for ES modules
-		const { default: youtubedl } = await import("youtube-dl-exec");
-		// Try to get version to test if binary works
-		const result = await youtubedl("--version");
-		if (CONFIG.DEBUG) {
-			console.log("yt-dlp version:", result);
+		// Use spawnSync directly to avoid issues with spaces in paths from youtube-dl-exec
+		const binaryPath = path.join(__dirname, "../node_modules/youtube-dl-exec/bin/yt-dlp");
+		const result = spawnSync(binaryPath, ["--version"]);
+		
+		if (result.status === 0) {
+			if (CONFIG.DEBUG) {
+				console.log("yt-dlp binary check successful, version:", result.stdout.toString().trim());
+			}
+			return true;
 		}
-		return true;
+		return false;
 	} catch (error) {
 		if (CONFIG.DEBUG) {
 			console.log("yt-dlp binary check failed:", error.message);

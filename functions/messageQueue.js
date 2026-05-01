@@ -42,22 +42,31 @@ class MessageQueue {
 	 * @param {string} chatId - Chat identifier
 	 * @param {Function} sendFunction - Async function that sends the message
 	 * @param {number} priority - Priority (lower = higher priority)
+	 * @returns {Promise} - Resolves when the message is sent
 	 */
 	async enqueue(chatId, sendFunction, priority = 1) {
 		if (!this.queues.has(chatId)) {
 			this.queues.set(chatId, []);
 		}
 
-		const queue = this.queues.get(chatId);
-		queue.push({ sendFunction, priority, timestamp: Date.now() });
+		return new Promise((resolve, reject) => {
+			const queue = this.queues.get(chatId);
+			queue.push({
+				sendFunction,
+				priority,
+				timestamp: Date.now(),
+				resolve,
+				reject
+			});
 
-		// Sort by priority (lower number = higher priority)
-		queue.sort((a, b) => a.priority - b.priority);
+			// Sort by priority (lower number = higher priority)
+			queue.sort((a, b) => a.priority - b.priority);
 
-		// Start processing if not already processing
-		if (!this.processing.get(chatId)) {
-			this.processQueue(chatId);
-		}
+			// Start processing if not already processing
+			if (!this.processing.get(chatId)) {
+				this.processQueue(chatId);
+			}
+		});
 	}
 
 	/**
@@ -97,9 +106,11 @@ class MessageQueue {
 			// Send batch in parallel
 			const batchPromises = batch.map(async (message) => {
 				try {
-					await message.sendFunction();
+					const result = await message.sendFunction();
+					message.resolve(result);
 				} catch (err) {
 					console.error(`Queue send error for ${chatId}:`, err.message);
+					message.reject(err);
 				} finally {
 					this.activeSends--;
 				}

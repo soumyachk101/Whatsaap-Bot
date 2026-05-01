@@ -19,7 +19,7 @@ import cp from "child_process";
 import readline from "readline";
 // External modules
 import ffmpeg from "ffmpeg-static";
-import youtubedl from "youtube-dl-exec";
+import execYtdlp from "../../../functions/ytdlpHelper.js";
 // Global constants
 import ytdl from "@distube/ytdl-core";
 import path from "path";
@@ -82,7 +82,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				console.log("Getting video info with yt-dlp...");
 				const info = await retryWithBackoff(
 					async () => {
-						return await youtubedl(URL, {
+						return await execYtdlp(URL, {
 							dumpSingleJson: true,
 							noCheckCertificates: true,
 							noWarnings: true,
@@ -179,7 +179,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				// Download audio with retry logic - upgraded for highest quality
 				await retryWithBackoff(
 					async () => {
-						await youtubedl(URL, {
+						await execYtdlp(URL, {
 							format: "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best", // Highest quality audio with format fallback
 							output: audioFile,
 							noCheckCertificates: true,
@@ -208,7 +208,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				// Download video with retry logic - upgraded for highest quality (up to 1080p)
 				await retryWithBackoff(
 					async () => {
-						await youtubedl(URL, {
+						await execYtdlp(URL, {
 							format: "bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]/bestvideo[ext=mp4]/bestvideo/best", // Highest quality video with format fallback
 							output: videoFile,
 							noCheckCertificates: true,

@@ -18,7 +18,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const conversations = Math.floor(historyLength / 2); // Each conversation = user + bot message
 		const isChatBotOn = data.isChatBotOn || false;
 
-		const info = `╭━━━『 *DOWNLOADWORLD INFO* 』━━━╮
+		const info = `╭━━━『 *DOWNLOADBUDDY INFO* 』━━━╮
 │
 │ 📊 *Status:* ${isChatBotOn ? "✅ Active" : "❌ Inactive"}
 │ 💬 *Conversations in Memory:* ${conversations}
@@ -29,22 +29,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 ${
 	isChatBotOn
-		? "DownloadWorld is actively chatting in this group!"
-		: "DownloadWorld is currently inactive. Admins can turn her on using the appropriate command."
+		? "DownloadBuddy is actively chatting in this group!"
+		: "DownloadBuddy is currently inactive. Admins can turn her on using the appropriate command."
 }
 
-💡 *Tip:* Use *clearhistory* to reset DownloadWorld's memory for this group.`;
+💡 *Tip:* Use *clearhistory* to reset DownloadBuddy's memory for this group.`;
 
 		return sendMessageWTyping(from, { text: info }, { quoted: msg });
 	} catch (err) {
 		console.error(err);
-		return sendMessageWTyping(from, { text: "❌ Failed to fetch DownloadWorld info. Please try again." }, { quoted: msg });
+		return sendMessageWTyping(from, { text: "❌ Failed to fetch DownloadBuddy info. Please try again." }, { quoted: msg });
 	}
 };
 
 export default () => ({
-	cmd: ["downloadworldinfo", "downloadworldstat", "downloadworldstatus"],
-	desc: "Get DownloadWorld's conversation history info for this group",
-	usage: "downloadworldinfo",
+	cmd: ["downloadbuddyinfo", "downloadbuddystat", "downloadbuddystatus"],
+	desc: "Get DownloadBuddy's conversation history info for this group",
+	usage: "downloadbuddyinfo",
 	handler,
 });
