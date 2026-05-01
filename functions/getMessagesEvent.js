@@ -446,7 +446,7 @@ const getCommand = async (sock, msg, cache) => {
 		} else if (commandsAdmins[command]) {
 			const t0 = Date.now();
 			let result;
-			if (isGroup || isOwner || moderatos.includes(senderNumber)) {
+			if (isGroupAdmin || isOwner || moderatos.includes(senderNumber)) {
 				result = await commandsAdmins[command](sock, msg, from, args, msgInfoObj);
 			} else {
 				result = await sendMessageWTyping(
@@ -461,7 +461,7 @@ const getCommand = async (sock, msg, cache) => {
 		} else if (commandsOwners[command]) {
 			const t0 = Date.now();
 			let result;
-			if (moderatos.includes(senderNumber) || myNumber.includes(senderJid)) {
+			if (isOwner || moderatos.includes(senderNumber)) {
 				result = await commandsOwners[command](sock, msg, from, args, msgInfoObj);
 			} else {
 				result = await sendMessageWTyping(
