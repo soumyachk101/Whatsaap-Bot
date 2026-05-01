@@ -13,6 +13,8 @@ import { createMembersData, getMemberData, member } from "../sqlite-DB/membersDa
 import { createGroupData, getGroupData, group } from "../sqlite-DB/groupDataDb.js";
 import { commandsPublic, commandsMembers, commandsAdmins, commandsOwners } from "./getAddCommands.js";
 import { getBotData } from "../sqlite-DB/botDataDb.js";
+import { downloadMediaMessage } from "baileys";
+import { checkNSFW } from "./nsfwFilter.js";
 
 // These will be used for permission checks
 const myNumber = [
@@ -158,8 +160,9 @@ const getCommand = async (sock, msg, cache) => {
 		const args = body.trim().split(/ +/).slice(1);
 		//-------------------------------------------------------------------------------------------------------------//
 		const isGroup = from.endsWith("@g.us");
-		const senderJid = isGroup ? msg.key.participant : msg.key.remoteJid;
-		const isOwner = myNumber.includes(senderJid);
+		const botJid = sock.user.id.includes(":") ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : sock.user.id;
+		const senderJid = msg.key.fromMe ? botJid : (isGroup ? msg.key.participant : msg.key.remoteJid);
+		const isOwner = myNumber.includes(senderJid) || botNumber.includes(senderJid) || msg.key.fromMe;
 		if (!senderJid || !senderJid.includes("@")) return;
 
 		const updateId = msg.key.fromMe ? botNumber[0] : senderJid;
@@ -265,6 +268,43 @@ const getCommand = async (sock, msg, cache) => {
 			groupDataFetched = null;
 		}
 		if (isGroup) groupData = groupDataFetched;
+		
+		// ── PERMISSIONS ──────────────────────────────────────────────────────────────
+		const groupAdmins = isGroup ? getGroupAdmins(groupMetadata.participants) : [];
+		const isGroupAdmin = isGroup ? (groupAdmins?.includes(senderJid) || false) : false;
+
+		// ── ANTI-LINK FEATURE ────────────────────────────────────────────────────────
+		if (isGroup && groupData?.antilink && !isGroupAdmin && !isOwner) {
+			const linkRegex = /chat.whatsapp.com\/([0-9A-Za-z]{20,24})|(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-z]{2,6}(\/[^\s]*)?/gi;
+			if (linkRegex.test(body)) {
+				console.log(`[ANTILINK] Link detected from ${senderJid} in ${groupMetadata.subject}. Deleting...`);
+				try {
+					await sock.sendMessage(from, { delete: msg.key });
+					return; // Stop processing further
+				} catch (err) {
+					console.error("[ANTILINK error] Failed to delete message:", err.message);
+				}
+			}
+		}
+
+		// ── NSFW FILTER FEATURE ──────────────────────────────────────────────────────
+		if (isGroup && groupData?.nsfw && type === "imageMessage" && !isGroupAdmin && !isOwner) {
+			try {
+				const buffer = await downloadMediaMessage(msg, "buffer", {});
+				if (buffer) {
+					const isNSFW = await checkNSFW(buffer);
+					if (isNSFW) {
+						console.log(`[NSFW] Sexually explicit image detected from ${senderJid} in ${groupMetadata.subject}. Deleting...`);
+						await sock.sendMessage(from, { delete: msg.key });
+						await sendMessageWTyping(from, { text: `🚫 NSFW content is not allowed in this group. @${senderJid.split("@")[0]} has been warned.` }, { mentions: [senderJid] });
+						return; // Stop processing
+					}
+				}
+			} catch (err) {
+				console.error("[NSFW Filter error]", err.message);
+			}
+		}
+
 		if (isGroup && type == "imageMessage" && groupData?.isAutoStickerOn) {
 			if (msg.message.imageMessage.caption == "") {
 				commandsPublic["sticker"](sock, msg, from, args, {
@@ -279,8 +319,6 @@ const getCommand = async (sock, msg, cache) => {
 		}
 		//-------------------------------------------------------------------------------------------------------------//
 		if (senderData?.isBlock) return;
-		const groupAdmins = isGroup ? getGroupAdmins(groupMetadata.participants) : "";
-		const isGroupAdmin = groupAdmins?.includes(senderJid) || false;
 
 		//--------------------------------------------CHAT-BOT-FEATURE------------------------------------------------//
 		const isChatBotOn = groupData ? groupData.isChatBotOn : false;

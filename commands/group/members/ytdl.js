@@ -209,7 +209,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				await retryWithBackoff(
 					async () => {
 						await execYtdlp(URL, {
-							format: "bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]/bestvideo[ext=mp4]/bestvideo/best", // Highest quality video with format fallback
+							format: "bestvideo[height<=720][ext=mp4]/bestvideo[height<=720]/bestvideo[ext=mp4]/bestvideo/best", // 720p is better for WhatsApp size limits
 							output: videoFile,
 							noCheckCertificates: true,
 							noWarnings: true,
@@ -233,25 +233,23 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					return;
 				}
 
-				// Merge using ffmpeg with high quality settings
-				console.log("Merging audio and video with ffmpeg...");
+				// Merge using ffmpeg with high quality but compatible settings
+				console.log("Merging audio and video with ffmpeg (transcoding for compatibility)...");
 				const mergeProcess = cp.spawn(
 					ffmpeg,
 					[
-						"-i",
-						audioFile,
-						"-i",
-						videoFile,
-						"-c:v",
-						"copy", // Copy video stream (no re-encoding)
-						"-c:a",
-						"aac",
-						"-b:a",
-						"192k", // High quality audio bitrate
-						"-strict",
-						"experimental",
-						"-movflags",
-						"+faststart", // Optimize for streaming
+						"-i", audioFile,
+						"-i", videoFile,
+						"-c:v", "libx264", // Re-encode to H.264 for maximum compatibility
+						"-preset", "ultrafast", // Fastest encoding
+						"-crf", "28", // Good balance between quality and size
+						"-c:a", "aac",
+						"-b:a", "128k",
+						"-pix_fmt", "yuv420p", // Required for many mobile players
+						"-profile:v", "baseline", // Most compatible profile
+						"-level", "3.0",
+						"-movflags", "+faststart",
+						"-shortest", // End when the shortest stream ends
 						fileDown,
 					],
 					{ windowsHide: true }
@@ -458,19 +456,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					"-progress",
 					"pipe:3",
 					// Set inputs
-					"-i",
-					"pipe:4",
-					"-i",
-					"pipe:5",
+					"-i", "pipe:4",
+					"-i", "pipe:5",
 					// Map audio & video from streams
-					"-map",
-					"0:a",
-					"-map",
-					"1:v",
-					// Keep encoding
-					"-c:v",
-					"copy",
-					// Define output file
+					"-map", "0:a",
+					"-map", "1:v",
+					// Encoding for compatibility
+					"-c:v", "libx264",
+					"-preset", "ultrafast",
+					"-crf", "28",
+					"-c:a", "aac",
+					"-b:a", "128k",
+					"-pix_fmt", "yuv420p",
+					"-profile:v", "baseline",
+					"-level", "3.0",
+					"-movflags", "+faststart",
+					"-shortest",
 					fileDown,
 				],
 				{

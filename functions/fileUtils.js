@@ -189,6 +189,7 @@ function isValidVideoFile(filePath) {
 			"000001", // MPEG
 			"464c56", // FLV
 			"41564931", // AVI
+			"1a45dfa3", // WebM/MKV
 		];
 
 		return videoSignatures.some((sig) => signature.startsWith(sig));

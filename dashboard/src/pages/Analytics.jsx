@@ -40,7 +40,7 @@ export default function Analytics() {
         <p className="text-muted" style={{ marginTop: '0.25rem' }}>Detailed breakdown of message types and user activity.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+      <div className="grid-2" style={{ marginBottom: '1rem' }}>
         {/* Type Breakdown */}
         <div className="card">
           <div className="card-header">

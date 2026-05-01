@@ -86,7 +86,7 @@ export default function Members() {
           ))}
         </div>
         <input
-          className="input"
+          className="input mobile-w-full"
           placeholder="Search by JID or name..."
           value={search}
           onChange={e => handleSearch(e.target.value)}

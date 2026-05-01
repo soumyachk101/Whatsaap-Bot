@@ -147,12 +147,23 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 						// Register stream for monitoring
 						memoryManager.registerStream(audioStream);
-						const writeStream = memoryManager.createOptimizedWriteStream(fileDown);
-						audioStream.pipe(writeStream);
+
+						// Use ffmpeg to convert to real MP3 for maximum compatibility
+						const ffmpegProcess = cp.spawn(ffmpeg, [
+							"-i", "pipe:0",
+							"-f", "mp3",
+							"-ab", "128k",
+							fileDown
+						]);
+
+						audioStream.pipe(ffmpegProcess.stdin);
 
 						await new Promise((resolve, reject) => {
-							writeStream.on("finish", resolve);
-							writeStream.on("error", reject);
+							ffmpegProcess.on("close", (code) => {
+								if (code === 0) resolve();
+								else reject(new Error(`FFmpeg audio conversion failed with code ${code}`));
+							});
+							ffmpegProcess.on("error", reject);
 							audioStream.on("error", reject);
 						});
 					},

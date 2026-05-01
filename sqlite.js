@@ -162,10 +162,12 @@ class Collection {
             const keys = Object.keys(fields);
             const setClause = keys.map(k => `${k} = ?`).join(', ');
             const values = keys.map(k => k === 'disabledGlobally' ? JSON.stringify(fields[k]) : fields[k]);
-            db.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
+            const res = db.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
+            return { matchedCount: res.changes };
         } else {
-            db.prepare(`UPDATE ${this.tableName} SET data = ? WHERE id = ?`)
+            const res = db.prepare(`UPDATE ${this.tableName} SET data = ? WHERE id = ?`)
                 .run(JSON.stringify(data), id);
+            return { matchedCount: res.changes };
         }
     }
 

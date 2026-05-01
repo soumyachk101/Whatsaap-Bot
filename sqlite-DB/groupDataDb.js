@@ -12,6 +12,8 @@ const createGroupData = async (groupJid, groupMetadata) => {
 				isImgOn: false,
 				isChatBotOn: false,
 				is91Only: false,
+				antilink: false,
+				nsfw: false,
 				grpName: groupMetadata.subject,
 				desc: groupMetadata.desc ? groupMetadata.desc.toString() : "",
 				cmdBlocked: [],

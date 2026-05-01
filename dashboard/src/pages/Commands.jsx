@@ -57,8 +57,8 @@ export default function Commands() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {TYPE_FILTERS.map(f => (
             <button 
               key={f} 
@@ -70,9 +70,9 @@ export default function Commands() {
             </button>
           ))}
         </div>
-        <div>
+        <div className="mobile-w-full">
           <input
-            className="input"
+            className="input mobile-w-full"
             placeholder="Search commands..."
             value={search}
             onChange={e => setSearch(e.target.value)}

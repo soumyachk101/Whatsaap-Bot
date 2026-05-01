@@ -32,6 +32,12 @@ export default function Layout({ children }) {
   const location = useLocation()
   const wsStatus = useWebSocket()
   const [stats, setStats] = useState(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  // Close menu on navigation
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
     const fetchStats = () => getStats().then(setStats).catch(() => {})
@@ -55,7 +61,9 @@ export default function Layout({ children }) {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
+      <div className={`overlay ${isMenuOpen ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)} />
+      
+      <aside className={`sidebar ${isMenuOpen ? 'open' : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 8px', marginBottom: 32 }}>
           <div style={{ width: 32, height: 32, borderRadius: 6, overflow: 'hidden' }}>
             <img src="/downloadbuddy.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -93,8 +101,13 @@ export default function Layout({ children }) {
 
       <main className="main">
         <header className="top-bar">
-          <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--muted-foreground)' }}>
-            {activeLabel}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button className="menu-toggle" onClick={() => setIsMenuOpen(true)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--muted-foreground)' }}>
+              {activeLabel}
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
              <div style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>

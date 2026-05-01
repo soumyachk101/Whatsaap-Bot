@@ -29,6 +29,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			format: "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
 			output: downloadPath,
 			maxFilesize: "100M", // Safety limit
+			recodeVideo: "mp4", // Force standard MP4 for compatibility
 		});
 
 		if (isInstagram) {

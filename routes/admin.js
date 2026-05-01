@@ -352,7 +352,7 @@ router.get("/api/admin/groups", requireAdmin, async (req, res) => {
 
 router.patch("/api/admin/groups/:jid", requireAdmin, async (req, res) => {
 	const jid = decodeURIComponent(req.params.jid);
-	const allowed = ["isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn", "cmdBlocked"];
+	const allowed = ["isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn", "cmdBlocked", "antilink", "nsfw"];
 	const update = {};
 	for (const key of allowed) {
 		if (key in req.body) update[key] = req.body[key];

@@ -40,7 +40,7 @@ export default function Dashboard() {
         <p className="text-muted" style={{ marginTop: '0.25rem' }}>Overview of your bot's performance and usage.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+      <div className="grid-4" style={{ marginBottom: '1rem' }}>
         <MetricCard 
           title="Total Groups" 
           value={stats?.groupCount} 
