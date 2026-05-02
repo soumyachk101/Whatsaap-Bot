@@ -42,21 +42,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return lines;
 	};
 
-	// Generate 6 frames with different colors
-	for (let i = 0; i < 6; i++) {
+	// Generate 3 frames with different colors (Reduced for stability)
+	for (let i = 0; i < 3; i++) {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		
-		// Set font once to measure
-		ctx.font = "bold 70px Arial";
-		const lines = wrapText(message, 450);
-		const lineHeight = 80;
-		const startY = (canvas.height - (lines.length * lineHeight)) / 2 + 40;
+		// Use sans-serif as it's more likely to be available
+		ctx.font = "bold 50px sans-serif";
+		const lines = wrapText(message, 280);
+		const lineHeight = 60;
+		const startY = (canvas.height - (lines.length * lineHeight)) / 2 + 30;
 
 		lines.forEach((line, index) => {
 			const y = startY + (index * lineHeight);
 			
-			// Text Shadow/Outline for visibility
-			ctx.lineWidth = 5;
+			ctx.lineWidth = 4;
 			ctx.strokeStyle = "#000000";
 			ctx.strokeText(line, canvas.width / 2, y);
 			
@@ -65,28 +64,40 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			ctx.textBaseline = "middle";
 			ctx.fillText(line, canvas.width / 2, y);
 			
-			// Inner white glow
 			ctx.lineWidth = 1;
 			ctx.strokeStyle = "#ffffff";
 			ctx.strokeText(line, canvas.width / 2, y);
 		});
 
-		frames.push(canvas.toBuffer("image/png"));
+		frames.push(canvas.toBuffer());
 	}
 
 	try {
+		// Try to create animated sticker
 		const sticker = new Sticker(frames, {
 			pack: "✨ ᴅᴏᴡɴʟᴏᴀᴅʙᴜᴅᴅʏ ✨",
 			author: "ᴛᴇxᴛ-ᴛᴏ-sᴛɪᴄᴋᴇʀ",
-			type: "full",
-			quality: 50,
+			quality: 20, // Lower quality for animation stability
 		});
 
 		const stickerBuffer = await sticker.toBuffer();
 		await sock.sendMessage(from, { sticker: stickerBuffer }, { quoted: msg });
 	} catch (err) {
-		console.error("Sticker Error:", err);
-		sendMessageWTyping(from, { text: "❌ Failed to create animated sticker." }, { quoted: msg });
+		console.error("Sticker Animation Error:", err);
+		
+		// FALLBACK: Try to create a high-quality static sticker if animation fails
+		try {
+			const staticSticker = new Sticker(frames[0], {
+				pack: "✨ ᴅᴏᴡɴʟᴏᴀᴅʙᴜᴅᴅʏ ✨",
+				author: "ᴛᴇxᴛ-ᴛᴏ-sᴛɪᴄᴋᴇʀ",
+				quality: 80,
+			});
+			const staticBuffer = await staticSticker.toBuffer();
+			await sock.sendMessage(from, { sticker: staticBuffer }, { quoted: msg });
+		} catch (staticErr) {
+			console.error("Static Fallback Error:", staticErr);
+			sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+		}
 	}
 };
 
