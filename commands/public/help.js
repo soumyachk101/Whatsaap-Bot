@@ -20,60 +20,81 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const adminCmd = adminCommands.filter((cmd) => cmd.cmd.includes("admin"));
 	const ownerCmd = ownerCommands.filter((cmd) => cmd.cmd.includes("owner"));
 
-	// Categorize public commands
+	// Combine all user-accessible commands
+	const allUserCommands = [...publicCommands, ...groupCommands];
+
+	// Categorize user commands with stylized names
 	const categories = {
-		"🤖 AI & Chat": ["say", "tts", "groq", "chat", "aimodes"],
-		"📥 Downloaders": ["mp3", "mp4", "reddit", "idp"],
-		"🎨 Stickers & Media": ["sticker", "attp", "textsticker", "ts", "steal"],
-		"🛠️ Utilities": ["calc", "translate", "weather", "remind"],
-		"🔍 Search": ["google", "search"],
-		"ℹ️ Bot Info": ["help", "menu", "stats", "alive", "start", "donation"]
+		"─── 「 🤖 ᴀɪ & ᴄʜᴀᴛ 」 ───": ["say", "tts", "groq", "chat", "aimodes", "chatbot", "downloadbuddy"],
+		"─── 「 📥 ᴅᴏᴡɴʟᴏᴀᴅᴇʀs 」 ───": ["mp3", "mp4", "reddit", "idp", "song", "yta", "ytdl", "insta", "twitter", "pin", "pin-downloader", "insta-downloader"],
+		"─── 「 🎨 sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ 」 ───": ["sticker", "attp", "textsticker", "ts", "stickertext", "steal", "meme", "image", "removebg", "imgGen", "imageGen", "imageGen2"],
+		"─── 「 🛠️ ᴜᴛɪʟɪᴛɪᴇs 」 ───": ["calc", "translate", "weather", "remind", "lyrics", "dictionary", "ud", "removebg", "advice", "fact", "gender", "horo", "joke", "quote", "qpoetry"],
+		"─── 「 🔍 sᴇᴀʀᴄʜ 」 ───": ["google", "search", "googleSearch", "googleImgSearch", "news", "newsCate"],
+		"─── 「 ℹ️ ʙᴏᴛ ɪɴғᴏ 」 ───": ["help", "menu", "stats", "mystats", "alive", "start", "donation", "dev", "mycount", "myGrpCount"]
 	};
 
 	let publicCmdText = "";
+	const displayedCmds = new Set();
+
 	for (const [category, cmds] of Object.entries(categories)) {
-		const filtered = publicCommands.filter(c => c.cmd.some(alias => cmds.includes(alias)));
+		const filtered = allUserCommands.filter(c => c.cmd.some(alias => cmds.includes(alias)));
 		if (filtered.length > 0) {
 			publicCmdText += `\n*${category}*\n`;
-			publicCmdText += filtered.map(cmd => `  ▸ \`${prefix}${cmd.cmd[0]}\` - ${cmd.desc}`).join("\n") + "\n";
+			publicCmdText += filtered.map(cmd => {
+				cmd.cmd.forEach(alias => displayedCmds.add(alias));
+				return `  ◦ \`${prefix}${cmd.cmd[0]}\` \n      └─ ${cmd.desc}`;
+			}).join("\n") + "\n";
 		}
 	}
 
+	// Catch-all for uncategorized commands
+	const uncategorized = allUserCommands.filter(c => !c.cmd.some(alias => displayedCmds.has(alias)));
+	if (uncategorized.length > 0) {
+		publicCmdText += `\n*─── 「 📁 ᴏᴛʜᴇʀs 」 ───*\n`;
+		publicCmdText += uncategorized.map(cmd => `  ◦ \`${prefix}${cmd.cmd[0]}\` \n      └─ ${cmd.desc}`).join("\n") + "\n";
+	}
+
 	const help = `
-╔════════════════════════╗
-      *DσɯɳʅσαԃBυԃԃყ*
-╚════════════════════════╝
+┏──────────────────┓
+   ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
+┗──────────────────┛
 ${readMore}
-👥 *Total Users:* \`${totalUsers}\`
-📍 *Prefix:* \`${prefix}\`
+╭── 「 ʙᴏᴛ sᴛᴀᴛs 」 ──
+│ 👥 *ᴜsᴇʀs:* \`${totalUsers}\`
+│ 📍 *ᴘʀᴇғɪx:* \`${prefix}\`
+╰───────────────
 
---- *Uʂҽɾ Cσɱɱαɳԃʂ* ---
+╭── 「 ᴜsᴇʀ ᴄᴏᴍᴍᴀɴᴅs 」 ──
 ${publicCmdText}
---- *Gɾσυρ Cσɱɱαɳԃʂ* ---
-${groupCommands.map((cmd) => `  ▸ \`${prefix}${cmd.cmd[0]}\` - ${cmd.desc}`).join("\n")}
+╰───────────────
 
---- *Aԃɱιɳ Cσɱɱαɳԃʂ* ---
-${adminCmd.map((cmd) => `  ▸ \`${prefix}${cmd.cmd[0]}\` - ${cmd.desc}`).join("\n")}
+╭── 「 ᴀᴅɱɪɴ ᴄᴏɱɱᴀɴᴅs 」 ──
+${adminCmd.map((cmd) => `  ◦ \`${prefix}${cmd.cmd[0]}\` \n      └─ ${cmd.desc}`).join("\n")}
+╰───────────────
 
---- *Oɯɳҽɾ Cσɱɱαɳԃʂ* ---
-${ownerCmd.map((cmd) => `  ▸ \`${prefix}${cmd.cmd[0]}\` - ${cmd.desc}`).join("\n")}
+╭── 「 ᴏᴡɴᴇʀ ᴄᴏɱɱᴀɴᴅs 」 ──
+${ownerCmd.map((cmd) => `  ◦ \`${prefix}${cmd.cmd[0]}\` \n      └─ ${cmd.desc}`).join("\n")}
+╰───────────────
 
-♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
-buymeacoffee.com/soumyachk101`;
+  ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
+  *buymeacoffee.com/soumyachk101*`;
 
 	const helpInDm = `
-╔════════════════════════╗
-      *DσɯɳʅσαԃBυԃԃყ*
-╚════════════════════════╝
+┏──────────────────┓
+   ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
+┗──────────────────┛
 
-👥 *Total Users:* \`${totalUsers}\`
-📍 *Prefix:* \`${prefix}\`
+╭── 「 ʙᴏᴛ sᴛᴀᴛs 」 ──
+│ 👥 *ᴜsᴇʀs:* \`${totalUsers}\`
+│ 📍 *ᴘʀᴇғɪx:* \`${prefix}\`
+╰───────────────
 
---- *Dɱ Cσɱɱαɳԃʂ* ---
-${directCommands.map((cmd) => `  ▸ \`${prefix}${cmd.cmd[0]}\` - ${cmd.desc}`).join("\n")}
+╭── 「 ᴅɱ ᴄᴏɱɱᴀɴᴅs 」 ──
+${directCommands.map((cmd) => `  ◦ \`${prefix}${cmd.cmd[0]}\` \n      └─ ${cmd.desc}`).join("\n")}
+╰───────────────
 
-♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
-buymeacoffee.com/soumyachk101`;
+  ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
+  *buymeacoffee.com/soumyachk101*`;
 
 	await sendMessageWTyping(from, {
 		text: isGroup ? help : helpInDm,
