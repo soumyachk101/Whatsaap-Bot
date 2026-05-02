@@ -1,3 +1,4 @@
+import axios from "axios";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping, evv, content } = msgInfoObj;
@@ -56,10 +57,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		// Use a more reliable TTS URL generation
 		const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(message)}&tl=${lang}&client=tw-ob`;
 
+		// Fetch the audio buffer first to ensure it's downloaded correctly
+		const response = await axios.get(url, {
+			responseType: "arraybuffer",
+			headers: {
+				"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+			},
+		});
+
+		const buffer = Buffer.from(response.data);
+
 		await sock.sendMessage(
 			from,
 			{
-				audio: { url: url },
+				audio: buffer,
 				mimetype: "audio/mp4", // audio/mp4 is better for WhatsApp voice notes
 				ptt: true, // Send as voice note
 				fileName: "DownloadWorld.mp3",
