@@ -54,36 +54,66 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	try {
-		// Use a more reliable TTS URL generation
-		const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(message)}&tl=${lang}&client=tw-ob`;
+		const sarvamKey = process.env.SARVAM_API_KEY;
+		let buffer;
 
-		// Fetch the audio buffer first to ensure it's downloaded correctly
-		const response = await axios.get(url, {
-			responseType: "arraybuffer",
-			headers: {
-				"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-			},
-		});
+		if (sarvamKey) {
+			try {
+				// Try Sarvam AI first for premium quality
+				const sarvamResponse = await axios.post(
+					"https://api.sarvam.ai/text-to-speech",
+					{
+						inputs: [message],
+						target_language_code: lang === "hi" ? "hi-IN" : "en-IN",
+						speaker: "meera",
+						pitch: 0,
+						pace: 1.1,
+						loudness: 1.5,
+						speech_sample_rate: 8000,
+					},
+					{
+						headers: {
+							"api-subscription-key": sarvamKey,
+							"Content-Type": "application/json",
+						},
+					}
+				);
 
-		const buffer = Buffer.from(response.data);
+				if (sarvamResponse.data && sarvamResponse.data.audios && sarvamResponse.data.audios[0]) {
+					buffer = Buffer.from(sarvamResponse.data.audios[0], "base64");
+				}
+			} catch (sErr) {
+				console.error("Sarvam AI failed, falling back to Google:", sErr.message);
+			}
+		}
+
+		// Fallback to Google Translate if Sarvam is not available or fails
+		if (!buffer) {
+			const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(message)}&tl=${lang}&client=tw-ob`;
+			const response = await axios.get(url, {
+				responseType: "arraybuffer",
+				headers: {
+					"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+				},
+			});
+			buffer = Buffer.from(response.data);
+		}
 
 		await sock.sendMessage(
 			from,
 			{
 				audio: buffer,
-				mimetype: "audio/mp4", // audio/mp4 is better for WhatsApp voice notes
-				ptt: true, // Send as voice note
-				fileName: "DownloadWorld.mp3",
+				mimetype: "audio/ogg; codecs=opus", // Better for WhatsApp voice notes
+				ptt: true,
+				fileName: "voice.mp3",
 			},
-			{
-				quoted: msg,
-			}
+			{ quoted: msg }
 		);
 	} catch (error) {
 		console.error("TTS Error:", error);
 		return sendMessageWTyping(
 			from,
-			{ text: `❌ Error generating text-to-speech: ${error.message}` },
+			{ text: `❌ Error generating voice: ${error.message}` },
 			{ quoted: msg }
 		);
 	}
