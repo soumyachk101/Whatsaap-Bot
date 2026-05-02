@@ -57,6 +57,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		lines.forEach((line, index) => {
 			const y = startY + (index * lineHeight);
 			
+			// Set alignment once for all drawings in this line
+			ctx.textAlign = "center";
+			ctx.textBaseline = "middle";
+
 			// 1. Neon Glow Shadow
 			ctx.shadowColor = colors[i];
 			ctx.shadowBlur = 15;
@@ -72,8 +76,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			
 			ctx.shadowBlur = 0; // Reset blur for main text
 			ctx.fillStyle = gradient;
-			ctx.textAlign = "center";
-			ctx.textBaseline = "middle";
 			ctx.fillText(line, canvas.width / 2, y);
 			
 			// 3. Inner Glossy Detail
