@@ -9,6 +9,7 @@ import adminRouter, { requireAdmin } from "./routes/admin.js";
 import cors from "cors";
 import express from "express";
 import session from "express-session";
+import SQLiteSessionStore from "./sessionStore.js";
 import bodyParser from "body-parser";
 import { WebSocketServer, WebSocket } from "ws";
 import path from "path";
@@ -29,6 +30,7 @@ app.use(
 
 // Improved session configuration for both local and production
 const sessionMiddleware = session({
+	store: new SQLiteSessionStore(),
 	secret: process.env.SESSION_SECRET || "downloadbuddy-fallback-fixed-secret-key",
 	resave: false,
 	saveUninitialized: false,
