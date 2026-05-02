@@ -1,4 +1,3 @@
-import tts from "google-tts-api";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping, evv, content } = msgInfoObj;
@@ -54,15 +53,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	try {
-		const url = await tts(message, lang, 0);
-
-		if (!url) return sendMessageWTyping(from, { text: `❌ Error generating audio!` }, { quoted: msg });
+		// Use a more reliable TTS URL generation
+		const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(message)}&tl=${lang}&client=tw-ob`;
 
 		await sock.sendMessage(
 			from,
 			{
 				audio: { url: url },
-				mimetype: "audio/mpeg",
+				mimetype: "audio/mp4", // audio/mp4 is better for WhatsApp voice notes
+				ptt: true, // Send as voice note
 				fileName: "DownloadWorld.mp3",
 			},
 			{

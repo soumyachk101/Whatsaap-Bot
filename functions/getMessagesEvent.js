@@ -416,7 +416,7 @@ const getCommand = async (sock, msg, cache) => {
 		}
 		if (isGroup) {
 			let resBotOn = groupData ? await groupData.isBotOn : false;
-			if (resBotOn == false && !(command.startsWith("group") || command.startsWith("dev"))) {
+			if (resBotOn == false && !(command.startsWith("group") || command.startsWith("dev") || command === "bot")) {
 				return sendMessageWTyping(from, {
 					text:
 						"```By default, bot is turned off in this group.\nAsk the Owner to activate.\n\nUse ```" +

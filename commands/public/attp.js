@@ -44,8 +44,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["tts", "attp"],
-	desc: "Convert text to sticker",
-	usage: "tts <text>",
+	cmd: ["attp"],
+	desc: "Convert text to sticker (Animated Text To Picture)",
+	usage: "attp <text>",
 	handler,
 });
