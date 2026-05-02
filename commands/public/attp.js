@@ -80,8 +80,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			quality: 20, // Lower quality for animation stability
 		});
 
-		const stickerBuffer = await sticker.toBuffer();
-		await sock.sendMessage(from, { sticker: stickerBuffer }, { quoted: msg });
+		await sticker.build();
+		const stickerBuffer = await sticker.get();
+		await sock.sendMessage(from, { sticker: Buffer.from(stickerBuffer) }, { quoted: msg });
 	} catch (err) {
 		console.error("Sticker Animation Error:", err);
 		
@@ -92,8 +93,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				author: "ᴛᴇxᴛ-ᴛᴏ-sᴛɪᴄᴋᴇʀ",
 				quality: 80,
 			});
-			const staticBuffer = await staticSticker.toBuffer();
-			await sock.sendMessage(from, { sticker: staticBuffer }, { quoted: msg });
+			await staticSticker.build();
+			const staticBuffer = await staticSticker.get();
+			await sock.sendMessage(from, { sticker: Buffer.from(staticBuffer) }, { quoted: msg });
 		} catch (staticErr) {
 			console.error("Static Fallback Error:", staticErr);
 			sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
