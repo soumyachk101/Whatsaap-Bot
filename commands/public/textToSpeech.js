@@ -103,9 +103,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			from,
 			{
 				audio: buffer,
-				mimetype: "audio/ogg; codecs=opus", // Better for WhatsApp voice notes
+				mimetype: "audio/mp4", // Most compatible for WhatsApp voice notes
 				ptt: true,
-				fileName: "voice.mp3",
+				fileName: "voice.mp4",
 			},
 			{ quoted: msg }
 		);

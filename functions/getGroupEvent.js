@@ -11,10 +11,14 @@ const getPhone = (p) =>
 const getGroupEvent = async (sock, events, cache) => {
 	let jid = events.id;
 	let groupDataDB = await getGroupData(jid);
+	if (!groupDataDB || groupDataDB === -1) {
+		console.warn(`[getGroupEvent] No data found for group: ${jid}`);
+		groupDataDB = { welcome: "", grpName: "Group", is91Only: false };
+	}
 	cache.del(jid + ":groupMetadata");
 
 	if (events.action == "add") {
-		if (groupDataDB.welcome != "") {
+		if (groupDataDB.welcome && groupDataDB.welcome != "") {
 			events.participants.forEach((member) => {
 				const phoneNumber = extractPhoneNumber(member);
 				sock.sendMessage(
