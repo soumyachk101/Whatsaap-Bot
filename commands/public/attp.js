@@ -42,30 +42,43 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return lines;
 	};
 
-	// Generate 3 frames with different colors (Reduced for stability)
-	for (let i = 0; i < 3; i++) {
+	// Generate 4 frames with high-end effects
+	for (let i = 0; i < 4; i++) {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		
-		// Use sans-serif as it's more likely to be available
-		ctx.font = "bold 50px sans-serif";
-		const lines = wrapText(message, 280);
-		const lineHeight = 60;
-		const startY = (canvas.height - (lines.length * lineHeight)) / 2 + 30;
+		// Dynamic font scaling
+		let fontSize = message.length > 50 ? 30 : message.length > 20 ? 40 : 55;
+		ctx.font = `bold ${fontSize}px sans-serif`;
+		
+		const lines = wrapText(message, 350);
+		const lineHeight = fontSize + 10;
+		const startY = (canvas.height - (lines.length * lineHeight)) / 2 + (fontSize/2);
 
 		lines.forEach((line, index) => {
 			const y = startY + (index * lineHeight);
 			
-			ctx.lineWidth = 4;
+			// 1. Neon Glow Shadow
+			ctx.shadowColor = colors[i];
+			ctx.shadowBlur = 15;
+			ctx.lineWidth = 6;
 			ctx.strokeStyle = "#000000";
 			ctx.strokeText(line, canvas.width / 2, y);
 			
-			ctx.fillStyle = colors[i];
+			// 2. Main Rainbow Text
+			const gradient = ctx.createLinearGradient(0, y - fontSize/2, canvas.width, y + fontSize/2);
+			gradient.addColorStop(0, colors[i]);
+			gradient.addColorStop(0.5, colors[(i + 1) % colors.length]);
+			gradient.addColorStop(1, colors[(i + 2) % colors.length]);
+			
+			ctx.shadowBlur = 0; // Reset blur for main text
+			ctx.fillStyle = gradient;
 			ctx.textAlign = "center";
 			ctx.textBaseline = "middle";
 			ctx.fillText(line, canvas.width / 2, y);
 			
+			// 3. Inner Glossy Detail
 			ctx.lineWidth = 1;
-			ctx.strokeStyle = "#ffffff";
+			ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
 			ctx.strokeText(line, canvas.width / 2, y);
 		});
 
