@@ -1,368 +1,370 @@
-[![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&slug=jacktheboss220&button_colour=BD5FFF&font_colour=ffffff&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/soumyachk101)
+<p align="center">
+  <img src="public/downloadbuddy.jpg" width="100" height="100" style="border-radius:20px" alt="DownloadBuddy" />
+</p>
 
-# WhatsAppBotMultiDevice
+<h1 align="center">DownloadBuddy — WhatsApp Bot</h1>
 
-A feature-rich WhatsApp bot with a modern React/Vite admin dashboard. Supports downloading songs, getting lyrics, creating stickers, memes, image search, media conversion, news, horoscopes, and much more — all controllable from a sleek web UI.
+<p align="center">
+  A feature-rich, self-hosted WhatsApp bot with an enterprise-grade React admin dashboard.<br/>
+  Built on <a href="https://github.com/WhiskeySockets/Baileys">Baileys</a> multi-device API &amp; SQLite — zero external database required.
+</p>
 
-## Table of Contents
-
-- [Commands List](#commands-list)
-- [Running Locally](#running-the-whatsapp-bot-locally)
-  - [Prerequisites](#prerequisites)
-  - [Setup](#setup)
-  - [Running the Dashboard (Dev Mode)](#running-the-dashboard-in-dev-mode)
-  - [WhatsApp Login via Pairing Code](#whatsapp-login-via-pairing-code)
-  - [Enabling the Bot in Groups](#enabling-bot-in-groups)
-- [Deploy on Koyeb](#deploy-on-koyebcom)
-- [Deploy on Heroku](#deploy-on-heroku)
-- [Environment Variables](#environment-variables)
-- [References](#references)
-
----
-
-## Commands List
-
-| **Group Commands**  |                      **Explanation**                      |              **Example**               | **Working/Not Working** |
-| :-----------------: | :-------------------------------------------------------: | :------------------------------------: | :---------------------: |
-|       -alive        |             Check if the bot is online or not             |                `-alive`                |            ✔            |
-|       -admin        |                  List of admin commands                   |                `-admin`                |            ✔            |
-|        -song        |                  Download a song by name                  |      `-song love me like you do`       |           ❌            |
-|         -l          |                   Get lyrics for a song                   | `-l Main woh chaand by darshan raval`  |            ✔            |
-|       -delete       |             Delete a message sent by the bot              |               `-delete`                |            ✔            |
-|        -joke        |                     Get a random joke                     |                `-joke`                 |            ✔            |
-|  -joke categories   |            Get a joke from a specific category            |          `-joke programming`           |            ✔            |
-|        -meme        |                     Get a random meme                     |                `-meme`                 |            ✔            |
-|       -movie        |              Get a download link for a movie              |           `-movie Avengers`            |           ❌            |
-|       -anime        |        Get a quote from an anime character or show        |                `-anime`                |            ✔            |
-|     -anime name     | Get a quote from an anime character with a specific name  |         `-anime name Saitama`          |            ✔            |
-|    -anime title     |   Get a quote from an anime show with a specific title    |      `-anime title One Punch Man`      |            ✔            |
-|      -sticker       |        Create a sticker from different media types        |   `-sticker pack myBitBot author MD`   |            ✔            |
-|    -sticker crop    |                   Crop the sticker size                   |            `-sticker crop`             |            ✔            |
-|   -sticker author   |                Add metadata to the sticker                |          `-sticker author MD`          |            ✔            |
-|    -sticker pack    |                Add metadata to the sticker                |        `-sticker pack myBitBot`        |            ✔            |
-| -sticker nometadata |           Remove all metadata from the sticker            |         `-sticker nometadata`          |            ✔            |
-|       -steal        |          Send a sticker with the bot's metadata           |                `-steal`                |            ✔            |
-|       -toimg        |               Convert a sticker to an image               |                `-toimg`                |            ✔            |
-|       -image        |               Convert a sticker to an image               |                `-image`                |            ✔            |
-|        -img         |             Search for an image using Google              |            `-img cute cat`             |            ✔            |
-|        -mp3         |                 Convert a video to audio                  |                 `-mp3`                 |            ✔            |
-|      -mp4audio      |                 Convert a video to audio                  |              `-mp4audio`               |            ✔            |
-|       -tomp3        |                 Convert a video to audio                  |                `-tomp3`                |            ✔            |
-|        -fact        |                     Get a random fact                     |                `-fact`                 |            ✔            |
-|        -news        |                      Show tech news                       |                `-news`                 |            ✔            |
-|  -news categories   |            Show news from a specific category             |             `-news sports`             |            ✔            |
-|        -list        |            Show a list of categories for news             |                `-list`                 |            ✔            |
-|        -idp         | Download the private profile picture of an Instagram user |            `-idp username`             |           ❌            |
-|       -insta        |               Download media from Instagram               |          `-insta linkadress`           |            ✔            |
-|       -gender       |            Get the gender percentage of a name            |          `-gender FirstName`           |            ✔            |
-|         -yt         |       Download a YouTube video in the best quality        |           `-yt youtubelink`            |           ❌            |
-|         -vs         |              Search for and download a video              |        `-vs khena galat galat`         |           ❌            |
-|        -horo        |    Show your horoscope based on your astrological sign    |             `-horo pisces`             |            ✔            |
-|       -advice       |             Get a random advice from the bot              |               `-advice`                |            ✔            |
-|       -quote        |              Get a random quote from the bot              |                `-quote`                |            ✔            |
-|        -proq        |           Get a programming quote from the bot            |                `-proq`                 |            ✔            |
-|      -proquote      |           Get a programming quote from the bot            |              `-proquote`               |           ❌            |
-|        -qpt         |              Get a poem written by an author              | `-qpt author Shakespeare title sonnet` |           ❌            |
-|     -qpt author     |          Get a poem written by a specific author          |       `-qpt author Shakespeare`        |            ✔            |
-|    -qpt authors     |              Get a list of authors for poems              |             `-qpt authors`             |            ✔            |
-|      -qpoetry       |              Get a poem written by an author              |               `-qpoetry`               |            ✔            |
-|      -removebg      |            Remove the background from an image            |              `-removebg`               |            ✔            |
-|        -nsfw        |            Get the NSFW percentage of an image            |                `-nsfw`                 |           ❌            |
-|        -tts         |                 Change text to a sticker                  |              `-tts text`               |            ✔            |
-|        -text        |            Add a header and footer to an image            |       `-text TopText;BottomText`       |            ✔            |
-|         -ud         |                Show the meaning of a name                 |              `-ud Mahesh`              |            ✔            |
-|        -dic         |      Get the definition of a word from a dictionary       |              `-dic Love`               |            ✔            |
-|      -txtmeme       |            Add a header and footer to an image            |     `-txtmeme TopText;BottomText`      |            ✔            |
-|       -source       |                    Get the source code                    |               `-source`                |            ✔            |
-
-<br>
-
-| **Admin Commands** |             **Explanation**             |        **Example**        | **Working/Not Working** |
-| :----------------: | :-------------------------------------: | :-----------------------: | :---------------------: |
-|        -add        |      Add a new member to the group      |    `-add phone number`    |            ✔            |
-|        -ban        |     Kick a member out of the group      |      `-ban @mention`      |            ✔            |
-|      -promote      |   Give admin permissions to a member    |    `-promote @mention`    |            ✔            |
-|      -demote       | Remove admin permissions from a member  |    `-demote @mention`     |            ✔            |
-|      -rename       |       Change the group's subject        |   `-rename new-subject`   |            ✔            |
-|      -welcome      |     Set the group's welcome message     |        `-welcome`         |            ✔            |
-|       -chat        |      Enable or disable group chat       | `-chat on` or `-chat off` |            ✔            |
-|       -link        |          Get the group's link           |          `-link`          |            ✔            |
-|       -warn        |       Give a warning to a member        |     `-warn @mention`      |            ✔            |
-|      -unwarn       |     Remove a warning from a member      |    `-unwarn @mention`     |            ✔            |
-|      -tagall       | Send an attendance alert to all members |     `-tagall message`     |            ✔            |
+<p align="center">
+  <img src="https://img.shields.io/badge/Node.js-22.x-339933?logo=node.js&logoColor=white" alt="Node" />
+  <img src="https://img.shields.io/badge/SQLite-Embedded-003B57?logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/React-Dashboard-61DAFB?logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/Railway-Deploy-0B0D0E?logo=railway&logoColor=white" alt="Railway" />
+  <img src="https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white" alt="Docker" />
+</p>
 
 ---
 
-# Running the WhatsApp Bot Locally
+## ✨ Highlights
 
-## Prerequisites
+- 🗄️ **SQLite** — everything stored locally in `database.db`, no MongoDB needed
+- 📱 **Pairing Code Auth** — connect via phone number, no QR scanning required
+- 🎛️ **React Admin Dashboard** — manage groups, members, commands, analytics, and bot health
+- 🔊 **Text-to-Speech** — Sarvam AI + Google TTS with proper OGG/Opus encoding
+- 🤖 **AI Chatbot** — Groq / Gemini powered conversational AI
+- 🎵 **Media** — YouTube downloads, songs, Instagram reels, stickers, memes
+- 🛡️ **Moderation** — anti-link, NSFW filter, warnings, member tracking
+- 📊 **Analytics** — per-group and per-member message statistics
+- 🔄 **Auto-reconnect** — handles session conflicts and disconnections gracefully
+
+---
+
+## 📋 Table of Contents
+
+- [Commands](#-commands)
+- [Quick Start](#-quick-start)
+- [Dashboard](#-admin-dashboard)
+- [Pairing Code Login](#-whatsapp-login-via-pairing-code)
+- [Enabling the Bot in Groups](#-enabling-bot-in-groups)
+- [Deployment](#-deployment)
+- [Environment Variables](#-environment-variables)
+- [Architecture](#-architecture)
+- [Credits](#-credits)
+
+---
+
+## 🤖 Commands
+
+### Public Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `-help` | Show all available commands | `-help` |
+| `-alive` | Check if bot is online | `-alive` |
+| `-say` / `-tts` | Text-to-speech (English & Hindi) | `-say hello` / `-say hin namaste` |
+| `-sticker` | Create sticker from image/video/GIF | `-sticker pack MyPack author Me` |
+| `-steal` | Re-upload sticker with bot metadata | `-steal` |
+| `-toimg` / `-image` | Convert sticker to image | `-toimg` |
+| `-mp3` / `-tomp3` | Convert video to audio | `-mp3` |
+| `-mp4` | Download video from URL | `-mp4 <url>` |
+| `-song` | Download song by name | `-song shape of you` |
+| `-yt` | Download YouTube video | `-yt <url>` |
+| `-insta` | Download Instagram media | `-insta <url>` |
+| `-img` | Google image search | `-img cute cat` |
+| `-search` / `-google` | Google web search | `-search nodejs tutorial` |
+| `-l` | Get song lyrics | `-l shape of you` |
+| `-news` | Latest news (categories available) | `-news` / `-news sports` |
+| `-joke` | Random joke | `-joke` / `-joke programming` |
+| `-meme` | Random meme from Reddit | `-meme` |
+| `-fact` | Random fun fact | `-fact` |
+| `-quote` | Random inspirational quote | `-quote` |
+| `-proq` | Programming quote | `-proq` |
+| `-horo` | Daily horoscope | `-horo pisces` |
+| `-advice` | Random life advice | `-advice` |
+| `-weather` | Current weather | `-weather Mumbai` |
+| `-translate` | Translate text | `-translate hi hello` |
+| `-calc` | Calculator | `-calc 2+2*3` |
+| `-ud` | Urban Dictionary lookup | `-ud yeet` |
+| `-dic` | Dictionary definition | `-dic love` |
+| `-gender` | Predict gender from name | `-gender Alex` |
+| `-idp` | Instagram profile picture (HD) | `-idp username` |
+| `-removebg` | Remove image background | `-removebg` (reply to image) |
+| `-remind` | Set a reminder | `-remind 10m drink water` |
+| `-reddit` | Get posts from subreddit | `-reddit memes` |
+| `-epicgames` | Free Epic Games deals | `-epicgames` |
+| `-stats` | Your message statistics | `-stats` |
+| `-start` | Bot introduction | `-start` |
+| `-dev` | Developer info | `-dev` |
+| `-chatbot` / `-db` | AI chatbot (Groq/Gemini) | `-chatbot how are you` |
+| `-groq` | Direct Groq AI query | `-groq explain quantum computing` |
+
+### Group Admin Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `-add` | Add member to group | `-add 919876543210` |
+| `-ban` / `-remove` | Remove member from group | `-ban @user` |
+| `-promote` | Promote to group admin | `-promote @user` |
+| `-demote` | Demote from group admin | `-demote @user` |
+| `-rename` | Change group name | `-rename New Name` |
+| `-welcome` | Set welcome message | `-welcome` |
+| `-tagall` | Tag all group members | `-tagall meeting at 5pm` |
+| `-link` | Get group invite link | `-link` |
+| `-warn` | Warn a member | `-warn @user` |
+| `-unwarn` | Remove warning | `-unwarn @user` |
+| `-count` | Show member message counts | `-count` |
+| `-zerocount` | Reset all counts | `-zerocount` |
+| `-antilink` | Toggle anti-link filter | `-antilink on` |
+| `-nsfwfilter` | Toggle NSFW image filter | `-nsfwfilter on` |
+| `-cmdblock` | Block specific commands | `-cmdblock song` |
+
+### Owner Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `-block` / `-unblock` | Block/unblock a user | `-block @user` |
+| `-broadcast` | Send message to all groups | `-broadcast hello everyone` |
+| `-clearhistory` | Clear group chat history | `-clearhistory` |
+| `-htag` | Hidden tag (invisible mention all) | `-htag important message` |
+| `-jid` | Get chat JID | `-jid` |
+| `-removebot` | Leave group | `-removebot` |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
 
 - **Node.js** 22.x
-- **pnpm** 9.x (`npm install -g pnpm`)
-- **MongoDB** — a free cluster on [mongodb.com](https://www.mongodb.com) works fine
+- **pnpm** 9.x — `npm install -g pnpm`
+- **ffmpeg** — bundled via `ffmpeg-static`, or install system-wide
 - **Git**
 
-## Setup
+### Setup
 
-1. **Clone the repository**
+```bash
+# 1. Clone
+git clone https://github.com/soumyachk101/Whatsapp-OG-Bot.git
+cd Whatsapp-OG-Bot
 
-   ```bash
-   git clone https://github.com/jacktheboss220/WhatsAppBotMultiDevice.git
-   cd WhatsAppBotMultiDevice
-   ```
+# 2. Install dependencies
+pnpm install
 
-2. **Create a `.env` file** in the project root (see [Environment Variables](#environment-variables) below for all keys).
+# 3. Create .env file (see Environment Variables section)
+cp .env.example .env
+# Edit .env with your values
 
-   At minimum you need:
+# 4. Build the admin dashboard
+pnpm run build
 
-   ```env
-   PREFIX=-
-   MY_NUMBER=1234567890
-   MODERATORS=1234567890
-   MONGODB_KEY=mongodb+srv://user:pass@cluster.mongodb.net/db
-   ADMIN_PASSWORD=your_admin_panel_password
-   ```
+# 5. Start the bot
+pnpm start
+```
 
-3. **Install backend dependencies**
-
-   ```bash
-   pnpm install
-   ```
-
-4. **Build the React dashboard** (required for production / first run)
-
-   ```bash
-   pnpm run build
-   ```
-
-   This installs the dashboard dependencies and compiles the React/Vite app into `public/app/`.
-
-5. **Start the bot**
-
-   ```bash
-   pnpm start
-   ```
-
-   The server starts on port **8000** (configurable via `PORT`).
+The server starts on **http://localhost:8000**. Open it in your browser to scan a QR code or enter a pairing code.
 
 ---
 
-## Running the Dashboard in Dev Mode
+## 🎛️ Admin Dashboard
 
-The dashboard (`dashboard/`) is a React + Vite app. During development you can run it with hot-reload alongside the backend:
+The bot includes a full React admin dashboard at `/admin` with:
 
-1. Start the backend first:
+- **Dashboard** — uptime, group count, member count, quick stats
+- **Bot Health** — memory usage, connection status, pairing code, restart controls
+- **Groups** — toggle bot, chatbot, anti-link, NSFW filter per group
+- **Members** — search, block/unblock, reset stats, view warnings
+- **Analytics** — top groups, top members, message type breakdown
+- **Commands** — enable/disable commands globally
 
-   ```bash
-   pnpm start
-   ```
+### Running Dashboard in Dev Mode
 
-2. In a second terminal, start the Vite dev server:
+```bash
+# Terminal 1: Start the backend
+pnpm start
 
-   ```bash
-   cd dashboard
-   npm install   # only needed the first time
-   npm run dev
-   ```
+# Terminal 2: Start Vite dev server
+cd dashboard
+npm install   # first time only
+npm run dev
+```
 
-   The dashboard is now available at **http://localhost:5173** and proxies all `/api` calls to the backend at `http://localhost:8000`.
-
-3. For a production build (served by the backend at `/admin`):
-
-   ```bash
-   # from the project root
-   pnpm run build
-   ```
-
-   After building, visit **http://localhost:8000/admin** to use the dashboard.
+Dashboard available at **http://localhost:5173** with hot-reload.
 
 ---
 
-## WhatsApp Login via Pairing Code
+## 📱 WhatsApp Login via Pairing Code
 
-The bot supports **pairing-code authentication** through the admin dashboard — no QR code scanning needed.
+No QR scanning needed — connect with just your phone number:
 
-### Steps to authenticate
+1. **Start the bot** — `pnpm start`
+2. **Open** `http://localhost:8000` in your browser
+3. Click **Phone Number** tab
+4. Enter your WhatsApp number with country code (e.g. `919876543210`)
+5. Click **Get Code** — an 8-character code appears
+6. On your phone: **WhatsApp → Settings → Linked Devices → Link a Device → Link with phone number**
+7. Enter the pairing code — bot connects automatically
 
-1. **Build the React dashboard** (only needed the first time, or after a `git pull`):
-
-   ```bash
-   pnpm run build
-   ```
-
-2. **Start the bot:**
-
-   ```bash
-   pnpm start
-   ```
-
-3. **Open the admin dashboard** in your browser and log in with your `ADMIN_PASSWORD`:
-
-   ```
-   http://localhost:8000/admin
-   ```
-
-4. Navigate to **Bot Health** in the sidebar.
-
-5. Enter your WhatsApp phone number (with country code, digits only — e.g. `911234567890`) and click **Get Pairing Code**.
-
-6. A **8-character pairing code** will appear on screen (e.g. `ABCD-1234`).
-
-7. On your phone, open WhatsApp → **Settings** → **Linked Devices** → **Link a Device** → **Link with phone number instead**.
-
-8. Enter the pairing code shown in the dashboard.
-
-9. The bot will connect automatically and the dashboard will update to show the connected status.
-
-> **Note:** Once the bot is already logged in, the pairing-code option is disabled. To re-authenticate, use the **Clear Auth** option in the admin panel and restart the bot.
+> **Note:** The pairing page only shows when the bot is not connected. If already connected, you'll see the connected status. To re-pair, use the admin dashboard to **Logout** first.
 
 ---
 
-## Enabling Bot in Groups
+## ✅ Enabling Bot in Groups
 
-After the bot is connected, add it to a group and let a few messages go through — this causes the group to appear in the database. Then use **any one** of these methods to enable it:
+After adding the bot to a group, enable it using any of these methods:
 
 ### Method 1: Admin Dashboard (recommended)
 
-1. Open the dashboard at `http://localhost:8000/admin` and log in.
-2. Go to the **Groups** page in the sidebar.
-3. Search for your group by name.
-4. Toggle the **Bot Active** switch on the group card.
+1. Open `http://localhost:8000/admin` and log in
+2. Go to **Groups** page
+3. Toggle the **Bot Active** switch for your group
 
-### Method 2: Owner command (in the group chat)
+### Method 2: Owner Command (in the group chat)
 
-Send this message from the number set in `MY_NUMBER`:
-
+Send from the owner number (`MY_NUMBER`):
 ```
-group isBotOn:true
+-group isBotOn:true
 ```
 
-### Method 3: MongoDB directly
+### Method 3: SQLite Database
 
-1. Open your MongoDB database.
-2. Go to the **groups** collection.
-3. Find the document for your group.
-4. Set `isBotOn` to `true`.
+Open `database.db` with any SQLite browser and set `isBotOn = true` for the group.
 
 ---
 
-# Deploy on Koyeb.com
+## 🚢 Deployment
 
-1. Create an account at [https://app.koyeb.com/auth/signup](https://app.koyeb.com/auth/signup).
-2. In the dashboard create a new app and connect your GitHub fork.
-3. Set all required environment variables (see [Environment Variables](#environment-variables)).
-4. Set the **build command** to `npm run build` and the **run command** to `node index.js`.
-5. Deploy — Koyeb will build the React dashboard and start the bot automatically.
+### Railway (Recommended)
 
-# Deploy on Heroku
+1. Push your code to GitHub
+2. Create a new project on [Railway](https://railway.app)
+3. Connect your GitHub repo
+4. Set environment variables in Railway dashboard
+5. Deploy — Railway auto-detects the `Dockerfile`
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/jacktheboss220/WhatsAppBotMultiDevice)
+### Docker
 
-The `app.json` and `Procfile` are already configured. Click the button above, fill in the environment variables, and deploy.
+```bash
+# Build
+docker build -t downloadbuddy .
 
----
-
-# Environment Variables
-
-Create a `.env` file in the project root with the following keys.
-
-## Required
-
-| Variable         | Description                                                               |
-| ---------------- | ------------------------------------------------------------------------- |
-| `PREFIX`         | Bot command prefix. Default: `-`                                          |
-| `MY_NUMBER`      | Your WhatsApp number without `+` (owner number)                           |
-| `BOT_NUMBER`     | The WhatsApp number the bot is logged in as (without `+`), used to filter self-messages. Can be the same as `MY_NUMBER` if you are self-hosting. |
-| `MODERATORS`     | Comma-separated moderator numbers (e.g. `123,456`)                        |
-| `MONGODB_KEY`    | MongoDB connection string from [mongodb.com](https://www.mongodb.com)     |
-| `ADMIN_PASSWORD` | Password to log in to the React admin dashboard at `/admin`               |
-
-## Optional
-
-| Variable                | Description                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| `PORT`                  | Server port (default: `8000`)                                                            |
-| `NODE_ENV`              | `development` or `production`                                                            |
-| `SESSION_SECRET`        | Secret used to sign the session cookie. Set a strong random string in production.        |
-| `GOOGLE_API_KEY`        | Google/Gemini API key — used by the AI chatbot (`-chat`) and image generation commands   |
-| `GOOGLE_API_KEY_SEARCH` | Google API key for the Custom Search API — used by the `-img` image search command       |
-| `SEARCH_ENGINE_KEY`     | Google Custom Search Engine ID — required alongside `GOOGLE_API_KEY_SEARCH` for `-img`   |
-| `GENIUS_ACCESS_SECRET`  | Genius API token — used by the `-l` lyrics command                                       |
-| `PIN_KEY`               | Pinterest API key for Pinterest image search                                             |
-| `REMOVE_BG_KEY`         | remove.bg API key — used by the `-removebg` command                                     |
-| `TRUECALLER_ID`         | Truecaller API ID for caller identification                                              |
-| `TWITTER_BEARER_TOKEN`  | Twitter/X API bearer token for Twitter-related features                                  |
-| `FFMPEG_PATH`           | Path to a custom `ffmpeg` binary. If unset the bundled `ffmpeg-static` binary is used.  |
-| `TELEGRAM_BOT_TOKEN`    | Telegram bot token — enables sending bot logs to a Telegram chat                         |
-| `TELEGRAM_CHAT_ID`      | Telegram chat/channel ID to receive bot logs                                             |
-
-## YouTube Download (Optional)
-
-| Variable                            | Default  | Description                          |
-| ----------------------------------- | -------- | ------------------------------------ |
-| `YOUTUBE_DELAY_BETWEEN_REQUESTS`    | `1000`   | Delay between requests (ms)          |
-| `YOUTUBE_MAX_RETRIES`               | `3`      | Maximum retry attempts               |
-| `YOUTUBE_RETRY_DELAY`               | `2000`   | Delay between retries (ms)           |
-| `MAX_AUDIO_SIZE_MB`                 | `50`     | Maximum audio file size (MB)         |
-| `MAX_VIDEO_SIZE_MB`                 | `50`     | Maximum video file size (MB)         |
-| `DOWNLOAD_TIMEOUT_SECONDS`          | `600`    | Download timeout (seconds)           |
-| `YOUTUBE_DEBUG`                     | `false`  | Enable debug logging                 |
-| `ENABLE_USER_AGENT_ROTATION`        | `true`   | Rotate user agents                   |
-| `FORCE_DISABLE_YTDLP`               | `false`  | Force-disable yt-dlp                 |
-
-## Example `.env` File
-
-```env
-# Required
-PREFIX=-
-MY_NUMBER=1234567890
-BOT_NUMBER=1234567890
-MODERATORS=1234567890,0987654321
-MONGODB_KEY=mongodb+srv://username:password@cluster.mongodb.net/database
-ADMIN_PASSWORD=supersecretpassword
-
-# Optional
-PORT=8000
-NODE_ENV=production
-SESSION_SECRET=change_this_to_a_random_string
-
-# Google / Gemini — AI chatbot and image generation
-GOOGLE_API_KEY=your_google_gemini_api_key_here
-
-# Google Custom Search — required for -img image search command
-GOOGLE_API_KEY_SEARCH=your_google_api_key_here
-SEARCH_ENGINE_KEY=your_search_engine_id_here
-
-# Other optional services
-GENIUS_ACCESS_SECRET=your_genius_access_secret_here
-PIN_KEY=your_pinterest_api_key_here
-REMOVE_BG_KEY=your_remove_bg_key_here
-TRUECALLER_ID=your_truecaller_id_here
-TWITTER_BEARER_TOKEN=your_twitter_bearer_token_here
-
-# Custom ffmpeg path (leave blank to use bundled ffmpeg-static)
-# FFMPEG_PATH=/usr/bin/ffmpeg
-
-# Telegram logging (optional — sends bot logs to a Telegram chat)
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_telegram_chat_id_here
-
-# YouTube Download Configuration
-YOUTUBE_DELAY_BETWEEN_REQUESTS=1000
-YOUTUBE_MAX_RETRIES=3
-YOUTUBE_RETRY_DELAY=2000
-MAX_AUDIO_SIZE_MB=50
-MAX_VIDEO_SIZE_MB=50
-DOWNLOAD_TIMEOUT_SECONDS=600
-YOUTUBE_DEBUG=false
-ENABLE_USER_AGENT_ROTATION=true
-FORCE_DISABLE_YTDLP=false
+# Run
+docker run -d \
+  --name downloadbuddy \
+  -p 8000:8000 \
+  --env-file .env \
+  downloadbuddy
 ```
 
+Or with Docker Compose:
+```bash
+docker-compose up -d
+```
+
+### Heroku
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/soumyachk101/Whatsapp-OG-Bot)
+
+### Koyeb
+
+1. Create an account at [koyeb.com](https://app.koyeb.com/auth/signup)
+2. Create a new app → connect your GitHub fork
+3. Set environment variables
+4. Build command: `npm run build` / Run command: `npm start`
+
 ---
 
-# References
+## ⚙️ Environment Variables
 
-- [@Baileys](https://github.com/WhiskeySockets/Baileys)
+Create a `.env` file in the project root. See `.env.example` for a template.
 
-If you enjoyed using this project, please consider giving it a :star: on GitHub. Your support is greatly appreciated! ❤️
+### Required
+
+| Variable | Description |
+|----------|-------------|
+| `PREFIX` | Command prefix (default: `-`) |
+| `MY_NUMBER` | Owner WhatsApp number without `+` (e.g. `919876543210`) |
+| `BOT_NUMBER` | Bot's WhatsApp number (can be same as `MY_NUMBER`) |
+| `MODERATORS` | Comma-separated moderator numbers |
+| `ADMIN_PASSWORD` | Password for the admin dashboard at `/admin` |
+
+### Optional — APIs
+
+| Variable | Description |
+|----------|-------------|
+| `SARVAM_API_KEY` | Sarvam AI key for premium Hindi/English TTS |
+| `GROQ_API_KEY` | Groq API key for AI chatbot |
+| `GOOGLE_API_KEY` | Google Gemini API key for AI features |
+| `SEARCH_ENGINE_KEY` | Google Custom Search Engine ID for `-img` |
+| `GENIUS_ACCESS_SECRET` | Genius API token for lyrics |
+| `REMOVE_BG_KEY` | remove.bg API key |
+| `TRUECALLER_ID` | Truecaller API ID |
+| `TWITTER_BEARER_TOKEN` | Twitter/X API token |
+| `INSTAGRAM_COOKIE` | Instagram session cookie for `-idp` |
+
+### Optional — Config
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8000` | Server port |
+| `NODE_ENV` | `production` | Environment |
+| `SESSION_SECRET` | auto-generated | Session cookie secret |
+| `TELEGRAM_BOT_TOKEN` | — | Telegram bot for logging |
+| `TELEGRAM_CHAT_ID` | — | Telegram chat for logs |
+
+### Optional — YouTube
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `YOUTUBE_DELAY_BETWEEN_REQUESTS` | `1000` | Delay between requests (ms) |
+| `YOUTUBE_MAX_RETRIES` | `3` | Max retry attempts |
+| `MAX_AUDIO_SIZE_MB` | `50` | Max audio file size |
+| `MAX_VIDEO_SIZE_MB` | `50` | Max video file size |
+| `DOWNLOAD_TIMEOUT_SECONDS` | `600` | Download timeout |
+
+---
+
+## 🏗️ Architecture
+
+```
+├── index.js              # Express server + WebSocket + bot startup
+├── connection.js          # Socket lifecycle & reconnection logic
+├── sqlite.js              # SQLite database initialization
+├── database.db            # All data stored here (auth, groups, members)
+├── commands/
+│   ├── public/            # Commands anyone can use (26 commands)
+│   ├── group/
+│   │   ├── admins/        # Group admin commands (20 commands)
+│   │   └── members/       # Group member commands (35 commands)
+│   └── owner/             # Owner-only commands (10 commands)
+├── functions/
+│   ├── getSocket.js       # Baileys socket creation + auth
+│   ├── getEvents.js       # Event router
+│   ├── getMessagesEvent.js # Message handler + command dispatcher
+│   ├── getGroupEvent.js   # Welcome/leave messages
+│   ├── useSQLiteAuthState.js # WhatsApp auth persistence
+│   ├── lidUtils.js        # LID/PN format utilities
+│   └── ...
+├── sqlite-DB/             # SQLite data access layer
+├── routes/admin.js        # REST API for admin dashboard
+├── dashboard/             # React + Vite admin UI (built to public/app/)
+├── public/                # Static assets + landing page (EJS)
+├── Dockerfile             # Production container
+└── docker-compose.yml     # Docker Compose config
+```
+
+**Tech Stack:**
+- **Runtime:** Node.js 22 (ESM)
+- **WhatsApp:** Baileys v7 (multi-device)
+- **Database:** SQLite via better-sqlite3
+- **Server:** Express 4 + WebSocket
+- **Dashboard:** React + Vite
+- **Audio:** ffmpeg-static + fluent-ffmpeg
+- **AI:** Groq SDK, Google Gemini, Sarvam AI
+
+---
+
+## 🙏 Credits
+
+- [Baileys](https://github.com/WhiskeySockets/Baileys) — WhatsApp Web API
+- [wa-sticker-formatter](https://github.com/AlenSaito1/wa-sticker-formatter) — Sticker creation
+- [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) — Audio/video processing
+
+---
+
+<p align="center">
+  If you found this useful, consider giving it a ⭐ on GitHub!
+</p>
