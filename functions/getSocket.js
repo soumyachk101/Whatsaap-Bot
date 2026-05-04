@@ -161,7 +161,7 @@ const socket = async () => {
 	sock.ev.on("creds.update", async () => {
 		try {
 			await saveCreds();
-			console.log("💾 Credentials saved to MongoDB");
+			console.log("💾 Credentials saved to SQLite");
 		} catch (error) {
 			console.error("Error updating credentials:", error);
 		}

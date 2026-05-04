@@ -17,14 +17,24 @@ import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
 
 // These will be used for permission checks
-const myNumber = [
-	process.env.MY_NUMBER.split(",")[0] + "@s.whatsapp.net",
-	process.env.MY_NUMBER.split(",")[1] + "@lid",
-];
-const botNumber = [
-	process.env.BOT_NUMBER.split(",")[0] + "@s.whatsapp.net",
-	process.env.BOT_NUMBER.split(",")[1] + "@lid",
-];
+// Support both formats: "number" or "number,lid"
+const parseNumberEnv = (envVal) => {
+	if (!envVal) return [];
+	const parts = envVal.split(",").map(s => s.trim()).filter(Boolean);
+	const jids = [];
+	for (const part of parts) {
+		if (part.includes("@")) {
+			jids.push(part);
+		} else {
+			// Raw number — add as @s.whatsapp.net
+			jids.push(part + "@s.whatsapp.net");
+		}
+	}
+	return jids;
+};
+
+const myNumber = parseNumberEnv(process.env.MY_NUMBER);
+const botNumber = parseNumberEnv(process.env.BOT_NUMBER);
 
 // Cached tag sticker - loaded once at startup
 let _tagStickerBuffer = null;
@@ -240,8 +250,7 @@ const getCommand = async (sock, msg, cache) => {
 		}
 		if (msg.message.extendedTextMessage) {
 			if (
-				msg.message.extendedTextMessage.contextInfo?.mentionedJid == botNumber[0] ||
-				msg.message.extendedTextMessage.contextInfo?.mentionedJid == botNumber[1]
+				msg.message.extendedTextMessage.contextInfo?.mentionedJid?.some(jid => botNumber.includes(jid))
 			) {
 				try {
 					const stickerBuffer = await getTagSticker();
@@ -327,7 +336,7 @@ const getCommand = async (sock, msg, cache) => {
 			let tagMessage = null;
 			if (type == "extendedTextMessage") {
 				let tagMessageSenderJID = msg.message?.extendedTextMessage?.contextInfo?.participant;
-				isTaggedBot = tagMessageSenderJID === botNumber[0] || tagMessageSenderJID === botNumber[1];
+				isTaggedBot = botNumber.includes(tagMessageSenderJID);
 				tagMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 			}
 			if (

@@ -3,6 +3,7 @@ import { group } from "../sqlite-DB/groupDataDb.js";
 import { member } from "../sqlite-DB/membersDataDb.js";
 import { bot, getBotData } from "../sqlite-DB/botDataDb.js";
 import { cmdToText } from "../functions/getAddCommands.js";
+import { clearSQLiteAuthState } from "../functions/useSQLiteAuthState.js";
 import mdClient from "../sqlite.js";
 
 const router = Router();
@@ -31,7 +32,7 @@ router.post("/api/pair", requireAdmin, async (req, res) => {
 	const sock = req.app.locals.sock;
 	if (!sock) return res.status(503).json({ error: "Bot is not ready yet. Try again in a moment." });
 
-	if (sock.authState?.creds?.registered) {
+	if (sock.user) {
 		return res.status(400).json({ error: "Bot is already logged in. Use the admin panel to manage the connection." });
 	}
 
@@ -275,7 +276,7 @@ router.post("/api/admin/request-pair", requireAdmin, async (req, res) => {
 	const sock = req.app.locals.sock;
 	if (!sock) return res.status(503).json({ error: "Bot socket is not ready." });
 
-	if (sock.authState?.creds?.registered || sock.user) {
+	if (sock.user) {
 		return res.status(400).json({ error: "Bot is already logged in. If you want to link a new number, Logout first." });
 	}
 
@@ -294,9 +295,8 @@ router.post("/api/admin/request-pair", requireAdmin, async (req, res) => {
 // ── API: Clear auth database (new) ────────────────────────────────────────────
 router.post("/api/admin/clear-auth", requireAdmin, async (req, res) => {
 	try {
-		const authCollection = mdClient.db().collection("AuthState");
-		const result = await authCollection.deleteMany({});
-		res.json({ ok: true, deleted: result.deletedCount, message: "Auth cleared. Restart the bot to get a new QR code or pairing code." });
+		clearSQLiteAuthState();
+		res.json({ ok: true, message: "Auth cleared. Restart the bot to get a new QR code or pairing code." });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}

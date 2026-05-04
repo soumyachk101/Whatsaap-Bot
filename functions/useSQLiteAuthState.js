@@ -53,6 +53,10 @@ const useSQLiteAuthState = async () => {
 			writeData(creds, "creds");
 			console.log("💾 Credentials saved to SQLite");
 		},
+		cleanup: () => {
+			// No-op for SQLite (connection is shared and managed by sqlite.js)
+			// This function exists to satisfy the getSocket.js cleanup contract
+		},
 	};
 };
 
