@@ -116,13 +116,15 @@ function broadcast(payload) {
 }
 
 function handleNewSock(sock) {
-	app.locals.sock = sock; 
+	app.locals.sock = sock;
+	app.locals.botConnected = false; // Reset on new socket
 
 	sock.ev.on("connection.update", (update) => {
 		const { qr, isOnline, connection } = update;
 
 		if (qr) {
 			botConnected = false;
+			app.locals.botConnected = false;
 			lastQR = qr;
 			clearTimeout(lastQRTimer);
 			lastQRTimer = setTimeout(() => { lastQR = null; }, 60_000);
@@ -131,6 +133,7 @@ function handleNewSock(sock) {
 
 		if (isOnline || connection === "open") {
 			botConnected = true;
+			app.locals.botConnected = true;
 			lastQR = null;
 			clearTimeout(lastQRTimer);
 			broadcast({ type: "status", status: "connected" });
@@ -138,6 +141,7 @@ function handleNewSock(sock) {
 
 		if (connection === "close") {
 			botConnected = false;
+			app.locals.botConnected = false;
 			broadcast({ type: "status", status: "disconnected" });
 		}
 	});
@@ -152,9 +156,8 @@ wss.on("connection", async (ws, req) => {
 	const session = await getSession(req);
 	const isAdmin = session?.isAdmin;
 
-	const isConnected = botConnected || app.locals.sock?.user != null;
+	const isConnected = botConnected;
 	if (isConnected) {
-		botConnected = true; 
 		ws.send(JSON.stringify({ type: "status", status: "connected" }));
 	} else if (lastQR) {
 		ws.send(JSON.stringify({ type: "qr", qr: lastQR }));

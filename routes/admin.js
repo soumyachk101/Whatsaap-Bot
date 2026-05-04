@@ -17,10 +17,8 @@ export function requireAdmin(req, res, next) {
 
 // ── Public bot status (no auth — used by index.ejs to poll connection state) ──
 router.get("/api/status", (req, res) => {
-	const sock = req.app.locals.sock;
 	res.json({
-		connected: !!(sock?.user),
-		registered: !!(sock?.authState?.creds?.registered),
+		connected: !!req.app.locals.botConnected,
 	});
 });
 
