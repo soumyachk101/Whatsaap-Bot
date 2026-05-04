@@ -24,8 +24,8 @@ router.get("/api/status", (req, res) => {
 	});
 });
 
-// ── Public pairing code endpoint (PROTECTED) ───────────
-router.post("/api/pair", requireAdmin, async (req, res) => {
+// ── Public pairing code endpoint (no auth — used by index.ejs for initial setup) ───────────
+router.post("/api/pair", async (req, res) => {
 	const { phoneNumber } = req.body;
 	if (!phoneNumber) return res.status(400).json({ error: "Phone number required." });
 
