@@ -20,12 +20,18 @@ RUN wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
     -O /usr/local/bin/yt-dlp && chmod a+rx /usr/local/bin/yt-dlp
 
 ENV YTDL_EXTRACTOR_ARGS="youtube:player_client=default,web"
+# Set environment variables to skip binary downloads during npm install
+ENV YOUTUBE_DL_SKIP_DOWNLOAD=true
 
 WORKDIR /app
 
 # Install root dependencies using npm
 COPY package.json package-lock.json* ./
 RUN npm install --no-audit
+
+# Ensure the expected path for youtube-dl-exec exists and link to the system yt-dlp
+RUN mkdir -p node_modules/youtube-dl-exec/bin && \
+    ln -sf /usr/local/bin/yt-dlp node_modules/youtube-dl-exec/bin/yt-dlp
 
 # Install dashboard dependencies
 COPY dashboard/package.json dashboard/package-lock.json* ./dashboard/

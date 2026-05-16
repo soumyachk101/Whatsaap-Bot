@@ -201,12 +201,25 @@ async function checkYtDlpBinary() {
 
 	try {
 		// Use spawnSync directly to avoid issues with spaces in paths from youtube-dl-exec
-		const binaryPath = path.join(__dirname, "../node_modules/youtube-dl-exec/bin/yt-dlp");
+		let binaryPath = path.join(__dirname, "../node_modules/youtube-dl-exec/bin/yt-dlp");
+		
+		// If node_modules binary doesn't exist or isn't working, check system PATH
+		if (!fs.existsSync(binaryPath)) {
+			try {
+				const whichResult = spawnSync("which", ["yt-dlp"]);
+				if (whichResult.status === 0) {
+					binaryPath = whichResult.stdout.toString().trim();
+				}
+			} catch (e) {
+				// Ignore which error
+			}
+		}
+
 		const result = spawnSync(binaryPath, ["--version"]);
 		
 		if (result.status === 0) {
 			if (CONFIG.DEBUG) {
-				console.log("yt-dlp binary check successful, version:", result.stdout.toString().trim());
+				console.log("yt-dlp binary check successful, path:", binaryPath, "version:", result.stdout.toString().trim());
 			}
 			return true;
 		}

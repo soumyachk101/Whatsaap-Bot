@@ -5,8 +5,21 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Path to the yt-dlp binary provided by youtube-dl-exec
-const YTDLP_PATH = path.join(__dirname, "../node_modules/youtube-dl-exec/bin/yt-dlp");
+// Path to the yt-dlp binary
+// First try system-wide path, then fall back to node_modules
+import { execSync } from "child_process";
+
+const getYtdlpPath = () => {
+	try {
+		// Try to find yt-dlp in system PATH
+		return execSync("which yt-dlp").toString().trim();
+	} catch (e) {
+		// Fallback to local node_modules path
+		return path.join(__dirname, "../node_modules/youtube-dl-exec/bin/yt-dlp");
+	}
+};
+
+const YTDLP_PATH = getYtdlpPath();
 
 /**
  * Execute yt-dlp with arguments and return a promise
