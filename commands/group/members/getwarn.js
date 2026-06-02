@@ -20,17 +20,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 	const groupData = await getGroupData(from);
 	let warnCount;
-	if (groupData) {
-		groupData.memberWarnCount.forEach((element, index) => {
-			if (element.member == taggedJid) {
-				warnCount = element.count;
-				return;
-			}
-		});
-	} else {
-		warnCount = 0;
+	if (groupData && groupData.memberWarnCount) {
+		const found = groupData.memberWarnCount.find((element) => element.member == taggedJid);
+		if (found) warnCount = found.count;
 	}
-	warnCount = warnCount == undefined ? 0 : warnCount;
+	warnCount = warnCount || 0;
 	// Use extractPhoneNumber for LID/PN compatibility
 	let phoneNumber = extractPhoneNumber(taggedJid);
 	let warnMsg;

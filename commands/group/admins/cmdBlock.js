@@ -5,7 +5,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (!isGroup) return sendMessageWTyping(from, { text: "Use In Group Only!" }, { quoted: msg });
 
 	const resBlock = await getGroupData(from);
-	if (resBlock == -1) return sendMessageWTyping("No data found in DB for this group", { quoted: msg });
+	if (!resBlock) return sendMessageWTyping(from, { text: "No data found in DB for this group" }, { quoted: msg });
 	let blockCommandsInDB = resBlock.cmdBlocked;
 
 	switch (command) {
@@ -14,25 +14,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (blockCommandsInDB.includes(args[0])) {
 				sendMessageWTyping(from, { text: "Command already blocked in this group" }, { quoted: msg });
 			} else {
-				group.findOne({ _id: from }).then((res) => {
-					group
-						.updateOne({ _id: from }, { $push: { cmdBlocked: { $each: args[0].split(",") } } })
-						.then(() => {
-							sendMessageWTyping(
-								from,
-								{ text: "*Blocked* _" + args[0] + "_ *in this group*." },
-								{ quoted: msg }
-							);
-						});
-				});
+				try {
+					await group.updateOne({ _id: from }, { $push: { cmdBlocked: { $each: args[0].split(",") } } });
+					sendMessageWTyping(from, { text: "*Blocked* _" + args[0] + "_ *in this group*." }, { quoted: msg });
+				} catch (err) {
+					sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+				}
 			}
 			break;
 
 		case "emptyc":
-			group.updateOne({ _id: from }, { $set: { cmdBlocked: [] } }).then(() => {
-				console.log("Done");
+			try {
+				await group.updateOne({ _id: from }, { $set: { cmdBlocked: [] } });
 				sendMessageWTyping(from, { text: `*No commands blocked in this group*` }, { quoted: msg });
-			});
+			} catch (err) {
+				sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+			}
 			break;
 
 		case "getblockc":
@@ -45,9 +42,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		case "removec":
 			if (!args[0]) return sendMessageWTyping(from, { text: `Enter a command to unblock` }, { quoted: msg });
-			group.updateOne({ _id: from }, { $pullAll: { cmdBlocked: args[0].split(",") } }).then(() => {
+			try {
+				await group.updateOne({ _id: from }, { $pullAll: { cmdBlocked: args[0].split(",") } });
 				sendMessageWTyping(from, { text: "*UnBlocked* _" + args[0] + "_ *in this Group*." }, { quoted: msg });
-			});
+			} catch (err) {
+				sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+			}
 			break;
 
 		default:

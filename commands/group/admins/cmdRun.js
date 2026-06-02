@@ -1,6 +1,15 @@
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const codeReceived = args.join(" ");
-	const { sendMessageWTyping } = msgInfoObj;
+	const { sendMessageWTyping, isOwner } = msgInfoObj;
+
+	if (!isOwner) {
+		return sendMessageWTyping(from, { text: "❌ *This command is restricted to the bot owner only.*" }, { quoted: msg });
+	}
+
+	if (!codeReceived.trim()) {
+		return sendMessageWTyping(from, { text: "❌ *Provide code to execute.*" }, { quoted: msg });
+	}
+
 	try {
 		let consoleOutput = "";
 		const captureConsoleLog = (message) => {
@@ -26,7 +35,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 const evalInContext = async (code, context) => {
-	const vm = require("vm");
+	const { default: vm } = await import("node:vm");
 	const sandbox = { ...context };
 	const script = new vm.Script(code);
 	const result = script.runInNewContext(sandbox);

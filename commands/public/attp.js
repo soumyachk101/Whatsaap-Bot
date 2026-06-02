@@ -18,8 +18,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const canvas = createCanvas(512, 512);
 	const ctx = canvas.getContext("2d");
 
-	// Colors for animation
-	const colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"];
+	// Generate a random color palette each time
+	const hueShift = Math.floor(Math.random() * 360);
+	const colors = Array.from({ length: 6 }, (_, i) => {
+		const h = (hueShift + i * 60) % 360;
+		return `hsl(${h}, 100%, 55%)`;
+	});
 	const frames = [];
 
 	// Helper to wrap text

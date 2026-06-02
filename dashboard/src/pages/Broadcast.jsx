@@ -53,7 +53,7 @@ export default function Broadcast() {
     setLoading(true)
     try {
       const res = await broadcast(text, targetJids)
-      toast(`Broadcast sent to ${res.groupsSent || targetJids.length} groups!`)
+      toast(`Broadcast sent to ${res.sent || 0} groups! (${res.failed || 0} failed)`)
       setText('')
       setSelectedJids([])
     } catch (err) {

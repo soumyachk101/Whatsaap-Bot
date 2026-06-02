@@ -1,8 +1,9 @@
 import { config } from "dotenv";
 config();
+const myNums = process.env.MY_NUMBER.split(",").map(n => n.trim()).filter(Boolean);
 const myNumbers = [
-	process.env.MY_NUMBER.split(",")[0] + "@s.whatsapp.net",
-	process.env.MY_NUMBER.split(",")[1] + "@lid",
+	...myNums.map(n => n + "@s.whatsapp.net"),
+	...myNums.map(n => n + "@lid"),
 ];
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
@@ -30,17 +31,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	try {
-		await sock
-			.groupParticipantsUpdate(from, [taggedJid], "remove")
-			.then(() => {
-				sendMessageWTyping(from, { text: `✅ *Removed*` }, { quoted: msg });
-			})
-			.catch((err) => {
-				console.log(err);
-			});
+		await sock.groupParticipantsUpdate(from, [taggedJid], "remove");
+		sendMessageWTyping(from, { text: `✅ *Removed*` }, { quoted: msg });
 	} catch (err) {
-		sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });
-		console.log(err);
+		console.error("Remove error:", err);
+		sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 	}
 };
 

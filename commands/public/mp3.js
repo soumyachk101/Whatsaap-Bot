@@ -59,7 +59,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["mp3", "audio", "song"],
+	cmd: ["mp3", "audio"],
 	desc: "Download high quality audio via link",
 	usage: "mp3 <link>",
 	handler,

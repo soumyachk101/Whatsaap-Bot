@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
 dotenv.config();
+const myNumbers = process.env.MY_NUMBER.split(",").map(n => n.trim()).filter(Boolean);
 const myNumber = [
-	process.env.MY_NUMBER.split(",")[0] + "@s.whatsapp.net",
-	process.env.MY_NUMBER.split(",")[1] + "@lid",
+	...myNumbers.map(n => n + "@s.whatsapp.net"),
+	...myNumbers.map(n => n + "@lid"),
 ];
 import { member } from "../../sqlite-DB/membersDataDb.js";
 import { extractPhoneNumber, normalizeJID } from "../../functions/lidUtils.js";
@@ -13,15 +14,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (!msg.message.extendedTextMessage)
 		return sendMessageWTyping(from, { text: "❌ Tag / mentioned!" }, { quoted: msg });
 
-	let taggedJid;
+	let taggedJid = msg.message.extendedTextMessage.contextInfo.participant
+		|| msg.message.extendedTextMessage.contextInfo.mentionedJid?.[0];
 
-	taggedJid = msg.message.extendedTextMessage
-		? msg.message.extendedTextMessage.contextInfo.participant
-		: msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
+	if (!taggedJid)
+		return sendMessageWTyping(from, { text: "❌ Could not identify the user." }, { quoted: msg });
 
 	const targetNumber = extractPhoneNumber(taggedJid);
-
-	console.log(taggedJid, botNumber[0], botNumber[1]);
 
 	if (
 		targetNumber == extractPhoneNumber(botNumber[0]) ||
@@ -34,6 +33,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const dbJid = targetNumber + "@lid";
 		member.updateOne({ _id: dbJid }, { $set: { isBlock: true } }).then(() => {
 			sendMessageWTyping(from, { text: `❌ Blocked` }, { quoted: msg });
+		}).catch((err) => {
+			sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 		});
 	}
 
@@ -41,6 +42,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const dbJid = targetNumber + "@lid";
 		member.updateOne({ _id: dbJid }, { $set: { isBlock: false } }).then(() => {
 			sendMessageWTyping(from, { text: `✅ *Unblocked*` }, { quoted: msg });
+		}).catch((err) => {
+			sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 		});
 	}
 };

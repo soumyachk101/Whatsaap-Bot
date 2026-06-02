@@ -16,7 +16,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				extractPhoneNumber(participant) == extractPhoneNumber(botNumber[1])
 			)
 		) {
-			if (!!groupAdmins.includes(botNumber[0]) && !groupAdmins.includes(botNumber[1]))
+			if (!groupAdmins.includes(botNumber[0]) && !groupAdmins.includes(botNumber[1]))
 				return sendMessageWTyping(
 					from,
 					{ text: `❌ Bot need to be admin in order to delete messages.` },
@@ -47,8 +47,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["delete"],
-	desc: "Delete a message",
-	usage: "delete | reply to message to delete",
+	cmd: ["delmsg"],
+	desc: "Delete a message (admin)",
+	usage: "delmsg | reply to message to delete",
 	handler,
 });

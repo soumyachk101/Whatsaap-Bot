@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const GOOGLE_API_KEY_SEARCH = process.env.GOOGLE_API_KEY_SEARCH || "";
+const GOOGLE_API_KEY_SEARCH = process.env.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY_SEARCH || "";
 const SEARCH_ENGINE_KEY = process.env.SEARCH_ENGINE_KEY || "";
 
 import fs from "fs";
@@ -28,7 +28,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	const data = await getGroupData(from);
 
-	if (!data.isImgOn) {
+	if (!data || !data.isImgOn) {
 		return sendMessageWTyping(
 			from,
 			{ text: "```By Default Search Image is Disable in this group.```" },
@@ -41,7 +41,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const urlToSearch = `${baseURL}${googleapis}${searchEngineKey}${searchType}${defQuery}${evv}`;
-	console.log(urlToSearch);
 
 	await axios(urlToSearch)
 		.then(async (res) => {

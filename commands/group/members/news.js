@@ -45,14 +45,27 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		numOfResults: 10,
 	};
 
-	inshorts.get(options, function (result) {
-		const category = newsType === "" ? "Top Stories" : newsType.charAt(0).toUpperCase() + newsType.slice(1);
-		let message = `📰 *${category} News*\n${readMore}`;
-		result.forEach((news, i) => {
-			message += `${i + 1}. *${news.title}*\n   _— ${news.author}_\n\n`;
+	try {
+		inshorts.get(options, function (result) {
+			try {
+				if (!result || !Array.isArray(result) || result.length === 0) {
+					return sendMessageWTyping(from, { text: "❌ No news found for this category." }, { quoted: msg });
+				}
+				const category = newsType === "" ? "Top Stories" : newsType.charAt(0).toUpperCase() + newsType.slice(1);
+				let message = `📰 *${category} News*\n${readMore}`;
+				result.forEach((news, i) => {
+					message += `${i + 1}. *${news.title || "Untitled"}*\n   _— ${news.author || "Unknown"}_\n\n`;
+				});
+				sendMessageWTyping(from, { text: message }, { quoted: msg });
+			} catch (err) {
+				console.error("News callback error:", err);
+				sendMessageWTyping(from, { text: "❌ Error processing news data." }, { quoted: msg });
+			}
 		});
-		sendMessageWTyping(from, { text: message }, { quoted: msg });
-	});
+	} catch (err) {
+		console.error("News error:", err);
+		sendMessageWTyping(from, { text: "❌ Error fetching news." }, { quoted: msg });
+	}
 };
 
 export default () => ({

@@ -6,33 +6,31 @@ const readMore = more.repeat(4001);
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, senderJid } = msgInfoObj;
 
-	taggedJid = msg?.message?.extendedTextMessage?.contextInfo?.participant;
+	const taggedJid = msg?.message?.extendedTextMessage?.contextInfo?.participant;
+	const targetJid = taggedJid || senderJid;
 	const filter = {
-		"members.id": taggedJid || senderJid,
+		"members.id": targetJid,
 	};
 	group
 		.find(filter)
 		.toArray()
 		.then((res) => {
-			if (res) {
+			if (res && res.length > 0) {
 				let mess = "",
 					userName = "",
 					totalMessageCount = 0;
 				res.sort((a, b) => {
-					return (
-						b.members.find((member) => member.id === taggedJid || (!taggedJid && member.id === senderJid))
-							.count -
-						a.members.find((member) => member.id === taggedJid || (!taggedJid && member.id === senderJid))
-							.count
-					);
+					const aMember = a.members.find((member) => member.id === targetJid);
+					const bMember = b.members.find((member) => member.id === targetJid);
+					return (bMember?.count || 0) - (aMember?.count || 0);
 				});
 				res.forEach((grp) => {
-					let data = grp.members.filter((member) => {
-						return member.id === taggedJid || (!taggedJid && member.id === senderJid);
-					});
-					userName = data[0].name;
-					totalMessageCount += data[0].count;
-					mess += `${data[0].count} - ${grp.grpName}\n`;
+					let data = grp.members.filter((member) => member.id === targetJid);
+					if (data.length > 0) {
+						userName = data[0].name;
+						totalMessageCount += data[0].count;
+						mess += `${data[0].count} - ${grp.grpName}\n`;
+					}
 				});
 				sendMessageWTyping(
 					from,
@@ -44,6 +42,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			} else {
 				sendMessageWTyping(from, { text: "No Data Found" }, { quoted: msg });
 			}
+		})
+		.catch((err) => {
+			console.error("myGrpCount error:", err);
+			sendMessageWTyping(from, { text: "❌ Error fetching group counts." }, { quoted: msg });
 		});
 };
 
