@@ -25,12 +25,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	// Categorize user commands with stylized names (Comprehensive List)
 	const categories = {
-		"─── 「 🤖 ᴀɪ & ᴄʜᴀᴛ 」 ───": ["say", "tts", "groq", "chat", "aimodes", "chatbot", "downloadbuddy", "cmdrun"],
-		"─── 「 📥 ᴅᴏᴡɴʟᴏᴀᴅᴇʀs 」 ───": ["mp3", "mp4", "reddit", "idp", "song", "yta", "ytdl", "insta", "twitter", "pin", "pin-downloader", "insta-downloader", "mp3convt", "y2mate"],
-		"─── 「 🎨 sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ 」 ───": ["sticker", "attp", "textsticker", "ts", "stickertext", "steal", "meme", "image", "removebg", "imgGen", "imageGen", "imageGen2", "removebg"],
+		"─── 「 🤖 ᴀɪ & ᴄʜᴀᴛ 」 ───": ["say", "tts", "groq", "chat", "aimodes", "chatbot", "downloadbuddy", "runcode"],
+		"─── 「 📥 ᴅᴏᴡɴʟᴏᴀᴅᴇʀs 」 ───": ["mp3", "mp4", "reddit", "idp", "song", "play", "yta", "ytdl", "insta", "twitter", "pin", "pin-downloader", "insta-downloader", "mp3convt", "y2mate"],
+		"─── 「 🎨 sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ 」 ───": ["sticker", "attp", "textsticker", "ts", "stickertext", "steal", "meme", "image", "removebg", "imgGen", "imageGen", "imageGen2"],
 		"─── 「 🛠️ ᴜᴛɪʟɪᴛɪᴇs 」 ───": ["calc", "translate", "weather", "remind", "lyrics", "dictionary", "ud", "advice", "fact", "gender", "horo", "joke", "quote", "qpoetry", "programing-quote", "truecaller", "getwarn", "courseapi"],
-		"─── 「 🔍 sᴇᴀʀᴄʜ 」 ───": ["google", "search", "googleSearch", "googleImgSearch", "news", "newsCate"],
-		"─── 「 ℹ️ ʙᴏᴛ ɪɴғᴏ 」 ───": ["help", "menu", "stats", "mystats", "alive", "start", "donation", "dev", "mycount", "myGrpCount", "headerfooter"]
+		"─── 「 🔍 sᴇᴀʀᴄʜ 」 ───": ["google", "gs", "search", "yts", "img", "imgSearch", "news", "newsCate"],
+		"─── 「 ℹ️ ʙᴏᴛ ɪɴғᴏ 」 ───": ["help", "menu", "stats", "mystats", "donation", "dev", "mycount", "myGrpCount", "headerfooter"]
 	};
 
 	let publicCmdText = "";

@@ -17,6 +17,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			let data = res.members.filter((element) => {
 				return element.id === senderJid;
 			});
+			if (data.length === 0) {
+				return sendMessageWTyping(from, { text: "No Data Found" }, { quoted: msg });
+			}
 			const d = data[0];
 			sendMessageWTyping(
 				from,
@@ -34,6 +37,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		} else {
 			sendMessageWTyping(from, { text: "No Data Found" }, { quoted: msg });
 		}
+	}).catch((err) => {
+		console.error("MyCount error:", err);
+		sendMessageWTyping(from, { text: "❌ Error fetching count." }, { quoted: msg });
 	});
 };
 

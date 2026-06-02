@@ -30,20 +30,16 @@ const getRandom = (ext) => {
 
 import { delay } from "baileys";
 
-let down_meme = getRandom(".mp4");
-let down_gif = getRandom(".gif");
-
-const downloadMedia = async (url) => {
-	const writer = memoryManager.createOptimizedWriteStream(down_gif);
+const downloadMedia = async (url, gifPath) => {
+	const writer = memoryManager.createOptimizedWriteStream(gifPath);
 	const response = await axios({
 		url,
 		method: "GET",
 		responseType: "stream",
-		maxContentLength: 50 * 1024 * 1024, // 50MB limit
-		timeout: 30000, // 30 second timeout
+		maxContentLength: 50 * 1024 * 1024,
+		timeout: 30000,
 	});
 
-	// Register the response stream for monitoring
 	memoryManager.registerStream(response.data);
 	memoryManager.registerStream(writer);
 
@@ -51,25 +47,28 @@ const downloadMedia = async (url) => {
 	return new Promise((resolve, reject) => {
 		writer.on("finish", () => resolve("done"));
 		writer.on("error", (err) => {
-			memoryManager.safeUnlink(down_gif);
+			memoryManager.safeUnlink(gifPath);
 			reject(err);
 		});
 		response.data.on("error", (err) => {
-			memoryManager.safeUnlink(down_gif);
+			memoryManager.safeUnlink(gifPath);
 			reject(err);
 		});
 	});
 };
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
+	const down_meme = getRandom(".mp4");
+	const down_gif = getRandom(".gif");
 	const memeURL = "https://meme-api.com/gimme";
-	await axios.get(`${memeURL}`).then((res) => {
+	try {
+		const res = await axios.get(memeURL);
 		let url = res.data.url;
 		if (url.includes("jpg") || url.includes("jpeg") || url.includes("png")) {
-			sock.sendMessage(from, { image: { url: res.data.url }, caption: `${res.data.title}` });
+			await sock.sendMessage(from, { image: { url: res.data.url }, caption: `${res.data.title}` });
 		} else {
-			outputOptions = [`-movflags faststart`, `-pix_fmt yuv420p`, `-vf`, `scale=trunc(iw/2)*2:trunc(ih/2)*2`];
-			downloadMedia(res.data.url)
+			const outputOptions = [`-movflags faststart`, `-pix_fmt yuv420p`, `-vf`, `scale=trunc(iw/2)*2:trunc(ih/2)*2`];
+			downloadMedia(res.data.url, down_gif)
 				.then(async (res1) => {
 					if (res1 == "done") {
 						const ffmpegProcess = ffmpeg(down_gif)
@@ -113,7 +112,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					memoryManager.safeUnlink(down_gif);
 				});
 		}
-	});
+	} catch (err) {
+		console.error("Meme API error:", err);
+		sendMessageWTyping(from, { text: "❌ Error fetching meme." }, { quoted: msg });
+	}
 };
 
 export default () => ({

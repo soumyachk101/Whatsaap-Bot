@@ -14,20 +14,29 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
         );
 
     if (!args[0] || !args[0].includes("https://pin.it")) return sendMessageWTyping(from, { text: "Provide the pinurl" }, { quoted: msg });
-    axios.get(`https://api.xteam.xyz/dl/pinterestdl?url=${args[0]}/&APIKEY=${PIN_KEY}`).then((res) => {
+    try {
+        const res = await axios.get(`https://api.xteam.xyz/dl/pinterestdl?url=${args[0]}/&APIKEY=${PIN_KEY}`);
         if (res.data.status == true) {
-            res.data.result.hd_img ? res.data.result.hd_img.endsWith('mp4')
-                ? sendMessageWTyping(from, { video: { url: res.data.result.hd_img } }, { quoted: msg })
-                : sendMessageWTyping(from, { image: { url: res.data.result.hd_img } }, { quoted: msg })
-                : res.data.result.high_img ? res.data.result.high_img.endsWith('mp4')
-                    ? sendMessageWTyping(from, { video: { url: res.data.result.high_img } }, { quoted: msg })
-                    : sendMessageWTyping(from, { image: { url: res.data.result.high_img } }, { quoted: msg })
-                    : sendMessageWTyping(from, { text: "Not Found / Error" })
+            const hdImg = res.data.result.hd_img;
+            const highImg = res.data.result.high_img;
+            if (hdImg) {
+                hdImg.endsWith('mp4')
+                    ? sendMessageWTyping(from, { video: { url: hdImg } }, { quoted: msg })
+                    : sendMessageWTyping(from, { image: { url: hdImg } }, { quoted: msg });
+            } else if (highImg) {
+                highImg.endsWith('mp4')
+                    ? sendMessageWTyping(from, { video: { url: highImg } }, { quoted: msg })
+                    : sendMessageWTyping(from, { image: { url: highImg } }, { quoted: msg });
+            } else {
+                sendMessageWTyping(from, { text: "Not Found / Error" }, { quoted: msg });
+            }
         } else {
-            sendMessageWTyping(from, { text: "error" }, { quoted: msg })
+            sendMessageWTyping(from, { text: "error" }, { quoted: msg });
         }
-        console.log(JSON.stringify(res.data));
-    })
+    } catch (err) {
+        console.error("Pinterest download error:", err);
+        sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+    }
 }
 
 export default () => ({

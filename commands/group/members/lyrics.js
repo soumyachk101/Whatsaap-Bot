@@ -18,6 +18,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (!args[0]) return sendMessageWTyping(from, { text: "Enter the song name." }, { quoted: msg });
 
 	const searches = await Client.songs.search(evv);
+	if (!searches || searches.length === 0) {
+		return sendMessageWTyping(from, { text: "❌ No songs found for that query." }, { quoted: msg });
+	}
 	const firstSong = searches[0];
 	let lyric;
 	try {

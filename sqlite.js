@@ -39,7 +39,7 @@ class Collection {
 
     async findOne(query) {
         const id = query._id || query.id;
-        if (id) {
+        if (id && Object.keys(query).length === 1) {
             const row = db.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`).get(id);
             if (!row) return null;
             if (this.tableName === 'AuthTable') return { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]') };
@@ -47,33 +47,50 @@ class Collection {
             data._id = row.id;
             return data;
         }
-        const rows = this.find(query);
-        return rows.length > 0 ? rows[0] : null;
+        const results = (await (this.find(query)).toArray());
+        return results.length > 0 ? results[0] : null;
+    }
+
+    _matchNestedValue(obj, parts, idx, expected) {
+        if (idx >= parts.length) return obj === expected;
+        if (obj == null) return false;
+        const val = obj[parts[idx]];
+        if (Array.isArray(val)) {
+            return val.some(el => this._matchNestedValue(el, parts, idx + 1, expected));
+        }
+        return this._matchNestedValue(val, parts, idx + 1, expected);
+    }
+
+    _matchItem(item, query) {
+        for (const key in query) {
+            if (key === '$or') {
+                const orResult = query.$or.some(orClause => this._matchItem(item, orClause));
+                if (!orResult) return false;
+                continue;
+            }
+            const searchKey = key === '_id' ? '_id' : key;
+            const expected = query[key];
+
+            if (expected && typeof expected === 'object' && !Array.isArray(expected) && expected.$regex) {
+                const re = new RegExp(expected.$regex, expected.$options || '');
+                if (!re.test(String(item[searchKey] || ''))) return false;
+                continue;
+            }
+
+            if (searchKey.includes('.')) {
+                const parts = searchKey.split('.');
+                if (!this._matchNestedValue(item, parts, 0, expected)) return false;
+            } else {
+                if (item[searchKey] !== expected) return false;
+            }
+        }
+        return true;
     }
 
     find(query = {}, options = {}) {
-        let sql = `SELECT * FROM ${this.tableName}`;
-        const params = [];
-        
-        const queryKeys = Object.keys(query).filter(k => k !== '$or' && k !== '$regex');
-        if (queryKeys.length > 0) {
-            sql += " WHERE ";
-            sql += queryKeys.map(k => {
-                const key = k === '_id' ? 'id' : k;
-                if (this.tableName === 'AuthTable') {
-                     return `${key} = ?`;
-                } else {
-                     // For Groups/Members, we have to filter inside the JSON data column
-                     // but since we already loaded all rows in memory for this simple shim:
-                     return "1=1"; 
-                }
-            }).join(" AND ");
-            // We'll actually filter in memory for simplicity in this shim
-        }
-
         const stmt = db.prepare(`SELECT * FROM ${this.tableName}`);
         const rows = stmt.all();
-        
+
         let results = rows.map(row => {
             if (this.tableName === 'AuthTable') return { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]') };
             const data = JSON.parse(row.data);
@@ -81,29 +98,26 @@ class Collection {
             return data;
         });
 
-        // In-memory filtering for the shim
         if (Object.keys(query).length > 0) {
-            results = results.filter(item => {
-                for (const key in query) {
-                    const searchKey = key === '_id' ? '_id' : key;
-                    if (query[key] !== item[searchKey]) return false;
-                }
-                return true;
-            });
+            results = results.filter(item => this._matchItem(item, query));
         }
 
         return {
             toArray: async () => results,
-            limit: (n) => { 
-                const limited = results.slice(0, n); 
-                return { toArray: async () => limited }; 
+            limit: (n) => {
+                const limited = results.slice(0, n);
+                return { toArray: async () => limited };
             },
             sort: (sortObj) => {
                 const field = Object.keys(sortObj)[0];
                 const dir = sortObj[field];
-                results.sort((a, b) => (a[field] > b[field] ? 1 : -1) * dir);
-                return { 
-                    toArray: async () => results, 
+                results.sort((a, b) => {
+                    const av = a[field] ?? 0;
+                    const bv = b[field] ?? 0;
+                    return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
+                });
+                return {
+                    toArray: async () => results,
                     skip: (s) => {
                         const skipped = results.slice(s);
                         return {
@@ -116,8 +130,41 @@ class Collection {
     }
 
     async countDocuments(query = {}) {
-        const row = db.prepare(`SELECT COUNT(*) as count FROM ${this.tableName}`).get();
-        return row.count;
+        const rows = db.prepare(`SELECT * FROM ${this.tableName}`).all();
+        if (Object.keys(query).length === 0) return rows.length;
+        const mapped = rows.map(row => {
+            if (this.tableName === 'AuthTable') return { _id: row.id, ...row };
+            const data = JSON.parse(row.data);
+            data._id = row.id;
+            return data;
+        });
+        return mapped.filter(item => this._matchItem(item, query)).length;
+    }
+
+    _applyPositional(data, dottedKey, query, updater) {
+        const dotIdx = dottedKey.indexOf('.$.');
+        if (dotIdx === -1) return false;
+
+        const arrayField = dottedKey.slice(0, dotIdx);
+        const nestedPath = dottedKey.slice(dotIdx + 3);
+
+        const matchKey = Object.keys(query).find(k =>
+            k.startsWith(arrayField + '.') && !k.includes('.$') && k !== '_id'
+        );
+        if (!matchKey) return false;
+
+        const matchField = matchKey.slice(arrayField.length + 1);
+        const matchValue = query[matchKey];
+
+        if (!Array.isArray(data[arrayField])) return false;
+
+        for (let i = 0; i < data[arrayField].length; i++) {
+            if (data[arrayField][i][matchField] === matchValue) {
+                updater(data[arrayField][i], nestedPath);
+                return true;
+            }
+        }
+        return false;
     }
 
     async updateOne(query, update, options = {}) {
@@ -130,15 +177,66 @@ class Collection {
         }
         if (!existing) return;
 
-        // Handle $set, $push, etc (very basic)
         const data = { ...existing };
-        if (update.$set) Object.assign(data, update.$set);
+
+        if (update.$set) {
+            for (const [key, value] of Object.entries(update.$set)) {
+                if (key.includes('.$.')) {
+                    this._applyPositional(data, key, query, (obj, path) => {
+                        const parts = path.split('.');
+                        let target = obj;
+                        for (let i = 0; i < parts.length - 1; i++) {
+                            if (target[parts[i]] == null) target[parts[i]] = {};
+                            target = target[parts[i]];
+                        }
+                        target[parts[parts.length - 1]] = value;
+                    });
+                } else {
+                    data[key] = value;
+                }
+            }
+        }
+
+        if (update.$inc) {
+            for (const [key, value] of Object.entries(update.$inc)) {
+                if (key.includes('.$.')) {
+                    this._applyPositional(data, key, query, (obj, path) => {
+                        const parts = path.split('.');
+                        let target = obj;
+                        for (let i = 0; i < parts.length - 1; i++) {
+                            if (target[parts[i]] == null) target[parts[i]] = {};
+                            target = target[parts[i]];
+                        }
+                        const lastKey = parts[parts.length - 1];
+                        target[lastKey] = (target[lastKey] || 0) + value;
+                    });
+                } else {
+                    data[key] = (data[key] || 0) + value;
+                }
+            }
+        }
+
         if (update.$push) {
             for (const key in update.$push) {
                 if (!Array.isArray(data[key])) data[key] = [];
                 data[key].push(update.$push[key]);
             }
         }
+
+        if (update.$pull) {
+            for (const key in update.$pull) {
+                if (!Array.isArray(data[key])) continue;
+                const pullSpec = update.$pull[key];
+                if (pullSpec && typeof pullSpec === 'object' && !Array.isArray(pullSpec)) {
+                    data[key] = data[key].filter(el =>
+                        !Object.keys(pullSpec).every(k => el[k] === pullSpec[k])
+                    );
+                } else {
+                    data[key] = data[key].filter(v => v !== pullSpec);
+                }
+            }
+        }
+
         if (update.$pullAll) {
             for (const key in update.$pullAll) {
                 if (Array.isArray(data[key])) {
@@ -147,6 +245,7 @@ class Collection {
                 }
             }
         }
+
         if (update.$addToSet) {
             for (const key in update.$addToSet) {
                 if (!Array.isArray(data[key])) data[key] = [];

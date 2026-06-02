@@ -1,3 +1,9 @@
+let onUnauthorized = null
+
+export function setOnUnauthorized(fn) {
+  onUnauthorized = fn
+}
+
 const call = async (method, path, body) => {
   const r = await fetch(path, {
     method,
@@ -5,11 +11,19 @@ const call = async (method, path, body) => {
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined,
   })
+  if (r.status === 401) {
+    if (onUnauthorized) onUnauthorized()
+    throw new Error('Session expired. Please log in again.')
+  }
   if (!r.ok) {
     const e = await r.json().catch(() => ({}))
     throw new Error(e.error || r.statusText)
   }
-  return r.json()
+  const contentType = r.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    return r.json()
+  }
+  return r.text().then(t => t ? JSON.parse(t) : {})
 }
 
 export const api = {

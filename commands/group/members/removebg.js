@@ -15,12 +15,12 @@ const getRandom = (ext) => {
 	return `${Math.floor(Math.random() * 10000)}${ext}`;
 };
 
-const getRemoveBg = async (Path) => {
+const getRemoveBg = async (Path, outputPath) => {
 	const inputPath = `./${Path}`;
 	const formData = new FormData();
 	formData.append("size", "auto");
 	formData.append("image_file", fs.createReadStream(inputPath), path.basename(inputPath));
-	await axios({
+	const response = await axios({
 		method: "post",
 		url: "https://api.remove.bg/v1.0/removebg",
 		data: formData,
@@ -30,15 +30,9 @@ const getRemoveBg = async (Path) => {
 			"X-Api-Key": removebgAPI,
 		},
 		encoding: null,
-	})
-		.then(async (response) => {
-			if (response.status != 200) return console.log("error");
-			await fs.promises.writeFile("./bg.png", response.data);
-			console.log("DONE");
-		})
-		.catch((error) => {
-			return console.log("Error change api key");
-		});
+	});
+	if (response.status != 200) throw new Error("Remove.bg API returned status " + response.status);
+	await fs.promises.writeFile(outputPath, response.data);
 };
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
@@ -62,28 +56,21 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			buffer = Buffer.concat([buffer, chunk]);
 		}
 		const media = getRandom(".jpeg");
+		const outputFile = getRandom(".png");
 		await writeFile(media, buffer);
-		getRemoveBg(media)
-			.then(async () => {
-				try {
-					sock.sendMessage(from, {
-						image: await fs.promises.readFile("./bg.png"),
-						mimetype: "image/png",
-						caption: `*Sent by DownloadWorld*`,
-					}).then(() => {
-						try {
-							fs.unlinkSync(media);
-							fs.unlinkSync("./bg.png");
-						} catch {}
-					});
-				} catch (err) {
-					sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });
-				}
-			})
-			.catch((err) => {
-				console.log("Status : ", err.status);
-				sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });
-			});
+		try {
+			await getRemoveBg(media, outputFile);
+			await sock.sendMessage(from, {
+				image: await fs.promises.readFile(outputFile),
+				mimetype: "image/png",
+				caption: `*Sent by DownloadWorld*`,
+			}, { quoted: msg });
+		} catch (err) {
+			sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+		} finally {
+			try { fs.unlinkSync(media); } catch {}
+			try { fs.unlinkSync(outputFile); } catch {}
+		}
 	} else {
 		sendMessageWTyping(from, { text: `*Reply to image only*` }, { quoted: msg });
 	}

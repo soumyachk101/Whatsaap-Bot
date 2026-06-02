@@ -4,9 +4,10 @@ import { extractPhoneNumber } from "../../../functions/lidUtils.js";
 
 import { config } from "dotenv";
 config();
+const myNums = process.env.MY_NUMBER.split(",").map(n => n.trim()).filter(Boolean);
 const myNumber = [
-	process.env.MY_NUMBER.split(",")[0] + "@s.whatsapp.net",
-	process.env.MY_NUMBER.split(",")[1] + "@lid",
+	...myNums.map(n => n + "@s.whatsapp.net"),
+	...myNums.map(n => n + "@lid"),
 ];
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { command, groupAdmins, sendMessageWTyping, botNumber } = msgInfoObj;

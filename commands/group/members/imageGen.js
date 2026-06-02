@@ -21,7 +21,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	// Check if image generation is enabled in the group
 	const data = await getGroupData(from);
-	if (!data.isImgOn) {
+	if (!data || !data.isImgOn) {
 		return sendMessageWTyping(
 			from,
 			{ text: "```By Default Image Generation is Disabled in this group.```" },

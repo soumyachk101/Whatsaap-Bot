@@ -11,14 +11,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let message = `📢 *Broadcast*\n\n${args.join(" ")}`;
 
 	try {
+		let sent = 0;
 		for (let i = 0; i < res.length; i++) {
-			await sendMessageWTyping(res[i], { text: message });
+			try {
+				await sendMessageWTyping(res[i], { text: message });
+				sent++;
+			} catch (sendErr) {
+				console.error(`Broadcast failed for ${res[i]}:`, sendErr.message);
+			}
 			await delay(2000);
-			if (i == res.length - 1)
-				return sendMessageWTyping(from, { text: `✅ Broadcast sent to *${res.length}* groups.` }, { quoted: msg });
 		}
+		return sendMessageWTyping(from, { text: `✅ Broadcast sent to *${sent}/${res.length}* groups.` }, { quoted: msg });
 	} catch (err) {
-		console.log(err);
+		console.error("Broadcast error:", err);
+		sendMessageWTyping(from, { text: `❌ Broadcast error: ${err.message}` }, { quoted: msg });
 	}
 };
 

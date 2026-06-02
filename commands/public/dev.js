@@ -11,7 +11,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		`│ buymeacoffee.com/soumyachk101\n` +
 		`│\n` +
 		`│ *🌐 Portfolio*\n` +
-		`│ chksoumya.in\n` +
+		`│ soumya.pro\n` +
 		`╰───────────────────────────`;
 
 	return sendMessageWTyping(from, { text: response }, { quoted: msg });

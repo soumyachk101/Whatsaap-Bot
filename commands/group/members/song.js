@@ -1,4 +1,6 @@
 import fs from "fs";
+import cp from "child_process";
+import ffmpeg from "ffmpeg-static";
 import yts from "yt-search";
 import ytdl from "@distube/ytdl-core";
 import execYtdlp from "../../../functions/ytdlpHelper.js";

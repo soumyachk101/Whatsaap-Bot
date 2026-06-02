@@ -48,7 +48,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return sendMessageWTyping(from, { text: `❌ *Error setting metadata*` }, { quoted: msg });
 		}
 
-		fs.unlinkSync(media);
+		try {
+			fs.unlinkSync(media);
+		} catch {}
 	} else {
 		return sendMessageWTyping(from, { text: `❌ *Reply on Sticker*` }, { quoted: msg });
 	}

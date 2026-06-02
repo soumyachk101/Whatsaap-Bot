@@ -1,7 +1,6 @@
-import fs from "fs";
 import axios from "axios";
 
-const GOOGLE_API_KEY_SEARCH = process.env.GOOGLE_API_KEY_SEARCH || "";
+const GOOGLE_API_KEY_SEARCH = process.env.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY_SEARCH || "";
 const SEARCH_ENGINE_KEY = process.env.SEARCH_ENGINE_KEY || "";
 
 const baseURL = "https://www.googleapis.com/customsearch/v1";
@@ -56,7 +55,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["search", "gs"],
+	cmd: ["google", "gs"],
 	desc: "Search on Google",
 	usage: "search | gs <query>",
 	handler,

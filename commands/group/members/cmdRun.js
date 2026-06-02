@@ -26,7 +26,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 const evalInContext = async (code, context) => {
-	const vm = require("vm");
+	const { default: vm } = await import("node:vm");
 	const sandbox = { ...context };
 	const script = new vm.Script(code);
 	const result = script.runInNewContext(sandbox);
@@ -34,8 +34,8 @@ const evalInContext = async (code, context) => {
 };
 
 export default () => ({
-	cmd: ["exec", "execute"],
-	desc: "Execute JavaScript code",
-	usage: "exec <code>",
+	cmd: ["runcode"],
+	desc: "Execute JavaScript code (admin only recommended)",
+	usage: "runcode <code>",
 	handler,
 });

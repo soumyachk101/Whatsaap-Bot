@@ -40,37 +40,32 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	group.findOne({ _id: from }).then((res) => {
-		group
-			.aggregate([
-				{ $match: { _id: from } },
-				{ $unwind: "$members" },
-				{ $sort: { "members.count": -1 } },
-				{ $group: { _id: "$_id", items: { $push: "$members" } } },
-			])
-			.toArray()
-			.then((r) => {
-				const items = r[0]?.items || [];
-				let filtered = allParticipants
-					.map((p) => {
-						let found = items.find((m) => m.id == p);
-						return found ?? { id: p, count: 0, texttotal: 0, imagetotal: 0, videototal: 0, stickertotal: 0, pdftotal: 0 };
-					})
-					.filter((p) => (p[filterField] || 0) <= threshold);
+		if (!res) return sendMessageWTyping(from, { text: "❌ Group data not found." }, { quoted: msg });
 
-				const label = typeLabels[filterField];
-				let mess =
-					"____________________________\n\n" +
-					"*Group Name:* " + res.grpName + "\n" +
-					"*Filter:* " + label + " <= " + threshold + "\n" +
-					"*Total Members:* " + filtered.length + "\n" +
-					"____________________________\n\n" +
-					readMore + "\n";
+		const items = [...(res.members || [])].sort((a, b) => (b.count || 0) - (a.count || 0));
+		let filtered = allParticipants
+			.map((p) => {
+				let found = items.find((m) => m.id == p);
+				return found ?? { id: p, count: 0, texttotal: 0, imagetotal: 0, videototal: 0, stickertotal: 0, pdftotal: 0 };
+			})
+			.filter((p) => (p[filterField] || 0) <= threshold);
 
-				filtered.forEach((element) => {
-					mess += extractPhoneNumber(element.id) + ",\n";
-				});
-				sendMessageWTyping(from, { text: mess }, { quoted: msg });
-			});
+		const label = typeLabels[filterField];
+		let mess =
+			"____________________________\n\n" +
+			"*Group Name:* " + res.grpName + "\n" +
+			"*Filter:* " + label + " <= " + threshold + "\n" +
+			"*Total Members:* " + filtered.length + "\n" +
+			"____________________________\n\n" +
+			readMore + "\n";
+
+		filtered.forEach((element) => {
+			mess += extractPhoneNumber(element.id) + ",\n";
+		});
+		sendMessageWTyping(from, { text: mess }, { quoted: msg });
+	}).catch((err) => {
+		console.error("Zero count error:", err);
+		sendMessageWTyping(from, { text: "❌ Error fetching zero counts." }, { quoted: msg });
 	});
 };
 

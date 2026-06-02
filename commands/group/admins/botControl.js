@@ -14,11 +14,19 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const status = args[0].toLowerCase();
 
 	if (status === "on") {
-		await group.updateOne({ _id: from }, { $set: { isBotOn: true } });
-		return sendMessageWTyping(from, { text: "✅ *Bot is now active in this group.*" }, { quoted: msg });
+		try {
+			await group.updateOne({ _id: from }, { $set: { isBotOn: true } });
+			return sendMessageWTyping(from, { text: "✅ *Bot is now active in this group.*" }, { quoted: msg });
+		} catch (err) {
+			return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+		}
 	} else if (status === "off") {
-		await group.updateOne({ _id: from }, { $set: { isBotOn: false } });
-		return sendMessageWTyping(from, { text: "✅ *Bot is now deactivated in this group.*" }, { quoted: msg });
+		try {
+			await group.updateOne({ _id: from }, { $set: { isBotOn: false } });
+			return sendMessageWTyping(from, { text: "✅ *Bot is now deactivated in this group.*" }, { quoted: msg });
+		} catch (err) {
+			return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+		}
 	} else {
 		return sendMessageWTyping(from, { text: "❌ *Invalid status. Use on or off.*" }, { quoted: msg });
 	}

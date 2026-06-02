@@ -33,19 +33,25 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		installationId: TRUECALLER_ID,
 	};
 
-	const response = await truecallerjs.search(searchData);
-	if (!response) return sendMessageWTyping(from, { text: `❌ Number not found` }, { quoted: msg });
-	const data = response.json().data[0];
+	try {
+		const response = await truecallerjs.search(searchData);
+		if (!response) return sendMessageWTyping(from, { text: `❌ Number not found` }, { quoted: msg });
+		const data = response.json()?.data?.[0];
+		if (!data) return sendMessageWTyping(from, { text: `❌ No data found for this number` }, { quoted: msg });
 
-	const name = response.getName();
-	const { e164Format, numberType, countryCode, carrier, type } = data?.phones[0];
-	const { city } = response.getAddresses()[0];
-	const email = response.getEmailId();
+		const name = response.getName() || "Unknown";
+		const phone = data?.phones?.[0] || {};
+		const address = response.getAddresses()?.[0] || {};
+		const email = response.getEmailId();
 
-	const message = `🔍 *Truecaller Result*\n\n👤 *Name:* ${name}\n📱 *Number:* ${e164Format}\n🏙️ *City:* ${city || "N/A"}\n🌍 *Country:* ${countryCode}\n📡 *Carrier:* ${carrier} _(${numberType})_\n📧 *Email:* ${email || "N/A"}`;
+		const message = `🔍 *Truecaller Result*\n\n👤 *Name:* ${name}\n📱 *Number:* ${phone.e164Format || number}\n🏙️ *City:* ${address.city || "N/A"}\n🌍 *Country:* ${phone.countryCode || "N/A"}\n📡 *Carrier:* ${phone.carrier || "N/A"} _(${phone.numberType || "N/A"})_\n📧 *Email:* ${email || "N/A"}`;
 
-	notifyOwner(sock, message, msg);
-	sendMessageWTyping(from, { text: message }, { quoted: msg });
+		notifyOwner(sock, message, msg);
+		sendMessageWTyping(from, { text: message }, { quoted: msg });
+	} catch (err) {
+		console.error("Truecaller error:", err);
+		sendMessageWTyping(from, { text: `❌ Error looking up number: ${err.message}` }, { quoted: msg });
+	}
 };
 
 export default () => ({

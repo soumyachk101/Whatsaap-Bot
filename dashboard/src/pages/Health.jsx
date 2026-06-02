@@ -111,7 +111,15 @@ export default function Health() {
   async function handleRestart() {
     toast('Process restarting. Standby...')
     try { await restartBot() } catch (_) {}
+    let attempts = 0
+    const maxAttempts = 40
     const interval = setInterval(async () => {
+      attempts++
+      if (attempts >= maxAttempts) {
+        clearInterval(interval)
+        toast('Server did not come back online. Please check manually.', false)
+        return
+      }
       try {
         const r = await fetch('/api/status')
         if (r.ok) { clearInterval(interval); window.location.reload() }
@@ -129,8 +137,8 @@ export default function Health() {
 
   async function handleClearAuth() {
     try {
-      const r = await clearAuth()
-      toast(`Auth cleared (${r.deleted} records). Click Reconnect.`)
+      await clearAuth()
+      toast('Auth cleared successfully. Click Reconnect.')
     } catch (err) { toast(err.message, false) }
   }
 

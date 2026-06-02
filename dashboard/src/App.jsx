@@ -9,6 +9,7 @@ import Members from './pages/Members.jsx'
 import Analytics from './pages/Analytics.jsx'
 import Broadcast from './pages/Broadcast.jsx'
 import Health from './pages/Health.jsx'
+import { setOnUnauthorized } from './lib/api.js'
 
 // ── Contexts ───────────────────────────────────────────────────────────────────
 export const ToastCtx = createContext(null)
@@ -52,6 +53,10 @@ export default function App() {
       .then(r => setAuth(r.ok))
       .catch(() => setAuth(false))
   }, [])
+
+  useEffect(() => {
+    setOnUnauthorized(() => setAuth(false))
+  }, [setAuth])
 
   const showToast = useCallback((msg, ok = true) => {
     const id = ++toastId.current
