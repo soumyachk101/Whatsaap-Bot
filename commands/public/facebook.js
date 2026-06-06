@@ -19,12 +19,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(from, { text: "❌ *Please provide a valid Facebook video link!*" }, { quoted: msg });
 	}
 
-	const statusMsg = await sendMessageWTyping(from, { text: "⏳ *Initializing Facebook Download...*" }, { quoted: msg });
 	const downloadPath = memoryManager.generateTempFileName(".mp4");
 
 	try {
-		await sendMessageWTyping(from, { text: "🚀 *Downloading Facebook video...*" }, { edit: statusMsg.key });
-
 		const options = getYtDlpOptions({
 			format: "best",
 			output: downloadPath,
@@ -48,11 +45,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return sendMessageWTyping(
 				from,
 				{ text: `❌ *Bhai video ${fileSizeMB.toFixed(2)}MB ki hai!* WhatsApp limit 100MB hai.` },
-				{ edit: statusMsg.key }
+				{ quoted: msg }
 			);
 		}
-
-		await sendMessageWTyping(from, { text: "📤 *Uploading Video...*" }, { edit: statusMsg.key });
 
 		await sock.sendMessage(
 			from,
@@ -69,7 +64,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	} catch (error) {
 		console.error("Facebook Download Error:", error);
-		await sendMessageWTyping(from, { text: `❌ *Error downloading Facebook video.*\n\nReason: \`${error.message.substring(0, 50)}\`` }, { edit: statusMsg.key });
+		await sendMessageWTyping(from, { text: `❌ *Error downloading Facebook video.*\n\nReason: \`${error.message.substring(0, 50)}\`` }, { quoted: msg });
 		if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
 	}
 };

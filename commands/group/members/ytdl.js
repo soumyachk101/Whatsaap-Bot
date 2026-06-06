@@ -65,9 +65,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let progressBarHandle = null;
 
 	try {
-		// Send initial message
-		await sendMessageWTyping(from, { text: `⏳ Processing video... Please wait.` }, { quoted: msg });
-
 		let title = "Unknown Video";
 		let videoInfo;
 		let duration;
@@ -581,11 +578,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 							{ quoted: msg }
 						);
 						console.log("Video sent successfully");
-						try {
-							await sendMessageWTyping(from, { text: "✅ Video sent successfully." }, { quoted: msg });
-						} catch (err) {
-							console.error("Error sending success message:", err);
-						}
 					} catch (sendPathError) {
 						console.error("File path send failed, trying buffer fallback:", sendPathError);
 						try {
@@ -600,15 +592,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 								{ quoted: msg }
 							);
 							console.log("Video sent with buffer fallback");
-							try {
-								await sendMessageWTyping(
-									from,
-									{ text: "✅ Video sent with buffer fallback." },
-									{ quoted: msg }
-								);
-							} catch (err) {
-								console.error("Error sending buffer fallback success message:", err);
-							}
 						} catch (sendBufferError) {
 							console.error("Buffer fallback also failed:", sendBufferError);
 							try {
