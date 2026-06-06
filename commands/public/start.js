@@ -30,7 +30,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["start", "alive"],
+	cmd: ["start"],
 	desc: "Show professional welcome menu",
 	usage: "start",
 	handler,

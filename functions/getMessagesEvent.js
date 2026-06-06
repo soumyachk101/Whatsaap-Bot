@@ -159,15 +159,31 @@ const getCommand = async (sock, msg, cache) => {
 				body = body.startsWith(prefix) ? body : prefix + body;
 		}
 
-		if (body[1] == " ") body = body[0] + body.slice(2);
+		// Collapse any spaces directly following the prefix (e.g. ". help" -> ".help")
+		if (body.startsWith(prefix)) {
+			const postPrefix = body.slice(prefix.length);
+			if (postPrefix.startsWith(" ")) {
+				body = prefix + postPrefix.trim();
+			}
+		}
+
 		const isCmd = body.startsWith(prefix);
-		const evv = body
-			.trim()
-			.split(/ +/)
-			.slice(isCmd ? 1 : 0)
-			.join(" ");
-		const command = body.slice(1).trim().split(/ +/).shift().toLowerCase();
-		const args = body.trim().split(/ +/).slice(1);
+		let command = "";
+		let args = [];
+		let evv = "";
+
+		if (isCmd) {
+			const cleanBody = body.slice(prefix.length).trim();
+			const parts = cleanBody.split(/ +/);
+			command = parts.shift().toLowerCase();
+			args = parts;
+			evv = parts.join(" ");
+		} else {
+			const parts = body.trim().split(/ +/);
+			command = parts[0] ? parts[0].toLowerCase() : "";
+			args = parts.slice(1);
+			evv = body.trim(); // Keep full body for chatbot compatibility
+		}
 		//-------------------------------------------------------------------------------------------------------------//
 		const isGroup = from.endsWith("@g.us");
 		const botJid = sock.user.id.includes(":") ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : sock.user.id;

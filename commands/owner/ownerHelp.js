@@ -7,18 +7,23 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping } = msgInfoObj;
 	const { ownerCommands } = await cmdToText();
 
+	const formattedCmds = ownerCommands.map((cmd) => {
+		const primary = cmd.cmd[0];
+		const others = cmd.cmd.slice(1);
+		const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
+		return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_\n      └─ _Usage: ${prefix}${cmd.usage}_`;
+	}).join("\n\n");
+
 	const owner = `
---------------------------------------------------------------
-    ─「  *Owner Commands* 」─
----------------------------------------------------------------
-
+┏──────────────────┓
+   👑 *Oᴡɴᴇʀ Cᴏᴍᴍᴀɴᴅs* 👑
+┗──────────────────┛
 ${readMore}
+╭── 「 ᴏᴡɴᴇʀ ʟɪsᴛ 」 ──
+${formattedCmds}
+╰───────────────
 
-${ownerCommands
-	.map((cmd) => `*${prefix}${cmd.cmd.join(", ")}* - ${cmd.desc}\nUsage: ${prefix}${cmd.usage}`)
-	.join("\n\n")}
-
-♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️`;
+  ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️`;
 
 	sendMessageWTyping(from, { text: owner });
 };

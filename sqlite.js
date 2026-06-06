@@ -169,13 +169,13 @@ class Collection {
 
     async updateOne(query, update, options = {}) {
         const id = query._id || query.id;
-        if (!id) return;
+        if (!id) return { matchedCount: 0 };
 
         let existing = await this.findOne(query);
         if (!existing && options.upsert) {
             existing = { _id: id };
         }
-        if (!existing) return;
+        if (!existing) return { matchedCount: 0 };
 
         const data = { ...existing };
 
