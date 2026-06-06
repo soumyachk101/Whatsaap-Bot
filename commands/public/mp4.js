@@ -17,12 +17,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const url = args[0];
-	const statusMsg = await sendMessageWTyping(from, { text: "⏳ *Initializing Video request...*" }, { quoted: msg });
 	const downloadPath = memoryManager.generateTempFileName(".mp4");
 
 	try {
-		await sendMessageWTyping(from, { text: "🚀 *Downloading...* Please wait." }, { edit: statusMsg.key });
-
 		// Configure yt-dlp options based on the platform
 		const isInstagram = url.includes("instagram.com");
 		const options = getYtDlpOptions({
@@ -53,11 +50,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return sendMessageWTyping(
 				from,
 				{ text: `❌ *Bhai video ${fileSizeMB.toFixed(2)}MB ki hai!* WhatsApp limit 100MB hai.` },
-				{ edit: statusMsg.key }
+				{ quoted: msg }
 			);
 		}
-
-		await sendMessageWTyping(from, { text: "📤 *Uploading Video...*" }, { edit: statusMsg.key });
 
 		await sock.sendMessage(
 			from,
@@ -78,7 +73,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		if (error.message.includes("403")) errorMsg = "❌ *Access Denied!* YouTube is blocking the request.";
 		if (error.message.includes("429")) errorMsg = "❌ *Too Many Requests!* Try again later.";
 		
-		await sendMessageWTyping(from, { text: errorMsg + `\n\nReason: \`${error.message.substring(0, 50)}\`` }, { edit: statusMsg.key });
+		await sendMessageWTyping(from, { text: errorMsg + `\n\nReason: \`${error.message.substring(0, 50)}\`` }, { quoted: msg });
 		if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
 	}
 };

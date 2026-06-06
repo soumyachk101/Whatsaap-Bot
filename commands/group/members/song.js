@@ -40,9 +40,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	if (!args[0]) return sendMessageWTyping(from, { text: `❌ *Enter song name*` }, { quoted: msg });
 
-	// Send initial processing message
-	await sendMessageWTyping(from, { text: `🔍 Searching for: *${evv}*...` }, { quoted: msg });
-
 	console.log("Song request:", evv);
 
 	let URL;
@@ -58,9 +55,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			console.error("Search failed:", searchError);
 			return sendMessageWTyping(from, { text: `❌ No songs found for: *${evv}*` }, { quoted: msg });
 		}
-
-		// Try to get song info using youtube-dl-exec first (more reliable)
-		await sendMessageWTyping(from, { text: `⏳ Downloading audio...` }, { quoted: msg });
 
 		// Set timeout for download (5 minutes)
 		const downloadTimeout = setTimeout(() => {
@@ -128,9 +122,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		// Use ytdl-core if yt-dlp is not available or failed
 		if (!useYtdlp) {
-			// Fallback to ytdl with rotating agents and retry logic
-			await sendMessageWTyping(from, { text: `🔄 Using alternative download method...` }, { quoted: msg });
-
 			try {
 				await retryWithBackoff(
 					async () => {

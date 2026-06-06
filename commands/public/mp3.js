@@ -15,12 +15,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const url = args[0];
-	const statusMsg = await sendMessageWTyping(from, { text: "⏳ *Initializing MP3 request...*" }, { quoted: msg });
 	const downloadPath = memoryManager.generateTempFileName(".mp3");
 
 	try {
-		await sendMessageWTyping(from, { text: "🚀 *Downloading & Extracting Audio...* Please wait." }, { edit: statusMsg.key });
-
 		const options = getYtDlpOptions({
 			extractAudio: true,
 			audioFormat: "mp3",
@@ -35,8 +32,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		if (!fs.existsSync(downloadPath)) {
 			throw new Error("Audio file was not created.");
 		}
-
-		await sendMessageWTyping(from, { text: "📤 *Uploading Audio...*" }, { edit: statusMsg.key });
 
 		await sock.sendMessage(
 			from,
@@ -53,7 +48,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	} catch (error) {
 		console.error("MP3 Download Error:", error);
-		await sendMessageWTyping(from, { text: `❌ *Bhai error aagaya MP3 banane mein.* \n\nReason: \`${error.message.substring(0, 50)}\`` }, { edit: statusMsg.key });
+		await sendMessageWTyping(from, { text: `❌ *Bhai error aagaya MP3 banane mein.* \n\nReason: \`${error.message.substring(0, 50)}\`` }, { quoted: msg });
 		if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
 	}
 };
