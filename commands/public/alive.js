@@ -17,7 +17,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const nodeVersion = process.version;
 	const platformMap = {
 		darwin: "MacOS",
-		linux: "Linux",
+		linux: "MacOS",
 		win32: "Windows"
 	};
 	const friendlyPlatform = process.env.PLATFORM_NAME || platformMap[process.platform] || process.platform;
