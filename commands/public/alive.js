@@ -22,6 +22,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	};
 	const friendlyPlatform = process.env.PLATFORM_NAME || platformMap[process.platform] || process.platform;
 	const platform = `${friendlyPlatform} (${process.arch})`;
+	const cpu = process.env.CPU_NAME || "Apple M5";
 
 	const response =
 		`*👋🏻 Hello ${updateName}*\n\n` +
@@ -31,6 +32,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}\n` +
 		`*⏱️ Uptime:* ${simpleUptime}\n` +
 		`*🧠 RAM Usage:* ${usedMB} MB\n` +
+		`*💻 CPU:* ${cpu}\n` +
 		`*🛠️ Node.js:* ${nodeVersion}\n` +
 		`*🌍 Platform:* ${platform}`;
 
