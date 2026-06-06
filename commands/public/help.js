@@ -25,7 +25,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	// Categorize user commands with stylized names (Comprehensive List)
 	const categories = {
-		"─── 「 🤖 ᴀɪ & ᴄʜᴀᴛ 」 ───": [
+		"🤖  *ᴀɪ & ᴄʜᴀᴛ*": [
 			"roast", "shayari", "rap", "fortune", "story", "recipe", 
 			"groq", "llama", 
 			"chatbot", 
@@ -33,7 +33,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"runcode", 
 			"say", "tts"
 		],
-		"─── 「 📥 ᴅᴏᴡɴʟᴏᴀᴅᴇʀs 」 ───": [
+		"📥  *ᴅᴏᴡɴʟᴏᴀᴅᴇʀs*": [
 			"mp3", "audio", 
 			"mp4", "video", 
 			"reddit", 
@@ -46,7 +46,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"pin", 
 			"mp3convt", "mp4audio", "tomp3"
 		],
-		"─── 「 🎨 sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ 」 ───": [
+		"🎨  *sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ*": [
 			"sticker", "s", 
 			"attp", "textsticker", "ts", "stickertext", 
 			"sets", "stealtext",
@@ -58,7 +58,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"gen", "genimg", "imagen", 
 			"gen2", "genimg2", "flashgen"
 		],
-		"─── 「 🛠️ ᴜᴛɪʟɪᴛɪᴇs 」 ───": [
+		"🛠️  *ᴜᴛɪʟɪᴛɪᴇs*": [
 			"calc", "calculate", 
 			"tr", "translate", 
 			"weather", "w", 
@@ -79,13 +79,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"un", 
 			"delete", "d", "dd"
 		],
-		"─── 「 🔍 sᴇᴀʀᴄʜ 」 ───": [
+		"🔍  *sᴇᴀʀᴄʜ*": [
 			"google", "gs", 
 			"search", "yts", 
 			"img", "imgSearch", 
 			"news", "categories", "cate"
 		],
-		"─── 「 ℹ️ ʙᴏᴛ ɪɴғᴏ 」 ───": [
+		"ℹ️  *ʙᴏᴛ ɪɴғᴏ*": [
 			"help", "menu", 
 			"alive", "a", "ping", 
 			"start", 
@@ -101,10 +101,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let publicCmdText = "";
 	const displayedCmds = new Set();
 
-	for (const [category, cmds] of Object.entries(categories)) {
+	for (const [categoryName, cmds] of Object.entries(categories)) {
 		const filtered = allUserCommands.filter(c => c.cmd.some(alias => cmds.includes(alias)));
 		if (filtered.length > 0) {
-			publicCmdText += `\n*${category}*\n`;
+			publicCmdText += `\n╭───────────────────────────╮\n`;
+			publicCmdText += `   ${categoryName}\n`;
+			publicCmdText += `├───────────────────────────┤\n`;
 			publicCmdText += filtered.map(cmd => {
 				cmd.cmd.forEach(alias => displayedCmds.add(alias));
 				const primary = cmd.cmd[0];
@@ -112,69 +114,87 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
 				return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
 			}).join("\n") + "\n";
+			publicCmdText += `╰───────────────────────────╯\n`;
 		}
 	}
 
 	// Catch-all for uncategorized commands
 	const uncategorized = allUserCommands.filter(c => !c.cmd.some(alias => displayedCmds.has(alias)));
 	if (uncategorized.length > 0) {
-		publicCmdText += `\n*─── 「 📁 ᴏᴛʜᴇʀ s 」 ───*\n`;
+		publicCmdText += `\n╭───────────────────────────╮\n`;
+		publicCmdText += `   📁  *ᴏᴛʜᴇʀ s*\n`;
+		publicCmdText += `├───────────────────────────┤\n`;
 		publicCmdText += uncategorized.map(cmd => {
 			const primary = cmd.cmd[0];
 			const others = cmd.cmd.slice(1);
 			const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
 			return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
 		}).join("\n") + "\n";
+		publicCmdText += `╰───────────────────────────╯\n`;
 	}
 
+	const totalCommands = allUserCommands.length + adminCommands.length + ownerCommands.length;
+
 	const help = `
-┏──────────────────┓
-   ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
-┗──────────────────┛
+┏───────────────────┓
+    ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
+┗───────────────────┛
 ${readMore}
-╭── 「 ʙᴏᴛ sᴛᴀᴛs 」 ──
-│ 👥 *ᴜsᴇʀs:* \`${totalUsers}\`
-│ 📍 *ᴘʀᴇғɪx:* \`${prefix}\`
-╰───────────────
+╭───────────────────╮
+   📊  *ʙᴏᴛ sᴛᴀᴛs*
+├───────────────────┤
+  ◦ 👥 *Users:* \`${totalUsers}\`
+  ◦ 📍 *Prefix:* \`${prefix}\`
+  ◦ ⚙️ *Commands:* \`${totalCommands}\`
+╰───────────────────╯
 
-╭── 「 ᴜsᴇʀ ᴄᴏᴍᴍᴀɴᴅs 」 ──
+╭───────────────────╮
+   ✨  *ᴜsᴇʀ ᴄᴏᴍᴍᴀɴᴅs*
+╰───────────────────╯
 ${publicCmdText}
-╰───────────────
 
-╭── 「 ᴀᴅɱɪɴ ᴄᴏɱɱᴀɴᴅs 」 ──
+╭───────────────────╮
+   🛠️  *ᴀᴅɱɪɴ ᴄᴏɱɱᴀɴᴅs*
+├───────────────────┤
 ${adminCmd.map((cmd) => {
 	const primary = cmd.cmd[0];
 	const others = cmd.cmd.slice(1);
 	const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
 	return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
 }).join("\n")}
-╰───────────────
+╰───────────────────╯
 
-╭── 「 ᴏᴡɴᴇʀ ᴄᴏɱɱᴀɴᴅs 」 ──
+╭───────────────────╮
+   👑  *ᴏᴡɴᴇʀ ᴄᴏɱɱᴀɴᴅs*
+├───────────────────┤
 ${ownerCmd.map((cmd) => {
 	const primary = cmd.cmd[0];
 	const others = cmd.cmd.slice(1);
 	const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
 	return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
 }).join("\n")}
-╰───────────────
+╰───────────────────╯
 
   ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
   *buymeacoffee.com/soumyachk101*`;
 
 	const helpInDm = `
-┏──────────────────┓
-   ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
-┗──────────────────┛
+┏───────────────────┓
+    ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
+┗───────────────────┛
 
-╭── 「 ʙᴏᴛ sᴛᴀᴛs 」 ──
-│ 👥 *ᴜsᴇʀs:* \`${totalUsers}\`
-│ 📍 *ᴘʀᴇғɪx:* \`${prefix}\`
-╰───────────────
+╭───────────────────╮
+   📊  *ʙᴏᴛ sᴛᴀᴛs*
+├───────────────────┤
+  ◦ 👥 *Users:* \`${totalUsers}\`
+  ◦ 📍 *Prefix:* \`${prefix}\`
+  ◦ ⚙️ *Commands:* \`${totalCommands}\`
+╰───────────────────╯
 
-╭── 「 ᴅɱ ᴄᴏɱɱᴀɴᴅs 」 ──
+╭───────────────────╮
+   📱  *ᴅɱ ᴄᴏɱɱᴀɴᴅs*
+╰───────────────────╯
 ${publicCmdText}
-╰───────────────
 
   ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
   *buymeacoffee.com/soumyachk101*`;
