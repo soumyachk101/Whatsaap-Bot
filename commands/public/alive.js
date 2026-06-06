@@ -14,7 +14,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const memoryUsage = process.memoryUsage();
 	const usedMB = (memoryUsage.rss / 1024 / 1024).toFixed(2);
 
-	const nodeVersion = process.version;
 	const platformMap = {
 		darwin: "MacOS",
 		linux: "MacOS",
@@ -33,7 +32,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		`*⏱️ Uptime:* ${simpleUptime}\n` +
 		`*🧠 RAM Usage:* ${usedMB} MB\n` +
 		`*💻 CPU:* ${cpu}\n` +
-		`*🛠️ Node.js:* ${nodeVersion}\n` +
 		`*🌍 Platform:* ${platform}`;
 
 	return sendMessageWTyping(from, { text: response }, { quoted: msg });
