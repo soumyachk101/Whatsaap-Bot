@@ -177,7 +177,7 @@ ${ownerCmd.map((cmd) => {
 ╰───────────────────╯
 
   ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
-  *buymeacoffee.com/soumyachk101*`;
+  *https://buymeacoffee.com/soumyachk101*`;
 
 	const helpInDm = `
 ┏───────────────────┓
@@ -198,7 +198,7 @@ ${ownerCmd.map((cmd) => {
 ${publicCmdText}
 
   ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
-  *buymeacoffee.com/soumyachk101*`;
+  *https://buymeacoffee.com/soumyachk101*`;
 
 	await sendMessageWTyping(from, {
 		text: isGroup ? help : helpInDm,
