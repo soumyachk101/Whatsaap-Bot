@@ -34,6 +34,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"say", "tts"
 		],
 		"📥  *ᴅᴏᴡɴʟᴏᴀᴅᴇʀs*": [
+			"fb", "facebook", "fbdl",
 			"mp3", "audio", 
 			"mp4", "video", 
 			"reddit", 
