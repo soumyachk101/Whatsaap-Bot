@@ -15,7 +15,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const usedMB = (memoryUsage.rss / 1024 / 1024).toFixed(2);
 
 	const nodeVersion = process.version;
-	const platform = `${process.platform} (${process.arch})`;
+	const platformMap = {
+		darwin: "MacOS",
+		linux: "Linux",
+		win32: "Windows"
+	};
+	const friendlyPlatform = process.env.PLATFORM_NAME || platformMap[process.platform] || process.platform;
+	const platform = `${friendlyPlatform} (${process.arch})`;
 
 	const response =
 		`*👋🏻 Hello ${updateName}*\n\n` +

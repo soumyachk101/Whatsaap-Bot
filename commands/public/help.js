@@ -11,7 +11,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { isGroup, sendMessageWTyping } = msgInfoObj;
 	let prefix = process.env.PREFIX;
 
-	const { publicCommands, groupCommands, adminCommands, ownerCommands, directCommands } = await cmdToText();
+	const { publicCommands, groupCommands, adminCommands, ownerCommands } = await cmdToText();
 
 	// Global stats for the header
 	const allMembers = await member.find({}).toArray();
@@ -25,12 +25,77 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	// Categorize user commands with stylized names (Comprehensive List)
 	const categories = {
-		"─── 「 🤖 ᴀɪ & ᴄʜᴀᴛ 」 ───": ["say", "tts", "groq", "chat", "aimodes", "chatbot", "downloadbuddy", "runcode"],
-		"─── 「 📥 ᴅᴏᴡɴʟᴏᴀᴅᴇʀs 」 ───": ["mp3", "mp4", "reddit", "idp", "song", "play", "yta", "ytdl", "insta", "twitter", "pin", "pin-downloader", "insta-downloader", "mp3convt", "y2mate"],
-		"─── 「 🎨 sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ 」 ───": ["sticker", "attp", "textsticker", "ts", "stickertext", "steal", "meme", "image", "removebg", "imgGen", "imageGen", "imageGen2"],
-		"─── 「 🛠️ ᴜᴛɪʟɪᴛɪᴇs 」 ───": ["calc", "translate", "weather", "remind", "lyrics", "dictionary", "ud", "advice", "fact", "gender", "horo", "joke", "quote", "qpoetry", "programing-quote", "truecaller", "getwarn", "courseapi"],
-		"─── 「 🔍 sᴇᴀʀᴄʜ 」 ───": ["google", "gs", "search", "yts", "img", "imgSearch", "news", "newsCate"],
-		"─── 「 ℹ️ ʙᴏᴛ ɪɴғᴏ 」 ───": ["help", "menu", "stats", "mystats", "donation", "dev", "mycount", "myGrpCount", "headerfooter"]
+		"─── 「 🤖 ᴀɪ & ᴄʜᴀᴛ 」 ───": [
+			"roast", "shayari", "rap", "fortune", "story", "recipe", 
+			"groq", "llama", 
+			"chatbot", 
+			"downloadbuddy", "db", "gemini",
+			"runcode", 
+			"say", "tts"
+		],
+		"─── 「 📥 ᴅᴏᴡɴʟᴏᴀᴅᴇʀs 」 ───": [
+			"mp3", "audio", 
+			"mp4", "video", 
+			"reddit", 
+			"idp", "dp", 
+			"song", "play", 
+			"yta", 
+			"yt", "ytv", "vs", 
+			"insta", "i", 
+			"twitter", "tw", "x", 
+			"pin", 
+			"mp3convt", "mp4audio", "tomp3"
+		],
+		"─── 「 🎨 sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ 」 ───": [
+			"sticker", "s", 
+			"attp", "textsticker", "ts", "stickertext", 
+			"sets", "stealtext",
+			"steal", 
+			"meme", 
+			"image", "toimg", 
+			"removebg", "bg", 
+			"make", "gen3", 
+			"gen", "genimg", "imagen", 
+			"gen2", "genimg2", "flashgen"
+		],
+		"─── 「 🛠️ ᴜᴛɪʟɪᴛɪᴇs 」 ───": [
+			"calc", "calculate", 
+			"tr", "translate", 
+			"weather", "w", 
+			"remind", "reminder", 
+			"l", "lyric", "lyrics", 
+			"dictionary", "dict", 
+			"ud", "urban", 
+			"advice", 
+			"fact", 
+			"gender", 
+			"horo", "horoscope", 
+			"joke", 
+			"quote", 
+			"qpt", "qpoetry", 
+			"proquote", "pqoute", 
+			"true", "truecaller", 
+			"getwarn", 
+			"un", 
+			"delete", "d", "dd"
+		],
+		"─── 「 🔍 sᴇᴀʀᴄʜ 」 ───": [
+			"google", "gs", 
+			"search", "yts", 
+			"img", "imgSearch", 
+			"news", "categories", "cate"
+		],
+		"─── 「 ℹ️ ʙᴏᴛ ɪɴғᴏ 」 ───": [
+			"help", "menu", 
+			"alive", "a", "ping", 
+			"start", 
+			"stats", 
+			"donate", "donation", 
+			"dev", "developer", 
+			"mycount", 
+			"myGrpCount", 
+			"headerfooter"
+		]
 	};
 
 	let publicCmdText = "";
@@ -42,8 +107,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			publicCmdText += `\n*${category}*\n`;
 			publicCmdText += filtered.map(cmd => {
 				cmd.cmd.forEach(alias => displayedCmds.add(alias));
-				const aliases = cmd.cmd.map(a => `${prefix}${a}`).join(", ");
-				return `  ◦ \`${aliases}\` \n      └─ ${cmd.desc}`;
+				const primary = cmd.cmd[0];
+				const others = cmd.cmd.slice(1);
+				const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
+				return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
 			}).join("\n") + "\n";
 		}
 	}
@@ -53,8 +120,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (uncategorized.length > 0) {
 		publicCmdText += `\n*─── 「 📁 ᴏᴛʜᴇʀ s 」 ───*\n`;
 		publicCmdText += uncategorized.map(cmd => {
-			const aliases = cmd.cmd.map(a => `${prefix}${a}`).join(", ");
-			return `  ◦ \`${aliases}\` \n      └─ ${cmd.desc}`;
+			const primary = cmd.cmd[0];
+			const others = cmd.cmd.slice(1);
+			const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
+			return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
 		}).join("\n") + "\n";
 	}
 
@@ -73,11 +142,21 @@ ${publicCmdText}
 ╰───────────────
 
 ╭── 「 ᴀᴅɱɪɴ ᴄᴏɱɱᴀɴᴅs 」 ──
-${adminCmd.map((cmd) => `  ◦ \`${prefix}${cmd.cmd[0]}\` \n      └─ ${cmd.desc}`).join("\n")}
+${adminCmd.map((cmd) => {
+	const primary = cmd.cmd[0];
+	const others = cmd.cmd.slice(1);
+	const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
+	return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
+}).join("\n")}
 ╰───────────────
 
 ╭── 「 ᴏᴡɴᴇʀ ᴄᴏɱɱᴀɴᴅs 」 ──
-${ownerCmd.map((cmd) => `  ◦ \`${prefix}${cmd.cmd[0]}\` \n      └─ ${cmd.desc}`).join("\n")}
+${ownerCmd.map((cmd) => {
+	const primary = cmd.cmd[0];
+	const others = cmd.cmd.slice(1);
+	const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
+	return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
+}).join("\n")}
 ╰───────────────
 
   ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
