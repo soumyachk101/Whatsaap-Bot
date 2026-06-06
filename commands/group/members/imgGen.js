@@ -1,11 +1,12 @@
+import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 dotenv.config();
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+const ai = new GoogleGenAI({
+	apiKey: GOOGLE_API_KEY,
+});
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, evv } = msgInfoObj;
@@ -23,35 +24,35 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	try {
-		const model = genAI.getGenerativeModel({ model: "imagen-3.0" });
-
-		const result = await model.generateImage({
+		const response = await ai.models.generateImages({
+			model: "imagen-3.0-generate-002",
 			prompt: evv,
-			// quality options: "standard" | "high"
-			// high = best quality but slower
-			size: "1024x1024",
-			n: 1,
+			config: {
+				numberOfImages: 1,
+				outputMimeType: "image/jpeg",
+				aspectRatio: "1:1",
+			},
 		});
 
-		const image = result.response.images?.[0];
+		const generatedImage = response.generatedImages?.[0];
 
-		if (!image) {
-			return sendMessageWTyping(from, { text: "Something went wrong." }, { quoted: msg });
+		if (!generatedImage?.image?.imageBytes) {
+			throw new Error("No image data received from API");
 		}
 
-		// Gemini returns base64
-		const imageBuffer = Buffer.from(image.base64, "base64");
+		// Convert base64 to buffer
+		const imageBuffer = Buffer.from(generatedImage.image.imageBytes, "base64");
 
 		await sendMessageWTyping(from, { image: imageBuffer }, { quoted: msg });
 	} catch (err) {
 		console.log("Gemini Error:", err);
-		return sendMessageWTyping(from, { text: "Something went wrong." }, { quoted: msg });
+		return sendMessageWTyping(from, { text: "Something went wrong generating the image: " + err.message }, { quoted: msg });
 	}
 };
 
 export default () => ({
-	cmd: ["make", "gen"],
-	desc: "Generate an image from a prompt using Google Gemini",
-	usage: "gen <prompt>",
+	cmd: ["make"],
+	desc: "Generate an image from a prompt using Google Gemini Imagen 3.0",
+	usage: "make <prompt>",
 	handler,
 });
