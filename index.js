@@ -5,6 +5,7 @@ import memoryManager from "./functions/memoryUtils.js";
 import performanceMonitor from "./functions/performanceMonitor.js";
 import { normalizeJID } from "./functions/lidUtils.js";
 import adminRouter, { requireAdmin } from "./routes/admin.js";
+import { createBotData } from "./sqlite-DB/botDataDb.js";
 
 import cors from "cors";
 import express from "express";
@@ -203,6 +204,7 @@ wss.on("connection", async (ws, req) => {
 
 // ── Bot start ─────────────────────────────────────────────────────────────────
 async function startServer() {
+	await createBotData();
 	await startSock("start");
 	
 	// Protected endpoint for sending messages via API
