@@ -172,12 +172,20 @@ class Collection {
         if (!id) return { matchedCount: 0 };
 
         let existing = await this.findOne(query);
+        let wasUpserted = false;
         if (!existing && options.upsert) {
             existing = { _id: id };
+            wasUpserted = true;
         }
         if (!existing) return { matchedCount: 0 };
 
         const data = { ...existing };
+
+        if (wasUpserted && update.$setOnInsert) {
+            for (const [key, value] of Object.entries(update.$setOnInsert)) {
+                data[key] = value;
+            }
+        }
 
         if (update.$set) {
             for (const [key, value] of Object.entries(update.$set)) {
@@ -261,11 +269,18 @@ class Collection {
             const keys = Object.keys(fields);
             const setClause = keys.map(k => `${k} = ?`).join(', ');
             const values = keys.map(k => k === 'disabledGlobally' ? JSON.stringify(fields[k]) : fields[k]);
-            const res = db.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
+            let res = db.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
+            if (res.changes === 0 && options.upsert) {
+                const placeholders = keys.map(() => '?').join(', ');
+                res = db.prepare(`INSERT INTO AuthTable (id, ${keys.join(', ')}) VALUES (?, ${placeholders})`).run(id, ...values);
+            }
             return { matchedCount: res.changes };
         } else {
-            const res = db.prepare(`UPDATE ${this.tableName} SET data = ? WHERE id = ?`)
+            let res = db.prepare(`UPDATE ${this.tableName} SET data = ? WHERE id = ?`)
                 .run(JSON.stringify(data), id);
+            if (res.changes === 0 && options.upsert) {
+                res = db.prepare(`INSERT INTO ${this.tableName} (id, data) VALUES (?, ?)`).run(id, JSON.stringify(data));
+            }
             return { matchedCount: res.changes };
         }
     }

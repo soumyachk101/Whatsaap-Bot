@@ -194,58 +194,8 @@ const getCommand = async (sock, msg, cache) => {
 		const updateId = msg.key.fromMe ? botNumber[0] : senderJid;
 		const updateName = msg.key.fromMe ? sock.user.name : msg.pushName;
 
-		// Determine media type field for counting
-		const mediaTypeField =
-			type === "conversation" || type === "extendedTextMessage" ? "texttotal" :
-			type === "imageMessage" ? "imagetotal" :
-			type === "videoMessage" ? "videototal" :
-			type === "stickerMessage" ? "stickertotal" :
-			type === "documentMessage" ? "pdftotal" : null;
-
-		if (mediaTypeField) {
-			await Promise.all([
-				member.updateOne(
-					{ _id: updateId },
-					{ $inc: { totalmsg: 1, [mediaTypeField]: 1 }, $set: { username: updateName } }
-				),
-				createMembersData(updateId, updateName),
-			]).catch((e) => console.error("[member update error]", e.message));
-
-			if (isGroup) {
-				setImmediate(async () => {
-					try {
-						const r = await group.updateOne(
-							{ _id: from, "members.id": updateId },
-							{
-								$inc: { "members.$.count": 1, [`members.$.${mediaTypeField}`]: 1 },
-								$set: { "members.$.name": updateName },
-							}
-						);
-						if (r.matchedCount === 0) {
-							const newMember = {
-								id: updateId, name: updateName, count: 1,
-								texttotal: 0, imagetotal: 0, videototal: 0, stickertotal: 0, pdftotal: 0,
-							};
-							newMember[mediaTypeField] = 1;
-							await group.updateOne(
-								{ _id: from },
-								{ $push: { members: newMember } }
-							);
-						}
-						await group.updateOne({ _id: from }, { $inc: { totalMsgCount: 1 } });
-					} catch (e) {
-						console.error("[group member update error]", e.message);
-					}
-				});
-			}
-		}
-
-		// Return early for non-command sticker and document messages (no further processing needed)
-		if (!isCmd && (type == "stickerMessage" || type == "documentMessage")) return;
-		//-------------------------------------------------------------------------------------------------------------//
-
-		let groupMetadata = "";
-		let groupData = "";
+		// 1. Ensure group metadata and database record are initialized
+		let groupMetadata = null;
 		if (isGroup) {
 			groupMetadata = cache.get(from + ":groupMetadata");
 			if (!groupMetadata) {
@@ -257,13 +207,68 @@ const getCommand = async (sock, msg, cache) => {
 						),
 					]);
 					cache.set(from + ":groupMetadata", groupMetadata, 10 * 60); // 10 min
-					createGroupData(from, groupMetadata).catch((e) => console.error("[createGroupData error]", e.message));
 				} catch (e) {
 					console.error("Group metadata fetch failed:", e.message);
-					groupMetadata = { participants: [] };
+					groupMetadata = { participants: [], subject: from };
+				}
+			}
+			const groupDbRecord = await getGroupData(from);
+			if (!groupDbRecord || groupDbRecord === -1) {
+				await createGroupData(from, groupMetadata);
+			}
+		}
+
+		// 2. Ensure member database records exist
+		await createMembersData(updateId, updateName);
+		if (senderJid !== updateId) {
+			await createMembersData(senderJid, msg.pushName || "");
+		}
+
+		// 3. Update message statistics
+		const mediaTypeField =
+			type === "conversation" || type === "extendedTextMessage" ? "texttotal" :
+			type === "imageMessage" ? "imagetotal" :
+			type === "videoMessage" ? "videototal" :
+			type === "stickerMessage" ? "stickertotal" :
+			type === "documentMessage" ? "pdftotal" : null;
+
+		if (mediaTypeField) {
+			await member.updateOne(
+				{ _id: updateId },
+				{ $inc: { totalmsg: 1, [mediaTypeField]: 1 }, $set: { username: updateName } }
+			).catch((e) => console.error("[member update error]", e.message));
+
+			if (isGroup) {
+				try {
+					const r = await group.updateOne(
+						{ _id: from, "members.id": updateId },
+						{
+							$inc: { "members.$.count": 1, [`members.$.${mediaTypeField}`]: 1 },
+							$set: { "members.$.name": updateName },
+						}
+					);
+					if (r.matchedCount === 0) {
+						const newMember = {
+							id: updateId, name: updateName, count: 1,
+							texttotal: 0, imagetotal: 0, videototal: 0, stickertotal: 0, pdftotal: 0,
+						};
+						newMember[mediaTypeField] = 1;
+						await group.updateOne(
+							{ _id: from },
+							{ $push: { members: newMember } }
+						);
+					}
+					await group.updateOne({ _id: from }, { $inc: { totalMsgCount: 1 } });
+				} catch (e) {
+					console.error("[group member update error]", e.message);
 				}
 			}
 		}
+
+		// 4. Return early for non-command sticker and document messages
+		if (!isCmd && (type == "stickerMessage" || type == "documentMessage")) return;
+
+		// 5. Mention bot tag sticker logic
 		if (msg.message.extendedTextMessage) {
 			if (
 				msg.message.extendedTextMessage.contextInfo?.mentionedJid?.some(jid => botNumber.includes(jid))
@@ -276,23 +281,12 @@ const getCommand = async (sock, msg, cache) => {
 				}
 			}
 		}
+
 		const senderNumber = senderJid.includes(":") ? senderJid.split(":")[0] : senderJid.split("@")[0];
-		if (senderJid !== updateId) {
-			createMembersData(senderJid, msg.pushName);
-		}
-		// Parallelize member and group data fetch, but don't block main thread
-		let senderData = null;
-		let groupDataFetched = null;
-		try {
-			[senderData, groupDataFetched] = await Promise.all([
-				getMemberData(senderJid),
-				isGroup ? getGroupData(from) : Promise.resolve(""),
-			]);
-		} catch (e) {
-			senderData = null;
-			groupDataFetched = null;
-		}
-		if (isGroup) groupData = groupDataFetched;
+
+		// 6. Fetch fully loaded member and group data
+		let senderData = await getMemberData(senderJid);
+		let groupData = isGroup ? await getGroupData(from) : null;
 		
 		// ── PERMISSIONS ──────────────────────────────────────────────────────────────
 		const groupAdmins = isGroup ? getGroupAdmins(groupMetadata.participants) : [];
