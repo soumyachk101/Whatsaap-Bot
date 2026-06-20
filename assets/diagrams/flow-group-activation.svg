@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="box" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#1e293b"/><stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22c55e"/>
+    </marker>
+  </defs>
+  <rect width="900" height="360" fill="url(#bg)"/>
+  <text x="450" y="34" fill="#e2e8f0" font-size="20" font-weight="700" text-anchor="middle">🛡️ Enabling the bot in a group (3 ways)</text>
+  <text x="450" y="56" fill="#94a3b8" font-size="12" text-anchor="middle">By default the bot ignores messages until you turn it on for a specific group</text>
+
+  <!-- Method 1 -->
+  <g>
+    <rect x="30" y="90" width="270" height="220" rx="12" fill="url(#box)" stroke="#22c55e" stroke-width="1.5"/>
+    <text x="165" y="118" fill="#22c55e" font-size="13" font-weight="700" text-anchor="middle">Method 1 — Dashboard</text>
+    <text x="165" y="118" dy="20" fill="#94a3b8" font-size="11" text-anchor="middle">(recommended)</text>
+    <text x="50" y="170" fill="#e2e8f0" font-size="11">1. Open <tspan font-family="monospace">/admin</tspan></text>
+    <text x="50" y="190" fill="#e2e8f0" font-size="11">2. Login with ADMIN_PASSWORD</text>
+    <text x="50" y="210" fill="#e2e8f0" font-size="11">3. Click <tspan font-weight="600" fill="#22c55e">Groups</tspan> in sidebar</text>
+    <text x="50" y="230" fill="#e2e8f0" font-size="11">4. Toggle <tspan font-weight="600" fill="#22c55e">Bot Active</tspan> switch</text>
+    <text x="50" y="270" fill="#94a3b8" font-size="10">✨ No chat commands, no</text>
+    <text x="50" y="284" fill="#94a3b8" font-size="10">SQLite editing — point &amp; click.</text>
+  </g>
+
+  <!-- Method 2 -->
+  <g>
+    <rect x="315" y="90" width="270" height="220" rx="12" fill="url(#box)" stroke="#06b6d4" stroke-width="1.5"/>
+    <text x="450" y="118" fill="#06b6d4" font-size="13" font-weight="700" text-anchor="middle">Method 2 — Owner chat cmd</text>
+    <text x="335" y="160" fill="#e2e8f0" font-size="11">From MY_NUMBER, send in the</text>
+    <text x="335" y="178" fill="#e2e8f0" font-size="11">group itself:</text>
+    <rect x="335" y="190" width="230" height="30" rx="6" fill="#0b1220" stroke="#475569"/>
+    <text x="450" y="210" fill="#a7f3d0" font-size="12" font-family="monospace" text-anchor="middle">-group isBotOn:true</text>
+    <text x="335" y="246" fill="#94a3b8" font-size="10">Use <tspan font-family="monospace">-help</tspan> to discover more</text>
+    <text x="335" y="262" fill="#94a3b8" font-size="10">owner knobs (antilink, nsfw, …)</text>
+    <text x="335" y="290" fill="#94a3b8" font-size="10">Bot replies with a confirmation.</text>
+  </g>
+
+  <!-- Method 3 -->
+  <g>
+    <rect x="600" y="90" width="270" height="220" rx="12" fill="url(#box)" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="735" y="118" fill="#a855f7" font-size="13" font-weight="700" text-anchor="middle">Method 3 — Direct DB</text>
+    <text x="620" y="160" fill="#e2e8f0" font-size="11">Open <tspan font-family="monospace">database.db</tspan></text>
+    <text x="620" y="178" fill="#e2e8f0" font-size="11">in any SQLite browser.</text>
+    <rect x="620" y="190" width="230" height="30" rx="6" fill="#0b1220" stroke="#475569"/>
+    <text x="735" y="210" fill="#a7f3d0" font-size="11" font-family="monospace" text-anchor="middle">UPDATE Groups SET data=…</text>
+    <text x="620" y="246" fill="#94a3b8" font-size="10">Where data is JSON, e.g.:</text>
+    <text x="620" y="264" fill="#a7f3d0" font-size="10" font-family="monospace">{"isBotOn":true, "antilink":true}</text>
+    <text x="620" y="290" fill="#94a3b8" font-size="10">⚠️ Restart the bot after edits</text>
+  </g>
+
+  <text x="450" y="340" fill="#64748b" font-size="11" text-anchor="middle">All three methods write to the same SQLite row — pick whichever is easiest for you.</text>
+</svg>

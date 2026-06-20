@@ -26,11 +26,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	// Categorize user commands with stylized names (Comprehensive List)
 	const categories = {
 		"🤖  *ᴀɪ & ᴄʜᴀᴛ*": [
-			"roast", "shayari", "rap", "fortune", "story", "recipe", 
-			"groq", "llama", 
-			"chatbot", 
+			"roast", "shayari", "rap", "fortune", "story", "recipe",
+			"groq", "llama",
+			"chatbot",
 			"downloadbuddy", "db", "gemini",
-			"runcode", 
+			"runcode",
 			"say", "tts",
 			"imagine", "gen", "dream",
 			"transcribe", "tr2", "voice2text", "vtt"
@@ -83,10 +83,32 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"delete", "d", "dd"
 		],
 		"🔍  *sᴇᴀʀᴄʜ*": [
-			"google", "gs", 
-			"search", "yts", 
-			"img", "imgSearch", 
+			"google", "gs",
+			"search", "yts",
+			"img", "imgSearch",
 			"news", "categories", "cate"
+		],
+		"📝  *ᴘʀᴏᴅᴜᴄᴛɪᴠɪᴛʏ*": [
+			"todo", "task",
+			"note", "notes",
+			"pomo", "pomodoro", "focus",
+			"birthday", "bday",
+			"remind", "reminder"
+		],
+		"🎮  *ғᴜɴ & ɢᴀᴍᴇs*": [
+			"ship",
+			"tod", "truthordare",
+			"poll", "vote",
+			"confess", "confession",
+			"level", "rank", "xp"
+		],
+		"🔐  *ᴘʀɪᴠᴀᴄʏ & sᴇᴄᴜʀɪᴛʏ*": [
+			"qr", "qrcode",
+			"password", "genpass",
+			"true", "truecaller"
+		],
+		"💰  *ғɪɴᴀɴᴄᴇ*": [
+			"crypto", "coin"
 		],
 		"ℹ️  *ʙᴏᴛ ɪɴғᴏ*": [
 			"help", "menu", 

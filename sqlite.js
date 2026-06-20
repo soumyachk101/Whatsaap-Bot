@@ -30,6 +30,11 @@ db.exec(`
         id TEXT PRIMARY KEY,
         data TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS UserData (
+        id TEXT PRIMARY KEY,
+        data TEXT
+    );
 `);
 
 class Collection {

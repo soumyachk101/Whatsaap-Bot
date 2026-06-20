@@ -1,4 +1,4 @@
-p on the bot dashboard i link import dotenv from "dotenv";
+import dotenv from "dotenv";
 dotenv.config();
 
 import messageQueue from "./messageQueue.js";

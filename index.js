@@ -4,6 +4,7 @@ import getDate from "./functions/getDate.js";
 import memoryManager from "./functions/memoryUtils.js";
 import performanceMonitor from "./functions/performanceMonitor.js";
 import { normalizeJID } from "./functions/lidUtils.js";
+import { startBirthdayCron } from "./functions/birthdayCron.js";
 import adminRouter, { requireAdmin } from "./routes/admin.js";
 import { createBotData } from "./sqlite-DB/botDataDb.js";
 
@@ -119,6 +120,9 @@ function broadcast(payload) {
 function handleNewSock(sock) {
 	app.locals.sock = sock;
 	app.locals.botConnected = false; // Reset on new socket
+
+	// Start the birthday cron (auto-wishes users in groups on their birthday)
+	startBirthdayCron(sock);
 
 	sock.ev.on("connection.update", (update) => {
 		const { qr, isOnline, connection } = update;
