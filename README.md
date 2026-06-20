@@ -30,6 +30,12 @@
 - 🛡️ **Moderation** — anti-link, NSFW filter, warnings, member tracking
 - 📊 **Analytics** — per-group and per-member message statistics
 - 🔄 **Auto-reconnect** — handles session conflicts and disconnections gracefully
+- 🎮 **Gamification** — XP/level system with per-user leaderboard
+- 🎨 **AI Image Generator** — free text-to-image (Pollinations.ai, no key)
+- 🎙️ **Voice Transcription** — Groq Whisper voice notes → text
+- 📊 **Polls** — native WhatsApp interactive polls
+- 🔳 **QR Codes** — generate styled QR codes from any text
+- 💌 **Anonymous Confessions** — moderated anonymous messaging
 
 ---
 
@@ -91,6 +97,12 @@
 | `-dev` | Developer info | `-dev` |
 | `-chatbot` / `-db` | AI chatbot (Groq/Gemini) | `-chatbot how are you` |
 | `-groq` | Direct Groq AI query | `-groq explain quantum computing` |
+| `-imagine` / `-dream` | Free AI image generator from text prompt | `-imagine cyberpunk city at night` |
+| `-transcribe` | Voice note → text (Groq Whisper) | `-transcribe` (reply to voice note) |
+| `-poll` | Create a WhatsApp poll | `-poll "Favorite color?" Red Blue Green` |
+| `-qr` | Generate QR code from text/URL | `-qr https://example.com` |
+| `-confess` | Send anonymous confession | `-confess I love this group ❤️` |
+| `-level` | Check your XP, level & rank | `-level` |
 
 ### Group Admin Commands
 
@@ -132,7 +144,13 @@
 - **Node.js** 22.x
 - **pnpm** 9.x — `npm install -g pnpm`
 - **ffmpeg** — bundled via `ffmpeg-static`, or install system-wide
+- **yt-dlp** — required for YouTube downloads (`-yt`, `-song`, `-mp3`, `-mp4`). Install via:
+  - **macOS:** `brew install yt-dlp`
+  - **Linux (apt):** `sudo apt install yt-dlp` or `pip install -U yt-dlp`
+  - **Windows:** `winget install yt-dlp` or `choco install yt-dlp`
 - **Git**
+
+> **Note:** YouTube/Song/MP3/MP4 commands will fail if `yt-dlp` is not installed and on PATH.
 
 ### Setup
 

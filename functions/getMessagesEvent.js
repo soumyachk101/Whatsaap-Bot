@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+p on the bot dashboard i link import dotenv from "dotenv";
 dotenv.config();
 
 import messageQueue from "./messageQueue.js";
@@ -233,9 +233,22 @@ const getCommand = async (sock, msg, cache) => {
 			type === "documentMessage" ? "pdftotal" : null;
 
 		if (mediaTypeField) {
+			// XP gain: text=5, image=8, video=10, sticker=3, doc=5
+			// Caps prevent spam abuse; user must be the *sender* (not just fromMe)
+			const xpGain = (
+				mediaTypeField === "texttotal" ? 5 :
+				mediaTypeField === "imagetotal" ? 8 :
+				mediaTypeField === "videototal" ? 10 :
+				mediaTypeField === "stickertotal" ? 3 :
+				mediaTypeField === "pdftotal" ? 5 : 3
+			);
+
 			await member.updateOne(
 				{ _id: updateId },
-				{ $inc: { totalmsg: 1, [mediaTypeField]: 1 }, $set: { username: updateName } }
+				{
+					$inc: { totalmsg: 1, [mediaTypeField]: 1, xp: xpGain },
+					$set: { username: updateName, lastXPGain: Date.now() }
+				}
 			).catch((e) => console.error("[member update error]", e.message));
 
 			if (isGroup) {

@@ -31,7 +31,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"chatbot", 
 			"downloadbuddy", "db", "gemini",
 			"runcode", 
-			"say", "tts"
+			"say", "tts",
+			"imagine", "gen", "dream",
+			"transcribe", "tr2", "voice2text", "vtt"
 		],
 		"📥  *ᴅᴏᴡɴʟᴏᴀᴅᴇʀs*": [
 			"fb", "facebook", "fbdl",

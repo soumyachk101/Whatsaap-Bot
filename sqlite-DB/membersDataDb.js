@@ -19,6 +19,7 @@ const createMembersData = async (jid, name) => {
 				pdftotal: 0,
 				dmLimit: 99999,
 				warning: [],
+				xp: 0,
 			});
 		} else {
 			await member.updateOne(
@@ -29,6 +30,10 @@ const createMembersData = async (jid, name) => {
 					},
 				}
 			);
+			// Backfill xp for users created before leveling system existed
+			if (typeof res.xp !== "number") {
+				await member.updateOne({ _id: jid }, { $set: { xp: 0 } });
+			}
 		}
 	} catch (err) {
 		console.error("[membersDataDb error]", err.message);
