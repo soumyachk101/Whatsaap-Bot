@@ -17,8 +17,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const allMembers = await member.find({}).toArray();
 	const totalUsers = allMembers.length;
 
-	const adminCmd = adminCommands.filter((cmd) => cmd.cmd.includes("admin"));
-	const ownerCmd = ownerCommands.filter((cmd) => cmd.cmd.includes("owner"));
+	const adminCmd = adminCommands;
+	const ownerCmd = ownerCommands;
 
 	// Combine all user-accessible commands
 	const allUserCommands = [...publicCommands, ...groupCommands];

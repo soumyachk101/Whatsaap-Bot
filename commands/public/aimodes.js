@@ -1,18 +1,26 @@
 import Groq from "groq-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 dotenv.config();
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
+
 let groq;
 if (GROQ_API_KEY) {
 	groq = new Groq({ apiKey: GROQ_API_KEY });
 }
 
+let genAI;
+if (GOOGLE_API_KEY) {
+	genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+}
+
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, command, evv } = msgInfoObj;
 
-	if (!GROQ_API_KEY) {
-		return sendMessageWTyping(from, { text: "```Groq API Key is Missing in .env```" }, { quoted: msg });
+	if (!GROQ_API_KEY && !GOOGLE_API_KEY) {
+		return sendMessageWTyping(from, { text: "```Both Groq and Gemini API Keys are missing in .env```" }, { quoted: msg });
 	}
 
 	if (!evv && command !== "fortune") {
@@ -52,15 +60,39 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	try {
 		await sendMessageWTyping(from, { text: "Thinking... 🤖" }, { quoted: msg });
 
-		const chatCompletion = await groq.chat.completions.create({
-			messages: [
-				{ role: "system", content: mode.system },
-				{ role: "user", content: mode.user },
-			],
-			model: "llama-3.1-8b-instant",
-		});
+		let response = "";
+		let success = false;
 
-		const response = chatCompletion.choices[0]?.message?.content || "No response from AI.";
+		if (GROQ_API_KEY) {
+			try {
+				const chatCompletion = await groq.chat.completions.create({
+					messages: [
+						{ role: "system", content: mode.system },
+						{ role: "user", content: mode.user },
+					],
+					model: "llama-3.1-8b-instant",
+				});
+				response = chatCompletion.choices[0]?.message?.content || "";
+				if (response) success = true;
+			} catch (groqError) {
+				console.warn("Groq failed, trying Gemini fallback:", groqError.message);
+			}
+		}
+
+		if (!success && GOOGLE_API_KEY) {
+			const model = genAI.getGenerativeModel({
+				model: "gemini-2.0-flash",
+				systemInstruction: mode.system,
+			});
+			const result = await model.generateContent(mode.user);
+			response = result.response.text() || "";
+			success = true;
+		}
+
+		if (!success) {
+			throw new Error("AI service is currently unavailable. Please verify your API keys.");
+		}
+
 		return sendMessageWTyping(from, { text: `_*AI ${command.toUpperCase()}:*_\n\n` + response.trim() }, { quoted: msg });
 	} catch (error) {
 		console.error("AI Mode Error:", error);

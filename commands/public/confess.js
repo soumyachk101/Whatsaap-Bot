@@ -1,7 +1,7 @@
 import { member } from "../../sqlite-DB/membersDataDb.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping, prefix, command, isGroup, groupMetadata } = msgInfoObj;
+	const { sendMessageWTyping, prefix, command, isGroup, groupMetadata, senderJid } = msgInfoObj;
 
 	// Confessions only make sense in groups
 	if (!isGroup) {
@@ -58,11 +58,18 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	try {
 		await sendMessageWTyping(from, { text: confessionText });
 
-		// Acknowledge to the sender privately
-		await sock.sendMessage(msg.key.remoteJid, {
+		// Delete original message to keep it anonymous
+		try {
+			await sock.sendMessage(from, { delete: msg.key });
+		} catch (deleteErr) {
+			console.error("Failed to delete confession command message:", deleteErr.message);
+		}
+
+		// Acknowledge to the sender privately (via DM)
+		await sock.sendMessage(senderJid, {
 			text:
 				`✅ Your confession \`#${confessionId}\` has been posted anonymously to *${groupMetadata?.subject || "this group"}*!`,
-		}, { quoted: msg });
+		});
 	} catch (err) {
 		console.error("confess error:", err);
 		sendMessageWTyping(

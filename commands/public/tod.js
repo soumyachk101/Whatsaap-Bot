@@ -68,7 +68,11 @@ const DARES = [
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, prefix, command } = msgInfoObj;
-	const sub = (args[0] || "tod").toLowerCase();
+	let sub = (args[0] || "tod").toLowerCase();
+
+	if (command === "truth" || command === "dare") {
+		sub = command;
+	}
 
 	if (sub === "help" || sub === "?") {
 		return sendMessageWTyping(
@@ -103,22 +107,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["tod", "truthdare", "tor"],
+	cmd: ["tod", "truthdare", "tor", "truth", "dare"],
 	desc: "Truth or Dare — random prompts for fun",
 	usage: "tod | truth | dare",
-	handler,
-});
-
-export const truthCmd = () => ({
-	cmd: ["truth"],
-	desc: "Get a truth prompt",
-	usage: "truth",
-	handler,
-});
-
-export const dareCmd = () => ({
-	cmd: ["dare"],
-	desc: "Get a dare prompt",
-	usage: "dare",
 	handler,
 });

@@ -65,7 +65,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	// Currency conversion: "100 USD to INR" or "100 USD INR"
 	const convertMatch = args.join(" ").match(/^(\d+(?:\.\d+)?)\s*([A-Za-z]{3})\s*(?:to|in)?\s*([A-Za-z]{3})$/i);
-	if (convertMatch && command === "convert") {
+	if (convertMatch && (command === "convert" || command === "currency")) {
 		const amount = parseFloat(convertMatch[1]);
 		const fromCur = convertMatch[2].toUpperCase();
 		const toCur = convertMatch[3].toUpperCase();
@@ -100,9 +100,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const hasCrypto = query.some((a) => COINGECKO_IDS[a] !== undefined);
 
 	if (!hasCrypto) {
-		// Not crypto, try as currency conversion if the command is `convert`
-		if (command === "convert") {
-			return sendMessageWTyping(from, { text: `❌ *Usage:* \`${prefix}convert 100 USD INR\`` }, { quoted: msg });
+		// Not crypto, try as currency conversion if the command is `convert` or `currency`
+		if (command === "convert" || command === "currency") {
+			return sendMessageWTyping(from, { text: `❌ *Usage:* \`${prefix}${command} 100 USD INR\`` }, { quoted: msg });
 		}
 		return sendMessageWTyping(from, { text: "❌ No supported crypto found. Try: btc, eth, sol, doge..." }, { quoted: msg });
 	}
@@ -161,15 +161,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["crypto", "price", "coin"],
+	cmd: ["crypto", "price", "coin", "convert", "currency"],
 	desc: "Live crypto prices + currency conversion",
 	usage: "crypto btc eth sol | crypto btc inr | convert 100 USD INR",
-	handler,
-});
-
-export const convertCmd = () => ({
-	cmd: ["convert", "currency"],
-	desc: "Convert currencies",
-	usage: "convert 100 USD INR",
 	handler,
 });

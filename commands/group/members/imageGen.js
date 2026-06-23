@@ -80,7 +80,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		});
 
 		const response = await ai.models.generateImages({
-			model: "models/imagen-4.0-generate-001",
+			model: "imagen-3.0-generate-002",
 			prompt: prompt,
 			config: {
 				numberOfImages: 1,
