@@ -36,14 +36,16 @@ const generationConfig = {
 	maxOutputTokens: 650, // Limit output to ~650 tokens (around 500 words max)
 };
 
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+
 // Define models ONCE - not recreated every time
 const geminiModel = genAI.getGenerativeModel({
-	model: "gemini-2.0-flash",
+	model: GEMINI_MODEL,
 	systemInstruction: `You are a helpful, professional AI assistant. You provide clear, accurate, and informative responses. Pay attention to who is speaking in each message. Reply in WhatsApp format only. No markdown, no backticks.`,
 });
 
 const downloadBuddyModel = genAI.getGenerativeModel({
-	model: "gemini-2.0-flash",
+	model: GEMINI_MODEL,
 	systemInstruction: `You're DownloadBuddy, a helpful and efficient assistant. You're quick, professional, and reliable. Talk like a helpful friend texting, not some AI.
 
 Your vibe:
