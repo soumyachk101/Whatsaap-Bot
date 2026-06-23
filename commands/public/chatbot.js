@@ -36,7 +36,7 @@ const generationConfig = {
 	maxOutputTokens: 650, // Limit output to ~650 tokens (around 500 words max)
 };
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 // Define models ONCE - not recreated every time
 const geminiModel = genAI.getGenerativeModel({

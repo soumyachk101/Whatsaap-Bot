@@ -19,7 +19,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	try {
 		const model = genAI.getGenerativeModel({
-			model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+			model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
 			systemInstruction: "You are a helpful, smart AI assistant. Reply in WhatsApp format. Use *bold* for emphasis where needed. Keep your answers concise.",
 		});
 
