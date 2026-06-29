@@ -1,7 +1,6 @@
 import fs from "fs";
-import execYtdlp from "../../functions/ytdlpHelper.js";
+import { downloadFromCobalt } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
-import { getYtDlpOptions, retryWithBackoff } from "../../functions/youtubeUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, prefix, command } = msgInfoObj;
@@ -15,19 +14,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const url = args[0];
-	const downloadPath = memoryManager.generateTempFileName(".mp3");
+	let downloadPath = null;
 
 	try {
-		const options = getYtDlpOptions({
-			extractAudio: true,
-			audioFormat: "mp3",
-			audioQuality: "0",
-			output: downloadPath,
-		});
+		const downloadedFiles = await downloadFromCobalt(url, { audioOnly: true });
 
-		await retryWithBackoff(async () => {
-			await execYtdlp(url, options);
-		}, 2, 2000);
+		if (!downloadedFiles || downloadedFiles.length === 0) {
+			throw new Error("Audio file was not downloaded from Cobalt.");
+		}
+		downloadPath = downloadedFiles[0];
 
 		if (!fs.existsSync(downloadPath)) {
 			throw new Error("Audio file was not created.");
@@ -43,13 +38,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			{ quoted: msg }
 		);
 
-		// Clean up
-		memoryManager.safeUnlink(downloadPath);
-
 	} catch (error) {
 		console.error("MP3 Download Error:", error);
-		await sendMessageWTyping(from, { text: `❌ *Bhai error aagaya MP3 banane mein.* \n\nReason: \`${error.message.substring(0, 50)}\`` }, { quoted: msg });
-		if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
+		let errorMsg = `❌ *Bhai error aagaya MP3 banane mein.*`;
+		if (error.message.includes("Cobalt Error")) {
+			errorMsg += `\n\nReason: \`${error.message.substring(0, 100)}\``;
+		} else {
+			errorMsg += `\n\nReason: \`${error.message.substring(0, 50)}\``;
+		}
+		
+		await sendMessageWTyping(from, { text: errorMsg }, { quoted: msg });
+	} finally {
+		if (downloadPath && fs.existsSync(downloadPath)) {
+			memoryManager.safeUnlink(downloadPath);
+		}
 	}
 };
 

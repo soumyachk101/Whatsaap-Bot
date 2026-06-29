@@ -1,8 +1,6 @@
 import fs from "fs";
-import path from "path";
-import execYtdlp from "../../functions/ytdlpHelper.js";
+import { downloadFromCobalt } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
-import { getYtDlpOptions, retryWithBackoff } from "../../functions/youtubeUtils.js";
 import { isValidVideoFile } from "../../functions/fileUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
@@ -17,26 +15,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const url = args[0];
-	const downloadPath = memoryManager.generateTempFileName(".mp4");
+	let downloadPath = null;
 
 	try {
-		// Configure yt-dlp options based on the platform
-		const isInstagram = url.includes("instagram.com");
-		const options = getYtDlpOptions({
-			format: "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-			output: downloadPath,
-			maxFilesize: "100M", // Safety limit
-			recodeVideo: "mp4", // Force standard MP4 for compatibility
-		});
+		const downloadedFiles = await downloadFromCobalt(url, { audioOnly: false });
 
-		if (isInstagram) {
-			// For Instagram, sometimes simple best format works better
-			options.format = "best";
+		if (!downloadedFiles || downloadedFiles.length === 0) {
+			throw new Error("File was not downloaded from Cobalt.");
 		}
-
-		await retryWithBackoff(async () => {
-			await execYtdlp(url, options);
-		}, 2, 2000);
+		downloadPath = downloadedFiles[0];
 
 		if (!fs.existsSync(downloadPath)) {
 			throw new Error("File was not created after download.");
@@ -46,7 +33,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const fileSizeMB = stats.size / (1024 * 1024);
 
 		if (fileSizeMB > 100) {
-			fs.unlinkSync(downloadPath);
+			memoryManager.safeUnlink(downloadPath);
 			return sendMessageWTyping(
 				from,
 				{ text: `❌ *Bhai video ${fileSizeMB.toFixed(2)}MB ki hai!* WhatsApp limit 100MB hai.` },
@@ -64,17 +51,18 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			{ quoted: msg }
 		);
 
-		// Clean up
-		memoryManager.safeUnlink(downloadPath);
-
 	} catch (error) {
 		console.error("MP4 Download Error:", error);
 		let errorMsg = `❌ *Bhai error aagaya video download karne mein.*`;
-		if (error.message.includes("403")) errorMsg = "❌ *Access Denied!* YouTube is blocking the request.";
-		if (error.message.includes("429")) errorMsg = "❌ *Too Many Requests!* Try again later.";
+		if (error.message.includes("Cobalt Error")) {
+			errorMsg += `\n\nReason: \`${error.message.substring(0, 100)}\``;
+		}
 		
-		await sendMessageWTyping(from, { text: errorMsg + `\n\nReason: \`${error.message.substring(0, 50)}\`` }, { quoted: msg });
-		if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
+		await sendMessageWTyping(from, { text: errorMsg }, { quoted: msg });
+	} finally {
+		if (downloadPath && fs.existsSync(downloadPath)) {
+			memoryManager.safeUnlink(downloadPath);
+		}
 	}
 };
 

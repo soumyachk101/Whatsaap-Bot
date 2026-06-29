@@ -1,6 +1,7 @@
-import snapsave from "snapsave-downloader";
-import axios from "axios";
-import { fileTypeFromBuffer } from "file-type";
+import { fileTypeFromFile } from "file-type";
+import { downloadFromCobalt } from "../../../functions/cobaltHelper.js";
+import fs from "fs";
+import memoryManager from "../../../functions/memoryUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping, ig } = msgInfoObj;
@@ -26,82 +27,46 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (urlInstagram.includes("?")) urlInstagram = urlInstagram.split("/?")[0];
 	console.log(urlInstagram);
 
-	// ig.fetchPost(urlInsta).then(async (res) => {
-	//     if (res.media_count == 1) {
-	//         if (res.links[0].type == "video") {
-	//             sock.sendMessage(from,
-	//                 { video: { url: res.links[0].url } },
-	//                 { quoted: msg }
-	//             )
-	//         } else if (res.links[0].type == "image") {
-	//             sock.sendMessage(from,
-	//                 { image: { url: res.links[0].url } },
-	//                 { quoted: msg }
-	//             )
-	//         }
-	//     } else if (res.media_count > 1) {
-	//         for (let i = 0; i < res.media_count; i++) {
-	//             await new Promise((resolve) => setTimeout(resolve, 500));
-	//             if (res.links[i].type == "video") {
-	//                 sock.sendMessage(from,
-	//                     { video: { url: res.links[i].url } },
-	//                     { quoted: msg }
-	//                 )
-	//             } else if (res.links[i].type == "image") {
-	//                 sock.sendMessage(from,
-	//                     { image: { url: res.links[i].url } },
-	//                     { quoted: msg }
-	//                 )
-	//             }
-	//         }
-	//     }
-	// }).catch(() => {
-	snapsave(urlInstagram)
-		.then(async (res) => {
-			if (res.status) {
-				const data = [...new Set(res.data.map((item) => item.url))];
+	try {
+		const downloadedFiles = await downloadFromCobalt(urlInstagram, { audioOnly: false });
 
-				for (let i = 0; i < data.length; i++) {
-					// await new Promise((resolve) => setTimeout(resolve, 500));
-					const url = data[i];
-					const detected = await detectUrlType(url);
+		if (!downloadedFiles || downloadedFiles.length === 0) {
+			return sendMessageWTyping(from, { text: "No Data Found!!" }, { quoted: msg });
+		}
 
-					if (detected.detected === "video") {
-						sock.sendMessage(from, { video: { url: url } }, { quoted: msg });
-					} else if (detected.detected === "image") {
-						sock.sendMessage(from, { image: { url: url } }, { quoted: msg });
-					} else {
-						sock.sendMessage(
-							from,
-							{ document: { url: url }, mimetype: detected.mime, fileName: `file.${detected.ext}` },
-							{ quoted: msg }
-						);
-					}
-					await new Promise((resolve) => setTimeout(resolve, 1000));
-				}
+		for (const fileDown of downloadedFiles) {
+			const detected = await detectUrlTypeLocal(fileDown);
+
+			if (detected.detected === "video") {
+				await sock.sendMessage(from, { video: { url: fileDown } }, { quoted: msg });
+			} else if (detected.detected === "image") {
+				await sock.sendMessage(from, { image: { url: fileDown } }, { quoted: msg });
 			} else {
-				sendMessageWTyping(from, { text: "No Data Found!!" }, { quoted: msg });
+				await sock.sendMessage(
+					from,
+					{ document: { url: fileDown }, mimetype: detected.mime, fileName: `file.${detected.ext}` },
+					{ quoted: msg }
+				);
 			}
-		})
-		.catch((err) => {
-			console.log(err);
-			sendMessageWTyping(from, { text: "Error!! Maybe private account or invalid URL." }, { quoted: msg });
-		});
-	// });
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			memoryManager.safeUnlink(fileDown);
+		}
+	} catch (err) {
+		console.log(err);
+		let errorMsg = "Error!! Maybe private account or invalid URL.";
+		if (err.message.includes("Cobalt Error")) {
+			errorMsg = `Cobalt API Error: ${err.message}`;
+		}
+		sendMessageWTyping(from, { text: errorMsg }, { quoted: msg });
+	}
 };
 
-async function detectUrlType(url) {
+async function detectUrlTypeLocal(filePath) {
 	try {
-		const res = await axios.get(url, {
-			responseType: "arraybuffer",
-			headers: { Range: "bytes=0-16383" },
-		});
-
-		const buffer = Buffer.from(res.data);
-		const type = await fileTypeFromBuffer(buffer);
+		const type = await fileTypeFromFile(filePath);
 
 		if (!type) {
-			return { type: "unknown", reason: "no magic bytes detected" };
+			return { type: "unknown", reason: "no magic bytes detected", ext: "bin", mime: "application/octet-stream", detected: "other" };
 		}
 
 		return {
@@ -110,7 +75,7 @@ async function detectUrlType(url) {
 			detected: type.mime.startsWith("image/") ? "image" : type.mime.startsWith("video/") ? "video" : "other",
 		};
 	} catch (err) {
-		return { error: err.message };
+		return { error: err.message, detected: "other", mime: "application/octet-stream", ext: "bin" };
 	}
 }
 
