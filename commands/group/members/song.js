@@ -204,22 +204,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		// Send the audio file
 		try {
-			let sock_data;
 			if (command === "song") {
-				sock_data = {
-					document: fileDown,
-					mimetype: "audio/mpeg",
-					fileName: `${title}.mp3`,
-					ptt: true,
-					caption: `🎵 *${title}*\n📊 Size: ${fileSizeMB.toFixed(2)}MB`,
-				};
-			} else {
-				sock_data = {
-					audio: fileDown,
-					mimetype: "audio/mpeg",
-					fileName: `${title}.mp3`,
-				};
+				await sendMessageWTyping(from, { text: `🎵 *${title}*\n📊 Size: ${fileSizeMB.toFixed(2)}MB` }, { quoted: msg });
 			}
+
+			let sock_data = {
+				audio: { url: fileDown },
+				mimetype: "audio/mpeg",
+			};
 
 			await sendMessageWTyping(from, sock_data, { quoted: msg });
 			console.log("Audio sent successfully");
