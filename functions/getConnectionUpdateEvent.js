@@ -1,4 +1,5 @@
 import { DisconnectReason } from "baileys";
+import QRCode from "qrcode";
 import { clearSQLiteAuthState } from "./useSQLiteAuthState.js";
 import sendToTelegram from "./telegramLogger.js";
 
@@ -62,7 +63,11 @@ const getConnectionUpdate = async (startSock, events) => {
 	}
 
 	if (qr) {
-		console.log("📱 QR Code received for scanning");
+		console.log("📱 QR Code received — scan with WhatsApp (Linked Devices):");
+		QRCode.toString(qr, { type: "terminal", small: true }, (err, str) => {
+			if (err) console.error("Failed to render QR in terminal:", err.message);
+			else console.log(str);
+		});
 	}
 };
 

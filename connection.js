@@ -38,25 +38,33 @@ const MIN_CONNECTION_INTERVAL = 10000; // 10 seconds minimum between attempts
 let _onNewSock = null;
 export const onNewSock = (fn) => { _onNewSock = fn; };
 
+let pendingRetry = null;
+
 const startSock = async (reason = "initial") => {
 	try {
 		const now = Date.now();
 
-		// Prevent too frequent reconnection attempts
+		// Prevent too frequent reconnection attempts — reschedule instead of dropping
 		if (now - lastConnectionTime < MIN_CONNECTION_INTERVAL) {
-			console.log("⏳ Connection attempt too soon, waiting...");
+			const waitMs = MIN_CONNECTION_INTERVAL - (now - lastConnectionTime);
+			console.log(`⏳ Connection attempt too soon, retrying in ${Math.ceil(waitMs / 1000)}s...`);
+			clearTimeout(pendingRetry);
+			pendingRetry = setTimeout(() => startSock(reason), waitMs);
 			return null;
 		}
 
 		if (connectionAttempts >= MAX_CONNECTION_ATTEMPTS) {
-			console.log("❌ Max connection attempts reached. Performing emergency cleanup and resetting...");
-			connectionAttempts = 0; // Reset after cleanup
-			setTimeout(() => {
+			console.log("❌ Max connection attempts reached. Cooling down for 1 minute before retrying...");
+			clearTimeout(pendingRetry);
+			pendingRetry = setTimeout(() => {
 				connectionAttempts = 0;
-			}, 60000); // 1 minute reset
+				startSock("cooldown-retry");
+			}, 60000);
 			return null;
 		}
 
+		clearTimeout(pendingRetry);
+		pendingRetry = null;
 		connectionAttempts++;
 		lastConnectionTime = now;
 		console.log(`🔄 Starting socket connection (attempt ${connectionAttempts}): ${reason}`);
