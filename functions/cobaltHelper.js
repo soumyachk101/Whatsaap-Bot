@@ -2,77 +2,160 @@ import axios from "axios";
 import fs from "fs";
 import stream from "stream";
 import { promisify } from "util";
+import path from "path";
 import memoryManager from "./memoryUtils.js";
 
 const pipeline = promisify(stream.pipeline);
 
-const COBALT_API = "https://imputcobalt-api-production-dda7.up.railway.app";
+/**
+ * Custom Error for Cobalt API issues
+ */
+export class CobaltDownloadError extends Error {
+    constructor(code, message) {
+        super(message || code);
+        this.name = "CobaltDownloadError";
+        this.code = code;
+    }
+}
 
 /**
  * Download media via Cobalt API
  * @param {string} url - The URL to download
- * @param {object} options - Options (audioOnly, isNoTTWatermark, etc)
- * @returns {Promise<Array<string>>} - Array of file paths
+ * @param {string} outputDir - Directory to save files (if null, uses memoryManager temp dir)
+ * @param {boolean} audioOnly - Whether to extract audio only
+ * @returns {Promise<Array<string>>} - Array of downloaded file paths
  */
-export const downloadFromCobalt = async (url, options = {}) => {
-    try {
-        const payload = {
-            url: url,
-            downloadMode: options.audioOnly ? "audio" : "auto",
-            audioFormat: "mp3"
-        };
+export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false) => {
+    let response;
+    let success = false;
+    let lastError = null;
 
-        let data;
-        try {
-            const response = await axios.post(COBALT_API, payload, {
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                }
-            });
-            data = response.data;
-        } catch (err) {
-            if (err.response && err.response.data) {
-                data = err.response.data;
-            } else {
-                throw err;
-            }
-        }
+    const baseApiUrl = process.env.COBALT_API_URL;
+    const apiKey = process.env.COBALT_API_KEY;
 
-        if (data.status === "error") {
-            const errorReason = data.error?.code || data.text || JSON.stringify(data.error);
-            throw new Error(`Cobalt Error: ${errorReason}`);
-        }
+    // Ordered list of instances to try
+    const instances = [
+        "https://dog.kittycat.boo",
+        "https://rue-cobalt.xenon.zone",
+        "https://cobaltapi.cjs.nz",
+        "https://cobalt.api.zwei.one",
+        "https://co.e-z.host",
+        "https://cobalt.urania.wang",
+        "https://api.cobalt.bkc.hi.cn"
+    ];
 
-        const items = [];
-        if (data.status === "picker") {
-            for (const item of data.picker) {
-                items.push(item.url);
-            }
-        } else if (data.status === "redirect" || data.status === "stream" || data.status === "success") {
-            items.push(data.url);
-        } else {
-            throw new Error(`Unknown Cobalt status: ${data.status}`);
-        }
-
-        const downloadedFiles = [];
-        for (const itemUrl of items) {
-            const ext = options.audioOnly ? ".mp3" : ".mp4";
-            const tempFile = memoryManager.generateTempFileName(ext);
-            
-            const fileStream = memoryManager.createOptimizedWriteStream(tempFile);
-            const downloadReq = await axios.get(itemUrl, { responseType: "stream" });
-            
-            await pipeline(downloadReq.data, fileStream);
-            downloadedFiles.push(tempFile);
-        }
-
-        return downloadedFiles;
-
-    } catch (error) {
-        console.error("Cobalt Helper Error:", error.response?.data || error.message);
-        throw error;
+    if (baseApiUrl) {
+        instances.unshift(baseApiUrl);
     }
+
+    for (const apiUrl of instances) {
+        try {
+            const payload = {
+                url: url,
+                downloadMode: audioOnly ? "audio" : "auto",
+                videoQuality: "1080",
+                filenameStyle: "basic"
+            };
+
+            const headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            };
+
+            // Only use API key on the primary base instance if it matches
+            if (apiKey && apiUrl === baseApiUrl) {
+                headers["Authorization"] = `Api-Key ${apiKey}`;
+            }
+
+            response = await axios.post(apiUrl, payload, {
+                headers,
+                timeout: 20000 // 20s timeout
+            });
+
+            // If it returns an error status gracefully, we still want to throw/fallback
+            if (response.data && response.data.status === "error") {
+                const errorCode = response.data.error?.code || "unknown_error";
+                console.warn(`[Cobalt Fallback] ${apiUrl} failed with: ${errorCode}. Trying next...`);
+                lastError = response; 
+                continue;
+            }
+
+            success = true;
+            break; // Success! Exit the loop.
+
+        } catch (err) {
+            if (err.response && err.response.data && err.response.data.status === "error") {
+                const errorCode = err.response.data.error?.code || "unknown_error";
+                console.warn(`[Cobalt Fallback] ${apiUrl} responded with error: ${errorCode}. Trying next...`);
+                lastError = err.response;
+            } else {
+                console.warn(`[Cobalt Fallback] ${apiUrl} failed to connect. Trying next...`);
+                // Network error, just save as last error to throw later if all fail
+                lastError = { data: { status: "error", error: { code: "network_error" } } };
+            }
+        }
+    }
+
+    if (!success) {
+        response = lastError;
+    }
+
+    const data = response.data;
+
+    // Handle error status
+    if (data.status === "error") {
+        const errorCode = data.error?.code || "unknown_error";
+        if (errorCode.startsWith("error.api.auth.")) {
+            console.error("\n=======================================================");
+            console.error("🚨 COBALT API AUTHENTICATION ERROR 🚨");
+            console.error(`Error Code: ${errorCode}`);
+            console.error("Check your COBALT_API_KEY and COBALT_API_URL in .env");
+            console.error("=======================================================\n");
+        }
+        throw new CobaltDownloadError(errorCode, `Cobalt Error: ${errorCode}`);
+    }
+
+    const items = [];
+    if (data.status === "picker") {
+        for (const item of data.picker) {
+            items.push(item.url);
+        }
+    } else if (data.status === "tunnel" || data.status === "redirect") {
+        items.push(data.url);
+    } else if (data.status === "local-processing") {
+        // As requested by the specification
+        // We push the URLs for now (will download individually)
+        // Usually local processing involves ffmpeg merging, but Cobalt typically handles it.
+        if (data.tunnel) {
+             data.tunnel.forEach(tUrl => items.push(tUrl));
+        }
+    } else if (data.status === "success" || data.status === "stream") {
+        // Fallback for older versions just in case
+        items.push(data.url);
+    } else {
+        throw new CobaltDownloadError("unknown_status", `Unknown Cobalt status: ${data.status}`);
+    }
+
+    const downloadedFiles = [];
+    for (const itemUrl of items) {
+        if (!itemUrl) continue;
+        const ext = audioOnly ? ".mp3" : ".mp4";
+        
+        let tempFile;
+        if (outputDir) {
+            tempFile = path.join(outputDir, `cobalt_${Date.now()}_${Math.floor(Math.random() * 1000)}${ext}`);
+        } else {
+            tempFile = memoryManager.generateTempFileName(ext);
+        }
+        
+        const fileStream = fs.createWriteStream(tempFile);
+        const downloadReq = await axios.get(itemUrl, { responseType: "stream" });
+        
+        await pipeline(downloadReq.data, fileStream);
+        downloadedFiles.push(tempFile);
+    }
+
+    return downloadedFiles;
 };
 
-export default downloadFromCobalt;
+export default downloadViaCobalt;

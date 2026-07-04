@@ -1,5 +1,5 @@
 import { fileTypeFromFile } from "file-type";
-import { downloadFromCobalt } from "../../../functions/cobaltHelper.js";
+import { downloadViaCobalt } from "../../../functions/cobaltHelper.js";
 import fs from "fs";
 import memoryManager from "../../../functions/memoryUtils.js";
 
@@ -28,13 +28,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	console.log(urlInstagram);
 
 	try {
-		const downloadedFiles = await downloadFromCobalt(urlInstagram, { audioOnly: false });
+		const downloadedPaths = await downloadViaCobalt(urlInstagram, null, false);
 
-		if (!downloadedFiles || downloadedFiles.length === 0) {
+		if (!downloadedPaths || downloadedPaths.length === 0) {
 			return sendMessageWTyping(from, { text: "No Data Found!!" }, { quoted: msg });
 		}
 
-		for (const fileDown of downloadedFiles) {
+		for (const fileDown of downloadedPaths) {
 			const detected = await detectUrlTypeLocal(fileDown);
 
 			if (detected.detected === "video") {
@@ -52,12 +52,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			memoryManager.safeUnlink(fileDown);
 		}
 	} catch (err) {
-		console.log(err);
-		let errorMsg = "Error!! Maybe private account or invalid URL.";
-		if (err.message.includes("Cobalt Error")) {
-			errorMsg = `Cobalt API Error: ${err.message}`;
-		}
-		sendMessageWTyping(from, { text: errorMsg }, { quoted: msg });
+		console.log("Insta Handler Error:", err);
+		sendMessageWTyping(from, { text: "Couldn't fetch that link right now, try again in a bit" }, { quoted: msg });
 	}
 };
 

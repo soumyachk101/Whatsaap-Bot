@@ -1,5 +1,5 @@
 import fs from "fs";
-import { downloadFromCobalt } from "../../functions/cobaltHelper.js";
+import { downloadViaCobalt } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
@@ -17,12 +17,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let downloadPath = null;
 
 	try {
-		const downloadedFiles = await downloadFromCobalt(url, { audioOnly: true });
+		const downloadedPaths = await downloadViaCobalt(url, null, true);
 
-		if (!downloadedFiles || downloadedFiles.length === 0) {
+		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Audio file was not downloaded from Cobalt.");
 		}
-		downloadPath = downloadedFiles[0];
+		downloadPath = downloadedPaths[0];
 
 		if (!fs.existsSync(downloadPath)) {
 			throw new Error("Audio file was not created.");
@@ -40,14 +40,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	} catch (error) {
 		console.error("MP3 Download Error:", error);
-		let errorMsg = `❌ *Bhai error aagaya MP3 banane mein.*`;
-		if (error.message.includes("Cobalt Error")) {
-			errorMsg += `\n\nReason: \`${error.message.substring(0, 100)}\``;
-		} else {
-			errorMsg += `\n\nReason: \`${error.message.substring(0, 50)}\``;
-		}
-		
-		await sendMessageWTyping(from, { text: errorMsg }, { quoted: msg });
+		await sendMessageWTyping(from, { text: "Couldn't fetch that link right now, try again in a bit" }, { quoted: msg });
 	} finally {
 		if (downloadPath && fs.existsSync(downloadPath)) {
 			memoryManager.safeUnlink(downloadPath);

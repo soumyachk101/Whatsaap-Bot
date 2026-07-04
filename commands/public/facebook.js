@@ -1,7 +1,6 @@
 import fs from "fs";
-import execYtdlp from "../../functions/ytdlpHelper.js";
+import { downloadViaCobalt } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
-import { getYtDlpOptions, retryWithBackoff } from "../../functions/youtubeUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, prefix, command } = msgInfoObj;
@@ -15,23 +14,19 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const url = args[0];
-	if (!url.includes("facebook.com") && !url.includes("fb.watch") && !url.includes("fb.com")) {
+	if (!url.includes("facebook.com") && !url.includes("fb.watch") && !url.includes("fb.com") && !url.includes("fb.gg")) {
 		return sendMessageWTyping(from, { text: "❌ *Please provide a valid Facebook video link!*" }, { quoted: msg });
 	}
 
-	const downloadPath = memoryManager.generateTempFileName(".mp4");
-
+	let downloadedPaths = [];
 	try {
-		const options = getYtDlpOptions({
-			format: "best",
-			output: downloadPath,
-			maxFilesize: "100M",
-			recodeVideo: "mp4",
-		});
+		downloadedPaths = await downloadViaCobalt(url, null, false);
+		
+		if (!downloadedPaths || downloadedPaths.length === 0) {
+			throw new Error("No video was downloaded.");
+		}
 
-		await retryWithBackoff(async () => {
-			await execYtdlp(url, options);
-		}, 2, 2000);
+		const downloadPath = downloadedPaths[0];
 
 		if (!fs.existsSync(downloadPath)) {
 			throw new Error("File was not created after download.");
@@ -41,7 +36,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const fileSizeMB = stats.size / (1024 * 1024);
 
 		if (fileSizeMB > 100) {
-			fs.unlinkSync(downloadPath);
+			memoryManager.safeUnlink(downloadPath);
 			return sendMessageWTyping(
 				from,
 				{ text: `❌ *Bhai video ${fileSizeMB.toFixed(2)}MB ki hai!* WhatsApp limit 100MB hai.` },
@@ -59,13 +54,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			{ quoted: msg }
 		);
 
-		// Clean up
-		memoryManager.safeUnlink(downloadPath);
-
 	} catch (error) {
 		console.error("Facebook Download Error:", error);
-		await sendMessageWTyping(from, { text: `❌ *Error downloading Facebook video.*\n\nReason: \`${error.message.substring(0, 50)}\`` }, { quoted: msg });
-		if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
+		await sendMessageWTyping(from, { text: `Couldn't fetch that link right now, try again in a bit` }, { quoted: msg });
+	} finally {
+		if (downloadedPaths) {
+			downloadedPaths.forEach(p => {
+				if (fs.existsSync(p)) memoryManager.safeUnlink(p);
+			});
+		}
 	}
 };
 
