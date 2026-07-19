@@ -6,10 +6,10 @@ import { downloadViaCobalt } from "../../../functions/cobaltHelper.js";
 const findSongURL = async (name) => {
 	try {
 		const r = await yts(`${name}`);
-		if (!r.all || r.all.length === 0) {
+		if (!r.videos || r.videos.length === 0) {
 			throw new Error("No results found");
 		}
-		return r.all[0];
+		return r.videos[0];
 	} catch (error) {
 		console.error("Search error:", error);
 		throw new Error("Failed to search for song");

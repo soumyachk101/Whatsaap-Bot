@@ -12,11 +12,12 @@ const __dirname = path.dirname(__filename);
 
 class MemoryManager {
 	constructor() {
-		this.tempFiles = new Set();
+		this.tempFiles = new Map(); // filePath -> registeredAt timestamp
 		this.activeStreams = new Set();
 		this.memoryThreshold = 400 * 1024 * 1024; // Reduced to 400MB threshold
 		this.maxTempFiles = 100; // Limit temp files tracked
 		this.maxActiveStreams = 50; // Limit active streams tracked
+		this.maxTempFileAge = 15 * 60 * 1000; // Only GC files older than 15 minutes
 
 		// Auto cleanup every 3 minutes (increased frequency)
 		this.cleanupInterval = setInterval(() => {
@@ -40,12 +41,7 @@ class MemoryManager {
 			this.performGarbageCollection();
 		}
 
-		this.tempFiles.add(filePath);
-
-		// Auto-remove from set after 15 minutes (reduced from 30)
-		setTimeout(() => {
-			this.tempFiles.delete(filePath);
-		}, 900000);
+		this.tempFiles.set(filePath, Date.now());
 	}
 
 	/**
@@ -192,12 +188,17 @@ class MemoryManager {
 	/**
 	 * Perform garbage collection and cleanup
 	 */
-	performGarbageCollection() {
-		// Clean up temp files
+	performGarbageCollection(force = false) {
+		// Clean up temp files — only stale ones, never files still in use by an
+		// in-flight download/send (deleting fresh files broke song/mp3/mp4 sends)
 		let cleanedFiles = 0;
-		for (const filePath of this.tempFiles) {
+		const now = Date.now();
+		for (const [filePath, registeredAt] of this.tempFiles) {
+			if (!force && now - registeredAt < this.maxTempFileAge) continue;
 			if (this.safeUnlink(filePath)) {
 				cleanedFiles++;
+			} else {
+				this.tempFiles.delete(filePath); // already gone, stop tracking
 			}
 		}
 
@@ -252,7 +253,7 @@ class MemoryManager {
 			clearInterval(this.memoryCheckInterval);
 		}
 
-		this.performGarbageCollection();
+		this.performGarbageCollection(true);
 	}
 }
 

@@ -6,7 +6,7 @@ import { readFileEfficiently, isValidVideoFile } from "../../../functions/fileUt
 
 const findVideoURL = async (name) => {
 	const r = await yts(`${name}`);
-	return r.all[0].url;
+	return r.videos?.[0]?.url;
 };
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
