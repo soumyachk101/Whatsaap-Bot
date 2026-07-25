@@ -1,3 +1,6 @@
+import os from "os";
+import { execSync } from "child_process";
+
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, startTime, updateName } = msgInfoObj;
 
@@ -20,9 +23,21 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		win32: "Windows"
 	};
 	const friendlyPlatform = process.env.PLATFORM_NAME || platformMap[process.platform] || process.platform;
-	const arch = process.arch === "arm64" ? "ARM64" : process.arch;
+
+	let isArm = process.arch === "arm64";
+	if (!isArm && process.platform === "darwin") {
+		try {
+			const sysctl = execSync("sysctl -n hw.optional.arm64 2>/dev/null").toString().trim();
+			if (sysctl === "1") isArm = true;
+		} catch (e) {
+			const cpuModel = os.cpus()[0]?.model || "";
+			if (cpuModel.includes("Apple") || /M[1-9]/.test(cpuModel)) isArm = true;
+		}
+	}
+
+	const arch = process.env.PLATFORM_ARCH || (isArm ? "ARM64" : (process.arch === "x64" ? "x64" : process.arch.toUpperCase()));
 	const platform = `${friendlyPlatform} (${arch})`;
-	const cpu = process.env.CPU_NAME || "Apple M5";
+	const cpu = process.env.CPU_NAME || os.cpus()[0]?.model || "Apple M5";
 
 	const response =
 		`*👋🏻 Hello ${updateName}*\n\n` +
