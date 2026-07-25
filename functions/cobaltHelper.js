@@ -116,7 +116,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
     const items = [];
     if (data.status === "picker") {
         const isReelOrTv = url.includes("/reel/") || url.includes("/tv/");
-        const videoItems = data.picker.filter((item) => item.type === "video");
+        const videoItems = data.picker.filter((item) => item.type === "video" || (item.url && (item.url.includes(".mp4") || item.url.includes("video"))));
         const photoItems = data.picker.filter((item) => item.type === "photo");
 
         if (videoItems.length > 0) {
@@ -129,7 +129,10 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
             });
         } else {
             for (const item of data.picker) {
-                if (item.url) items.push({ url: item.url, type: item.type || "auto" });
+                if (item.url) {
+                    const itemType = isReelOrTv ? "video" : (item.type || "auto");
+                    items.push({ url: item.url, type: itemType });
+                }
             }
         }
     } else if (data.status === "tunnel" || data.status === "redirect") {

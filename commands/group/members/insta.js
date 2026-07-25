@@ -2,6 +2,7 @@ import { fileTypeFromFile } from "file-type";
 import { downloadViaCobalt } from "../../../functions/cobaltHelper.js";
 import fs from "fs";
 import memoryManager from "../../../functions/memoryUtils.js";
+import { isValidVideoFile } from "../../../functions/fileUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping, ig } = msgInfoObj;
@@ -77,16 +78,41 @@ async function detectUrlTypeLocal(filePath) {
 	try {
 		const type = await fileTypeFromFile(filePath);
 
-		if (!type) {
-			return { type: "unknown", reason: "no magic bytes detected", ext: "bin", mime: "application/octet-stream", detected: "other" };
+		if (type) {
+			let detected = "other";
+			if (type.mime.startsWith("video/")) {
+				detected = "video";
+			} else if (type.mime.startsWith("image/")) {
+				if (filePath.toLowerCase().endsWith(".mp4") && isValidVideoFile(filePath)) {
+					detected = "video";
+				} else {
+					detected = "image";
+				}
+			} else if (isValidVideoFile(filePath) || filePath.toLowerCase().endsWith(".mp4")) {
+				detected = "video";
+			}
+
+			return {
+				ext: type.ext,
+				mime: detected === "video" ? "video/mp4" : type.mime,
+				detected,
+			};
 		}
 
-		return {
-			ext: type.ext,
-			mime: type.mime,
-			detected: type.mime.startsWith("image/") ? "image" : type.mime.startsWith("video/") ? "video" : "other",
-		};
+		const lower = filePath.toLowerCase();
+		if (isValidVideoFile(filePath) || lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".webm")) {
+			return { ext: "mp4", mime: "video/mp4", detected: "video" };
+		}
+		if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) {
+			return { ext: "jpg", mime: "image/jpeg", detected: "image" };
+		}
+
+		return { type: "unknown", reason: "no magic bytes detected", ext: "bin", mime: "application/octet-stream", detected: "other" };
 	} catch (err) {
+		const lower = filePath.toLowerCase();
+		if (isValidVideoFile(filePath) || lower.endsWith(".mp4")) {
+			return { ext: "mp4", mime: "video/mp4", detected: "video" };
+		}
 		return { error: err.message, detected: "other", mime: "application/octet-stream", ext: "bin" };
 	}
 }

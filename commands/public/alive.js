@@ -16,11 +16,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	const platformMap = {
 		darwin: "MacOS",
-		linux: "MacOS",
+		linux: "Linux",
 		win32: "Windows"
 	};
 	const friendlyPlatform = process.env.PLATFORM_NAME || platformMap[process.platform] || process.platform;
-	const platform = `${friendlyPlatform} (${process.arch})`;
+	const arch = process.arch === "arm64" ? "ARM64" : process.arch;
+	const platform = `${friendlyPlatform} (${arch})`;
 	const cpu = process.env.CPU_NAME || "Apple M5";
 
 	const response =
