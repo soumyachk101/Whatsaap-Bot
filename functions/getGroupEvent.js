@@ -18,16 +18,31 @@ const getGroupEvent = async (sock, events, cache) => {
 	cache.del(jid + ":groupMetadata");
 
 	if (events.action == "add") {
-		if (groupDataDB.welcome && groupDataDB.welcome != "") {
+		if (groupDataDB.welcome !== "off") {
 			events.participants.forEach((member) => {
-				const phoneNumber = extractPhoneNumber(member);
+				const memberJid = typeof member === "string" ? member : (member?.id || member?.jid || member?.phoneNumber || "");
+				const phoneNumber = getPhone(member);
+				const mentionTag = `@${phoneNumber}`;
+
+				let welcomeMsg = "";
+				if (groupDataDB.welcome && groupDataDB.welcome.trim() !== "") {
+					let customText = groupDataDB.welcome;
+					if (customText.includes("@user") || customText.includes("@member")) {
+						welcomeMsg = customText.replace(/@user|@member/g, mentionTag);
+					} else {
+						welcomeMsg = `Welcome ${mentionTag}!\n\n${customText}`;
+					}
+				} else {
+					welcomeMsg = `Welcome ${mentionTag} to *${groupDataDB.grpName || "the group"}*! 🎉\nWe hope you have a great time here!`;
+				}
+
 				sock.sendMessage(
 					jid,
 					{
-						text: "Welcome @" + phoneNumber + "\n\n" + groupDataDB.welcome,
-						mentions: [member],
+						text: welcomeMsg,
+						mentions: [memberJid || member],
 					},
-					{ quoted: fake_quoted(events, "Welcome to " + groupDataDB.grpName) }
+					{ quoted: fake_quoted(events, "Welcome to " + (groupDataDB.grpName || "Group")) }
 				);
 			});
 		}
