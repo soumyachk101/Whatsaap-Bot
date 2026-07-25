@@ -33,14 +33,16 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
     const baseApiUrl = process.env.COBALT_API_URL;
     const apiKey = process.env.COBALT_API_KEY;
 
-    // Ordered list of instances to try
+    // Ordered list of instances to try (Primary: User Railway Cobalt instance)
     const instances = [
+        "https://imputcobalt-api-production-dda7.up.railway.app",
+        "https://api.cobalt.tools",
         "https://dog.kittycat.boo",
         "https://rue-cobalt.xenon.zone",
         "https://cobaltapi.cjs.nz"
     ];
 
-    if (baseApiUrl) {
+    if (baseApiUrl && !instances.includes(baseApiUrl)) {
         instances.unshift(baseApiUrl);
     }
 
@@ -113,29 +115,42 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 
     const items = [];
     if (data.status === "picker") {
-        for (const item of data.picker) {
-            items.push(item.url);
+        const isReelOrTv = url.includes("/reel/") || url.includes("/tv/");
+        const videoItems = data.picker.filter((item) => item.type === "video");
+        const photoItems = data.picker.filter((item) => item.type === "photo");
+
+        if (videoItems.length > 0) {
+            videoItems.forEach((item) => {
+                if (item.url) items.push({ url: item.url, type: "video" });
+            });
+        } else if (photoItems.length > 0 && !isReelOrTv) {
+            photoItems.forEach((item) => {
+                if (item.url) items.push({ url: item.url, type: "photo" });
+            });
+        } else {
+            for (const item of data.picker) {
+                if (item.url) items.push({ url: item.url, type: item.type || "auto" });
+            }
         }
     } else if (data.status === "tunnel" || data.status === "redirect") {
-        items.push(data.url);
+        items.push({ url: data.url, type: "auto" });
     } else if (data.status === "local-processing") {
-        // As requested by the specification
-        // We push the URLs for now (will download individually)
-        // Usually local processing involves ffmpeg merging, but Cobalt typically handles it.
         if (data.tunnel) {
-             data.tunnel.forEach(tUrl => items.push(tUrl));
+            data.tunnel.forEach((tUrl) => items.push({ url: tUrl, type: "auto" }));
         }
     } else if (data.status === "success" || data.status === "stream") {
-        // Fallback for older versions just in case
-        items.push(data.url);
+        items.push({ url: data.url, type: "auto" });
     } else {
         throw new CobaltDownloadError("unknown_status", `Unknown Cobalt status: ${data.status}`);
     }
 
     const downloadedFiles = [];
-    for (const itemUrl of items) {
+    for (const itemObj of items) {
+        const itemUrl = typeof itemObj === "string" ? itemObj : itemObj.url;
+        const itemType = typeof itemObj === "string" ? "auto" : itemObj.type;
         if (!itemUrl) continue;
-        const ext = audioOnly ? ".mp3" : ".mp4";
+        
+        const ext = audioOnly ? ".mp3" : itemType === "photo" ? ".jpg" : ".mp4";
         
         let tempFile;
         if (outputDir) {

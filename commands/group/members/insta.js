@@ -34,17 +34,33 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return sendMessageWTyping(from, { text: "No Data Found!!" }, { quoted: msg });
 		}
 
+		// Detect media type for all downloaded files
+		const detectedFiles = [];
 		for (const fileDown of downloadedPaths) {
 			const detected = await detectUrlTypeLocal(fileDown);
+			detectedFiles.push({ path: fileDown, ...detected });
+		}
 
-			if (detected.detected === "video") {
+		const isReelOrTv = urlInstagram.includes("/reel/") || urlInstagram.includes("/tv/");
+		const hasVideo = detectedFiles.some((f) => f.detected === "video");
+
+		// Filter out preview/thumbnail images if a video is present or if the URL is a Reel/TV
+		const filesToSend = (isReelOrTv || hasVideo)
+			? detectedFiles.filter((f) => f.detected === "video")
+			: detectedFiles;
+
+		const finalFiles = filesToSend.length > 0 ? filesToSend : detectedFiles;
+
+		for (const fileObj of finalFiles) {
+			const fileDown = fileObj.path;
+			if (fileObj.detected === "video") {
 				await sock.sendMessage(from, { video: { url: fileDown } }, { quoted: msg });
-			} else if (detected.detected === "image") {
+			} else if (fileObj.detected === "image") {
 				await sock.sendMessage(from, { image: { url: fileDown } }, { quoted: msg });
 			} else {
 				await sock.sendMessage(
 					from,
-					{ document: { url: fileDown }, mimetype: detected.mime, fileName: `file.${detected.ext}` },
+					{ document: { url: fileDown }, mimetype: fileObj.mime, fileName: `file.${fileObj.ext}` },
 					{ quoted: msg }
 				);
 			}
