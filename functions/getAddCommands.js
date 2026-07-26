@@ -97,17 +97,18 @@ const addCommands = async () => {
 	console.log("🎉 All commands loaded successfully!");
 };
 
-// Await the command loading to ensure they're ready before export
-addCommands();
+// Store command loading promise to ensure commands are fully loaded before returning
+const commandLoadPromise = addCommands();
 
-const cmdToText = () => {
-	return Promise.resolve({
+const cmdToText = async () => {
+	await commandLoadPromise;
+	return {
 		publicCommands: publicCommandsList,
 		groupCommands: groupCommandsList,
 		adminCommands: adminCommandsList,
 		ownerCommands: ownerCommandsList,
 		directCommands: directCommandsList,
-	});
+	};
 };
 
 export { commandsPublic, commandsMembers, commandsAdmins, commandsOwners, cmdToText };

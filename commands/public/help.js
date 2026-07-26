@@ -54,12 +54,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"attp", "textsticker", "ts", "stickertext", 
 			"sets", "stealtext",
 			"steal", 
-			"meme", 
+			"meme", "text", "txt", "texmeme",
 			"image", "toimg", 
 			"removebg", "bg", 
 			"make", "gen3", 
 			"gen", "genimg", "imagen", 
-			"gen2", "genimg2", "flashgen"
+			"gen2", "genimg2", "flashgen",
+			"nsfw"
 		],
 		"🛠️  *ᴜᴛɪʟɪᴛɪᴇs*": [
 			"calc", "calculate", 
@@ -100,7 +101,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"tod", "truthordare",
 			"poll", "vote",
 			"confess", "confession",
-			"level", "rank", "xp"
+			"level", "rank", "xp",
+			"epicgames", "epic", "freegames"
 		],
 		"🔐  *ᴘʀɪᴠᴀᴄʏ & sᴇᴄᴜʀɪᴛʏ*": [
 			"qr", "qrcode",
@@ -118,7 +120,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"donate", "donation", 
 			"dev", "developer", 
 			"mycount", 
-			"myGrpCount", 
+			"myGrpCount", "totalg",
 			"headerfooter"
 		]
 	};
