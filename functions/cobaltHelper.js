@@ -34,8 +34,8 @@ export const downloadWithYtDlp = (url, outputDir = null, audioOnly = false) => {
         }
 
         const args = audioOnly
-            ? `-f bestaudio --extract-audio --audio-format mp3 -o "${tempFile}" "${url}"`
-            : `-f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "${tempFile}" "${url}"`;
+            ? `--no-playlist --max-filesize 50M -f bestaudio --extract-audio --audio-format mp3 -o "${tempFile}" "${url}"`
+            : `--no-playlist --max-filesize 50M -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "${tempFile}" "${url}"`;
 
         console.log(`[yt-dlp Fallback] Running yt-dlp for ${url}...`);
         exec(`yt-dlp ${args}`, { timeout: 60000 }, (err) => {

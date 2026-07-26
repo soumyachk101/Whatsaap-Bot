@@ -28,11 +28,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			throw new Error("Audio file was not created.");
 		}
 
-		await sock.sendMessage(
+		await sendMessageWTyping(
 			from,
 			{
-				audio: { url: downloadPath },
-				mimetype: "audio/mpeg",
+				audio: downloadPath,
+				mimetype: "audio/mp4",
 				ptt: false,
 			},
 			{ quoted: msg }
