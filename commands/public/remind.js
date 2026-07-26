@@ -4,7 +4,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (args.length < 2) {
 		return sendMessageWTyping(
 			from,
-			{ text: `Bhai format galat hai!\n\nExample: \`${prefix}${command} 10m Chai peeni hai\`` },
+			{ text: `❌ Invalid format!\n\nExample: \`${prefix}${command} 10m Take a break\`` },
 			{ quoted: msg }
 		);
 	}
@@ -27,19 +27,19 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	if (isNaN(ms) || ms <= 0) {
-		return sendMessageWTyping(from, { text: "Bhai time sahi se bata! (30s, 10m, 2h) 🙏" });
+		return sendMessageWTyping(from, { text: "❌ Invalid time format! Use units like 30s, 10m, or 2h." });
 	}
 
 	// Limit reminder to 24 hours
 	if (ms > 24 * 60 * 60 * 1000) {
-		return sendMessageWTyping(from, { text: "Bhai max 24 hours ka reminder set kar sakte ho! 🙏" });
+		return sendMessageWTyping(from, { text: "❌ Maximum reminder limit is 24 hours." });
 	}
 
-	await sendMessageWTyping(from, { text: `Done bhai! ${timeStr} baad yaad dila dunga. 👍` }, { quoted: msg });
+	await sendMessageWTyping(from, { text: `✅ Reminder set! I will remind you in ${timeStr}. 👍` }, { quoted: msg });
 
 	setTimeout(async () => {
 		try {
-			await sock.sendMessage(from, { text: `⏰ *Yaad dilaya bhai:* ${task}` }, { quoted: msg });
+			await sock.sendMessage(from, { text: `⏰ *Reminder:* ${task}` }, { quoted: msg });
 		} catch (e) {
 			console.error("Reminder Error:", e);
 		}
@@ -48,7 +48,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 export default () => ({
 	cmd: ["remind", "reminder"],
-	desc: "Set a reminder",
-	usage: "remind 10m Chai peeni hai",
+	desc: "Set a timer reminder",
+	usage: "remind 10m Take a break",
 	handler,
 });

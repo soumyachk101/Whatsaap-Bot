@@ -446,6 +446,7 @@ const getCommand = async (sock, msg, cache) => {
 			msg
 		);
 		if (command != "") {
+			sock.sendMessage(from, { react: { text: "👀", key: msg.key } }).catch(err => console.error("[React Error]", err));
 			const botData = await getBotData();
 			const globallyDisabled = botData?.disabledGlobally || [];
 			if (globallyDisabled.includes(command)) {
@@ -468,7 +469,10 @@ const getCommand = async (sock, msg, cache) => {
 					return sendMessageWTyping(from, { text: `Command blocked for this group.` }, { quoted: msg });
 				}
 			}
+		if (commandsPublic[command] || commandsMembers[command] || commandsAdmins[command] || commandsOwners[command]) {
+			sock.sendMessage(from, { react: { text: "👀", key: msg.key } }).catch(err => console.error("[Reaction Error]", err));
 		}
+
 		if (commandsPublic[command]) {
 			const t0 = Date.now();
 			const result = await commandsPublic[command](sock, msg, from, args, msgInfoObj);
@@ -489,7 +493,7 @@ const getCommand = async (sock, msg, cache) => {
 			} else {
 				result = await sendMessageWTyping(
 					from,
-					{ text: "```🤭 kya matlab tum admin nhi ho.```" },
+					{ text: "```🚫 Access Denied! This command requires Group Admin privileges.```" },
 					{ quoted: msg }
 				);
 			}
@@ -504,7 +508,7 @@ const getCommand = async (sock, msg, cache) => {
 			} else {
 				result = await sendMessageWTyping(
 					from,
-					{ text: "```🤭 kya matlab tum mere owner nhi ho.```" },
+					{ text: "```🚫 Access Denied! Only the Bot Owner can use this command.```" },
 					{ quoted: msg }
 				);
 			}

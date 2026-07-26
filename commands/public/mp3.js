@@ -8,7 +8,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (args.length === 0) {
 		return sendMessageWTyping(
 			from,
-			{ text: `❌ *Bhai link toh bhej!*\n\nExample: \`${prefix}${command} https://youtube.com/watch?v=xxx\`` },
+			{ text: `❌ *Please provide a media link!*\n\nExample: \`${prefix}${command} https://youtube.com/watch?v=xxx\`` },
 			{ quoted: msg }
 		);
 	}

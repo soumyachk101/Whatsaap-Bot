@@ -5,7 +5,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		`╭━━━━━━━━━━━━━━━━━━━╮\n` +
 		`  ⚡ *EVERYTHING DOWNLOADER* ⚡\n` +
 		`╰━━━━━━━━━━━━━━━━━━━╯\n\n` +
-		`👋 *Hey ${updateName || "Bhai"}!*\n` +
+		`👋 *Hey ${updateName || "User"}!*\n` +
 		`_Your one-stop media downloader_ 🎬\n\n` +
 		`━━━━━━━━━━━━━━━━━━━━━\n` +
 		`🌟 *WHAT I CAN DO*\n` +

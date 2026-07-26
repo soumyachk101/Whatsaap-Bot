@@ -17,39 +17,55 @@ if (GOOGLE_API_KEY) {
 }
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping, command, evv } = msgInfoObj;
+	const { sendMessageWTyping, command, evv, prefix } = msgInfoObj;
 
 	if (!GROQ_API_KEY && !GOOGLE_API_KEY) {
 		return sendMessageWTyping(from, { text: "```Both Groq and Gemini API Keys are missing in .env```" }, { quoted: msg });
 	}
 
 	if (!evv && command !== "fortune") {
-		return sendMessageWTyping(from, { text: `Bhai topic toh bata! Example: .${command} Salman Khan` });
+		return sendMessageWTyping(from, { text: `❌ Please specify a name or topic!\nExample: \`${prefix || "#"}${command} Elon Musk\`` }, { quoted: msg });
 	}
 
 	const prompts = {
 		roast: {
-			system: "You are a savage, funny Indian roaster. Roast the person named in the prompt in exactly 4 lines using Hinglish. Be hilarious but don't cross community guidelines.",
-			user: `Roast this person: ${evv}`,
+			system: `You are an extremely savage, hilarious, witty Indian roaster (in CarryMinati and Tanmay Bhat style).
+Your task is to roast the person/topic named in 4-6 lines of peak, relatable, punchy Hinglish.
+
+Rules & Tone Guidelines:
+- DO NOT give dry, boring, or safe corporate AI advice.
+- Use savage Indian slang, internet memes, and hilarious comparisons (e.g. Jio 5G, 2G dimaag, Google Lens, SBI lunch break, backbenchers, etc.).
+- Make every line a funny punchline!
+
+Example Roast 1 (Target: Rahul):
+Rahul bhai ka confidence level Jio 5G jaisa high hai, lekin dimaag abhi bhi BSNL 2G pe chalta hai!
+Inki baatein sunke Google Lens bhi bolta hai: "Result not found, please search something sensible."
+Itne shaant rehte hain jaise SBI branch mein 2 baje ka lunch break chal raha ho.
+
+Example Roast 2 (Target: Rohan):
+Rohan bhai ki shakal dekh ke Snapchat ke filters bhi crash ho jaate hain.
+Class mein inka aana aur Chhoti Advance ka khatam hona, dono ek hi timing pe hota hai!
+Gyan aise baant te hain jaise khud Harvard ke Dean hon, aur exam mein pass hone ke liye Hanuman Chalisa padhte hain.`,
+			user: `Roast Target: ${evv}`,
 		},
 		shayari: {
-			system: "You are a master Mirza Ghalib style poet but you write in Hinglish. Write a 4 line beautiful or funny shayari about the topic given.",
+			system: "You are a master poet. Write a beautiful, poetic 4-line verse in English about the given topic.",
 			user: `Topic: ${evv}`,
 		},
 		rap: {
-			system: "You are an Indian underground rapper like Divine or Emiway. Write an energetic desi Hindi rap with rhymes in exactly 8 lines using Hinglish about the given topic.",
+			system: "You are a talented rap artist. Write an energetic 8-line rap with rhyming lyrics in English about the given topic.",
 			user: `Topic: ${evv}`,
 		},
 		fortune: {
-			system: "You are a funny Indian jyotishi (astrologer). Tell a humorous 3-4 line fortune in Hinglish for the given name. Make it absurd and funny.",
-			user: `Name: ${evv || "Bhai"}`,
+			system: "You are a witty fortune teller. Provide a humorous 3-4 line fortune reading in English for the given name.",
+			user: `Name: ${evv || "Friend"}`,
 		},
 		story: {
-			system: "You are a creative storyteller. Write a short, engaging 10-line story in Hinglish about the given topic. Make it interesting and desi.",
+			system: "You are a creative author. Write a short, captivating 8-line story in English about the given topic.",
 			user: `Topic: ${evv}`,
 		},
 		recipe: {
-			system: "You are a Desi Chef. Provide a simple and tasty recipe in Hinglish with clear steps based on the ingredients or dish name provided. Use a friendly, 'Bhai' style tone.",
+			system: "You are a professional chef. Provide a clean, easy-to-follow recipe in English for the given dish or ingredients.",
 			user: `Recipe/Ingredients: ${evv}`,
 		},
 	};
@@ -71,6 +87,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 						{ role: "user", content: mode.user },
 					],
 					model: "llama-3.1-8b-instant",
+					temperature: command === "roast" ? 0.95 : 0.7,
 				});
 				response = chatCompletion.choices[0]?.message?.content || "";
 				if (response) success = true;
@@ -102,7 +119,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 export default () => ({
 	cmd: ["roast", "shayari", "rap", "fortune", "story", "recipe"],
-	desc: "AI Fun Modes (Roast, Shayari, Rap, Fortune, Story, Recipe)",
+	desc: "AI Fun Modes (Savage Roast in Hinglish, Shayari/Rap/Story/Recipe in English)",
 	usage: "roast <name> | shayari <topic> | etc.",
 	handler,
 });

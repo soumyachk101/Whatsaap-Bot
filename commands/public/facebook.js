@@ -8,7 +8,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (args.length === 0) {
 		return sendMessageWTyping(
 			from,
-			{ text: `❌ *Bhai Facebook video link toh bhej!*\n\nExample: \`${prefix}${command} https://www.facebook.com/watch/?v=xxx\`` },
+			{ text: `❌ *Please provide a Facebook video link!*\n\nExample: \`${prefix}${command} https://www.facebook.com/watch/?v=xxx\`` },
 			{ quoted: msg }
 		);
 	}
@@ -39,7 +39,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			memoryManager.safeUnlink(downloadPath);
 			return sendMessageWTyping(
 				from,
-				{ text: `❌ *Bhai video ${fileSizeMB.toFixed(2)}MB ki hai!* WhatsApp limit 100MB hai.` },
+				{ text: `❌ *Video is ${fileSizeMB.toFixed(2)}MB!* WhatsApp limit is 100MB.` },
 				{ quoted: msg }
 			);
 		}
