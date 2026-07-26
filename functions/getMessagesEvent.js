@@ -305,6 +305,12 @@ const getCommand = async (sock, msg, cache) => {
 		const groupAdmins = isGroup ? getGroupAdmins(groupMetadata.participants) : [];
 		const isGroupAdmin = isGroup ? (groupAdmins?.includes(senderJid) || false) : false;
 
+		// ── ADMIN ONLY FEATURE ────────────────────────────────────────────────────────
+		if (isGroup && groupData?.adminOnly && !isGroupAdmin && !isOwner && !moderatos.includes(senderNumber)) {
+			// In Admin Only mode, ignore all messages and commands from non-admin users
+			return;
+		}
+
 		// ── ANTI-LINK FEATURE ────────────────────────────────────────────────────────
 		if (isGroup && groupData?.antilink && !isGroupAdmin && !isOwner) {
 			const linkRegex = /chat.whatsapp.com\/([0-9A-Za-z]{20,24})|(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-z]{2,6}(\/[^\s]*)?/gi;
@@ -456,8 +462,8 @@ const getCommand = async (sock, msg, cache) => {
 						"dev",
 				});
 			}
-			let blockCommandsInDB = await groupData?.cmdBlocked;
-			if (command != "") {
+			let blockCommandsInDB = (await groupData?.cmdBlocked) || [];
+			if (command != "" && Array.isArray(blockCommandsInDB)) {
 				if (blockCommandsInDB.includes(command)) {
 					return sendMessageWTyping(from, { text: `Command blocked for this group.` }, { quoted: msg });
 				}

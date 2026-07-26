@@ -26,18 +26,24 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let fileDown = null;
 	
 	try {
-		// First try to find the song
-		let videoInfo;
-		try {
-			videoInfo = await findSongURL(evv);
-			console.log("Found URL:", videoInfo.url);
-		} catch (searchError) {
-			console.error("Search failed:", searchError);
-			return sendMessageWTyping(from, { text: `❌ No songs found for: *${evv}*` }, { quoted: msg });
-		}
+		let URL = "";
+		let title = "Audio Track";
 
-		const URL = videoInfo.url;
-		const title = videoInfo.title || "Unknown Song";
+		const isDirectUrl = evv.startsWith("http://") || evv.startsWith("https://") || evv.includes("youtube.com") || evv.includes("youtu.be");
+
+		if (isDirectUrl) {
+			URL = evv.trim();
+		} else {
+			try {
+				const videoInfo = await findSongURL(evv);
+				URL = videoInfo.url;
+				title = videoInfo.title || "Unknown Song";
+				console.log("Found URL:", URL);
+			} catch (searchError) {
+				console.error("Search failed:", searchError);
+				return sendMessageWTyping(from, { text: `❌ No songs found for: *${evv}*` }, { quoted: msg });
+			}
+		}
 
 		// Download using Cobalt
 		const downloadedPaths = await downloadViaCobalt(URL, null, true);

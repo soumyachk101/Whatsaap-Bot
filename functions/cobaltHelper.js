@@ -114,7 +114,9 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
         "https://imputcobalt-api-production-dda7.up.railway.app",
         "https://dog.kittycat.boo",
         "https://rue-cobalt.xenon.zone",
-        "https://cobaltapi.cjs.nz"
+        "https://cobaltapi.cjs.nz",
+        "https://cobalt.api.scie.nz",
+        "https://cobalt.kwiatekmom.tokyo"
     ];
 
     if (baseApiUrl && !instances.includes(baseApiUrl)) {
@@ -221,7 +223,14 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
                 }
                 
                 const fileStream = fs.createWriteStream(tempFile);
-                const downloadReq = await axios.get(itemUrl, { responseType: "stream", timeout: 30000 });
+                const downloadReq = await axios.get(itemUrl, {
+                    responseType: "stream",
+                    timeout: 60000,
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                        "Accept": "*/*"
+                    }
+                });
                 
                 await pipeline(downloadReq.data, fileStream);
                 downloadedFiles.push(tempFile);
