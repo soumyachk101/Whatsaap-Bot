@@ -4,7 +4,7 @@ import { extractPhoneNumber } from "../../../functions/lidUtils.js";
 
 import { config } from "dotenv";
 config();
-const myNums = process.env.MY_NUMBER.split(",").map(n => n.trim()).filter(Boolean);
+const myNums = process.env.MY_NUMBER ? process.env.MY_NUMBER.split(",").map(n => n.trim()).filter(Boolean) : [];
 const myNumber = [
 	...myNums.map(n => n + "@s.whatsapp.net"),
 	...myNums.map(n => n + "@lid"),

@@ -12,8 +12,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, evv, senderJid } = msgInfoObj;
 
 	// Strictly restrict to the primary owner only (the first number in MY_NUMBER)
-	const primaryOwner = process.env.MY_NUMBER.split(",")[0] + "@s.whatsapp.net";
-	if (senderJid !== primaryOwner) {
+	const primaryOwnerNumber = process.env.MY_NUMBER ? process.env.MY_NUMBER.split(",")[0].trim() : "";
+	const primaryOwner = primaryOwnerNumber ? primaryOwnerNumber + "@s.whatsapp.net" : "";
+	if (!primaryOwner || senderJid !== primaryOwner) {
 		return sendMessageWTyping(from, { text: "❌ This dangerous command is restricted to the primary owner only." }, { quoted: msg });
 	}
 

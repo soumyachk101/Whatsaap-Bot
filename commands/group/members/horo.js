@@ -27,25 +27,25 @@ const getHoroscope = async (sign) => {
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
+	try {
+		if (args.length < 1 || !args[0]) {
+			return sendMessageWTyping(
+				from,
+				{ text: `⭐ *Horoscope Signs*\n\n${Object.keys(signs).map(s => `• ${s.charAt(0).toUpperCase() + s.slice(1)}`).join("\n")}\n\n_Usage: horo <sign>_` },
+				{ quoted: msg }
+			);
+		}
 
-	if (args.length < 1 || !args[0]) {
-		return sendMessageWTyping(
-			from,
-			{ text: `⭐ *Horoscope Signs*\n\n${Object.keys(signs).map(s => `• ${s.charAt(0).toUpperCase() + s.slice(1)}`).join("\n")}\n\n_Usage: horo <sign>_` },
-			{ quoted: msg }
-		);
-	}
+		let h_Low = args[0].toLowerCase();
 
-	let h_Low = args[0].toLowerCase();
-
-	if (!Object.keys(signs).includes(h_Low)) {
-		sendMessageWTyping(
-			from,
-			{ text: `❌ *Invalid sign:* _${args[0]}_\n\n*Valid signs:*\n${Object.keys(signs).map(s => `• ${s}`).join("\n")}` },
-			{ quoted: msg }
-		);
-	} else {
-		getHoroscope(signs[h_Low]).then((res) => {
+		if (!Object.keys(signs).includes(h_Low)) {
+			sendMessageWTyping(
+				from,
+				{ text: `❌ *Invalid sign:* _${args[0]}_\n\n*Valid signs:*\n${Object.keys(signs).map(s => `• ${s}`).join("\n")}` },
+				{ quoted: msg }
+			);
+		} else {
+			const res = await getHoroscope(signs[h_Low]);
 			const reading = res.split("-")[1]?.trim() || res.trim();
 			sendMessageWTyping(
 				from,
@@ -54,7 +54,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				},
 				{ quoted: msg }
 			);
-		});
+		}
+	} catch (err) {
+		console.error("Horoscope error:", err);
+		sendMessageWTyping(from, { text: `❌ Error fetching horoscope: ${err.message}` }, { quoted: msg });
 	}
 };
 

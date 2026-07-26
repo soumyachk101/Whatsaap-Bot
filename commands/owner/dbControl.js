@@ -13,38 +13,43 @@ const updateData = async (collection, id, data, value, sendMessageWTyping, from,
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, command } = msgInfoObj;
-	let data, value, id, collection, getDataFunc;
+	try {
+		let data, value, id, collection, getDataFunc;
 
-	switch (command) {
-		case "group":
-			collection = group;
-			getDataFunc = getGroupData;
-			id = from;
-			break;
-		case "member":
-			if (!msg.message.extendedTextMessage) {
-				return sendMessageWTyping(from, { text: "*Reply On User's Message.*" }, { quoted: msg });
-			}
-			collection = member;
-			getDataFunc = getMemberData;
-			// Normalize to PN-based JID for DB consistency
-			id = extractPhoneNumber(msg.message.extendedTextMessage.contextInfo.participant);
-			break;
-		case "bot":
-			collection = bot;
-			getDataFunc = getBotData;
-			id = "bot";
-			break;
-		default:
-			return;
-	}
+		switch (command) {
+			case "group":
+				collection = group;
+				getDataFunc = getGroupData;
+				id = from;
+				break;
+			case "member":
+				if (!msg.message.extendedTextMessage) {
+					return sendMessageWTyping(from, { text: "*Reply On User's Message.*" }, { quoted: msg });
+				}
+				collection = member;
+				getDataFunc = getMemberData;
+				// Normalize to PN-based JID for DB consistency
+				id = extractPhoneNumber(msg.message.extendedTextMessage.contextInfo.participant);
+				break;
+			case "bot":
+				collection = bot;
+				getDataFunc = getBotData;
+				id = "bot";
+				break;
+			default:
+				return;
+		}
 
-	if (!args[0]) {
-		const data = await getDataFunc(id);
-		sendMessageWTyping(from, { text: JSON.stringify(data, null, 2, 100) }, { quoted: msg });
-	} else {
-		[data, value] = args[0].split(":");
-		await updateData(collection, id, data, value, sendMessageWTyping, from, msg);
+		if (!args[0]) {
+			const data = await getDataFunc(id);
+			sendMessageWTyping(from, { text: JSON.stringify(data, null, 2, 100) }, { quoted: msg });
+		} else {
+			[data, value] = args[0].split(":");
+			await updateData(collection, id, data, value, sendMessageWTyping, from, msg);
+		}
+	} catch (err) {
+		console.error("dbControl error:", err);
+		sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 	}
 };
 

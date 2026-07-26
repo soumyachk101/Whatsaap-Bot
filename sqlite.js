@@ -272,14 +272,19 @@ class Collection {
         if (this.tableName === 'AuthTable') {
             const { _id, ...fields } = data;
             const keys = Object.keys(fields);
-            const setClause = keys.map(k => `${k} = ?`).join(', ');
-            const values = keys.map(k => k === 'disabledGlobally' ? JSON.stringify(fields[k]) : fields[k]);
-            let res = db.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
-            if (res.changes === 0 && options.upsert) {
-                const placeholders = keys.map(() => '?').join(', ');
-                res = db.prepare(`INSERT INTO AuthTable (id, ${keys.join(', ')}) VALUES (?, ${placeholders})`).run(id, ...values);
+            let changes = 0;
+            if (keys.length > 0) {
+                const setClause = keys.map(k => `${k} = ?`).join(', ');
+                const values = keys.map(k => k === 'disabledGlobally' ? JSON.stringify(fields[k]) : fields[k]);
+                let res = db.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
+                changes = res.changes;
+                if (changes === 0 && options.upsert) {
+                    const placeholders = keys.map(() => '?').join(', ');
+                    res = db.prepare(`INSERT INTO AuthTable (id, ${keys.join(', ')}) VALUES (?, ${placeholders})`).run(id, ...values);
+                    changes = res.changes;
+                }
             }
-            return { matchedCount: res.changes };
+            return { matchedCount: changes };
         } else {
             let res = db.prepare(`UPDATE ${this.tableName} SET data = ? WHERE id = ?`)
                 .run(JSON.stringify(data), id);
@@ -301,9 +306,23 @@ class Collection {
         }
     }
 
-    async deleteMany(query) {
-        db.prepare(`DELETE FROM ${this.tableName}`).run();
-        return { deletedCount: 1 }; // fake count
+    async deleteMany(query = {}) {
+        if (!query || Object.keys(query).length === 0) {
+            const res = db.prepare(`DELETE FROM ${this.tableName}`).run();
+            return { deletedCount: res.changes };
+        }
+        const items = (await this.find(query).toArray());
+        if (items.length === 0) return { deletedCount: 0 };
+        let deletedCount = 0;
+        const stmt = db.prepare(`DELETE FROM ${this.tableName} WHERE id = ?`);
+        for (const item of items) {
+            const id = item._id || item.id;
+            if (id) {
+                const res = stmt.run(id);
+                deletedCount += res.changes;
+            }
+        }
+        return { deletedCount };
     }
 }
 

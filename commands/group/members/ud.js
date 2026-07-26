@@ -1,22 +1,29 @@
-import ud from "urban-dictionary";
+import axios from "axios";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping } = msgInfoObj;
-	if (!args[0]) return sendMessageWTyping(from, { text: `*Provide any word to search*` }, { quoted: msg });
+	const { sendMessageWTyping, evv } = msgInfoObj;
+	if (!args[0]) return sendMessageWTyping(from, { text: `❌ *Provide a word or phrase to search*\n\nExample: -ud flex` }, { quoted: msg });
 	try {
-		let result = await ud.define(args[0]);
-		let term = result[0].word;
-		let def = result[0].definition;
-		let example = result[0].example;
+		const term = evv || args.join(" ");
+		const res = await axios.get(`https://api.urbandictionary.com/v0/define?term=${encodeURIComponent(term)}`, { timeout: 10000 });
+		const list = res.data?.list;
+		if (!list || list.length === 0) {
+			return sendMessageWTyping(from, { text: `❌ No Urban Dictionary definition found for: *${term}*` }, { quoted: msg });
+		}
+		const first = list[0];
+		const cleanDef = (first.definition || "").replace(/\[|\]/g, "");
+		const cleanExample = (first.example || "").replace(/\[|\]/g, "");
+
 		sendMessageWTyping(
 			from,
 			{
-				text: `📖 *Urban Dictionary*\n\n🏷️ *Term:* ${term}\n\n📝 *Definition:*\n${def}\n\n💬 *Example:*\n_${example}_`,
+				text: `📖 *Urban Dictionary*\n\n🏷️ *Term:* ${first.word}\n\n📝 *Definition:*\n${cleanDef}\n\n💬 *Example:*\n_${cleanExample || "N/A"}_`,
 			},
 			{ quoted: msg }
 		);
 	} catch (err) {
-		sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });
+		console.error("Urban dictionary error:", err);
+		sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 	}
 };
 

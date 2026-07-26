@@ -1,5 +1,5 @@
 import { downloadMediaMessage, proto } from "baileys";
-import WSF from "wa-sticker-formatter";
+import WSF, { Sticker, StickerTypes } from "wa-sticker-formatter";
 
 import fs from "fs";
 const getRandom = (ext) => {
@@ -16,18 +16,16 @@ const stickerLengthArray = [];
 const stickerForward = async (sock, msg, from) => {
 	if (!forwardGroup || ignoreGroup.includes(from) || from === forwardGroup) return;
 
-	if (msg.message.extendedTextMessage) {
+	if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
 		msg["message"] = msg.message.extendedTextMessage.contextInfo.quotedMessage;
 	}
 
 	console.log("Message:", msg.message);
 
-	// let packName = "SOUMYA";
-	// let authorName = undefined;
+	const packName = "SOUMYA";
+	const authorName = "Bot";
 
-	// const media = getRandom(".webp");
-	// const buffer = await downloadMediaMessage(msg, "buffer", {});
-	// fs.writeFileSync(media, buffer);
+	if (!msg.message?.stickerMessage) return;
 
 	const messageToChannel = proto.Message.encode({
 		stickerMessage: {
@@ -61,37 +59,7 @@ const stickerForward = async (sock, msg, from) => {
 
 	await sock.query(plaintextNode).then(async (result) => {
 		console.error(result);
-	});
-
-	return;
-
-	fs.stat(media, async (err, stats) => {
-		if (err) return;
-		const fileSizeInBytes = stats.size;
-		const fileSizeInKB = fileSizeInBytes / 1024;
-		const fileSizeInMB = fileSizeInKB / 1024;
-		if (stickerLengthArray.length > 5) stickerLengthArray.shift();
-		if (stickerLengthArray.includes(fileSizeInMB)) return fs.unlinkSync(media);
-		else {
-			try {
-				const webpWithMetadata = await WSF.setMetadata(packName, authorName, media);
-				await sock.sendMessage(forwardGroup, { sticker: Buffer.from(webpWithMetadata) });
-				fs.unlinkSync(media);
-			} catch (e) {
-				const { Sticker, StickerTypes } = require("wa-sticker-formatter-1");
-				const sticker_buffer = await new Sticker(media)
-					.setPack(packName)
-					.setAuthor(authorName)
-					.setType(StickerTypes.FULL)
-					.setQuality(80)
-					.toBuffer();
-
-				await sock.sendMessage(forwardGroup, { sticker: sticker_buffer });
-				fs.unlinkSync(media);
-			}
-			stickerLengthArray.push(fileSizeInMB);
-		}
-	});
+	}).catch((err) => console.error("Sticker forward error:", err));
 };
 
 export { stickerForward, forwardGroup };

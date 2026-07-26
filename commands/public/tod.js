@@ -68,42 +68,47 @@ const DARES = [
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, prefix, command } = msgInfoObj;
-	let sub = (args[0] || "tod").toLowerCase();
+	try {
+		let sub = (args[0] || "tod").toLowerCase();
 
-	if (command === "truth" || command === "dare") {
-		sub = command;
+		if (command === "truth" || command === "dare") {
+			sub = command;
+		}
+
+		if (sub === "help" || sub === "?") {
+			return sendMessageWTyping(
+				from,
+				{
+					text:
+						`🎲 *Truth or Dare Commands:*\n\n` +
+						`• \`${prefix}${command}\` or \`${prefix}tod\` — random truth or dare\n` +
+						`• \`${prefix}truth\` — truth only\n` +
+						`• \`${prefix}dare\` — dare only`,
+				},
+				{ quoted: msg }
+			);
+		}
+
+		let mode;
+		if (sub === "truth" || sub === "t") mode = "truth";
+		else if (sub === "dare" || sub === "d") mode = "dare";
+		else mode = Math.random() < 0.5 ? "truth" : "dare";
+
+		const prompt = mode === "truth"
+			? TRUTHS[Math.floor(Math.random() * TRUTHS.length)]
+			: DARES[Math.floor(Math.random() * DARES.length)];
+
+		const emoji = mode === "truth" ? "🤔" : "😈";
+		const title = mode === "truth" ? "TRUTH" : "DARE";
+		const colors = mode === "truth" ? "💭" : "🔥";
+
+		const text = `${colors} *${title}* ${colors}\n\n${emoji} ${prompt}\n\n_${mode === "truth" ? "Be honest, no lying! 🤞" : "No excuses, do it! 💪"}_`;
+
+		return sendMessageWTyping(from, { text }, { quoted: msg });
+	} catch (err) {
+		console.error("Truth or dare command error:", err);
+		return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 	}
-
-	if (sub === "help" || sub === "?") {
-		return sendMessageWTyping(
-			from,
-			{
-				text:
-					`🎲 *Truth or Dare Commands:*\n\n` +
-					`• \`${prefix}${command}\` or \`${prefix}tod\` — random truth or dare\n` +
-					`• \`${prefix}truth\` — truth only\n` +
-					`• \`${prefix}dare\` — dare only`,
-			},
-			{ quoted: msg }
-		);
-	}
-
-	let mode;
-	if (sub === "truth" || sub === "t") mode = "truth";
-	else if (sub === "dare" || sub === "d") mode = "dare";
-	else mode = Math.random() < 0.5 ? "truth" : "dare";
-
-	const prompt = mode === "truth"
-		? TRUTHS[Math.floor(Math.random() * TRUTHS.length)]
-		: DARES[Math.floor(Math.random() * DARES.length)];
-
-	const emoji = mode === "truth" ? "🤔" : "😈";
-	const title = mode === "truth" ? "TRUTH" : "DARE";
-	const colors = mode === "truth" ? "💭" : "🔥";
-
-	const text = `${colors} *${title}* ${colors}\n\n${emoji} ${prompt}\n\n_${mode === "truth" ? "Be honest, no lying! 🤞" : "No excuses, do it! 💪"}_`;
-
-	return sendMessageWTyping(from, { text }, { quoted: msg });
 };
 
 export default () => ({

@@ -1,6 +1,11 @@
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
-	sendMessageWTyping(from, { text: from }, { quoted: msg });
+	try {
+		sendMessageWTyping(from, { text: from }, { quoted: msg });
+	} catch (err) {
+		console.error("JID command error:", err);
+		sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+	}
 };
 
 export default () => ({

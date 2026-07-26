@@ -1,5 +1,36 @@
+import axios from "axios";
 import inshorts from "inshorts-api";
 const readMore = String.fromCharCode(8206).repeat(4000);
+
+const fetchInshortsNews = async (category) => {
+	const cat = category || "all";
+	try {
+		const res = await axios.get(`https://inshortsapi.vercel.app/news?category=${cat}`, { timeout: 10000 });
+		if (res.data && res.data.success && Array.isArray(res.data.data)) {
+			return res.data.data.map(item => ({
+				title: item.title,
+				author: item.author || "Inshorts",
+				content: item.content,
+			}));
+		}
+	} catch (e) {
+		console.warn("Direct Inshorts API failed, trying legacy package:", e.message);
+	}
+
+	return new Promise((resolve) => {
+		try {
+			inshorts.get({ lang: "en", category: category || "", numOfResults: 10 }, (result) => {
+				if (result && Array.isArray(result) && result.length > 0) {
+					resolve(result);
+				} else {
+					resolve(null);
+				}
+			});
+		} catch (_) {
+			resolve(null);
+		}
+	});
+};
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, command, sendMessageWTyping } = msgInfoObj;
@@ -29,7 +60,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		);
 	}
 
-	let newsType = args[0] || "";
+	let newsType = (args[0] || "").toLowerCase();
 
 	if (!arr.includes(newsType) && newsType != "") {
 		return sendMessageWTyping(
@@ -39,32 +70,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		);
 	}
 
-	var options = {
-		lang: "en",
-		category: newsType,
-		numOfResults: 10,
-	};
-
 	try {
-		inshorts.get(options, function (result) {
-			try {
-				if (!result || !Array.isArray(result) || result.length === 0) {
-					return sendMessageWTyping(from, { text: "❌ No news found for this category." }, { quoted: msg });
-				}
-				const category = newsType === "" ? "Top Stories" : newsType.charAt(0).toUpperCase() + newsType.slice(1);
-				let message = `📰 *${category} News*\n${readMore}`;
-				result.forEach((news, i) => {
-					message += `${i + 1}. *${news.title || "Untitled"}*\n   _— ${news.author || "Unknown"}_\n\n`;
-				});
-				sendMessageWTyping(from, { text: message }, { quoted: msg });
-			} catch (err) {
-				console.error("News callback error:", err);
-				sendMessageWTyping(from, { text: "❌ Error processing news data." }, { quoted: msg });
-			}
+		const articles = await fetchInshortsNews(newsType);
+		if (!articles || articles.length === 0) {
+			return sendMessageWTyping(from, { text: "❌ No news found for this category right now." }, { quoted: msg });
+		}
+
+		const categoryName = newsType === "" ? "Top Stories" : newsType.charAt(0).toUpperCase() + newsType.slice(1);
+		let message = `📰 *${categoryName} News*\n${readMore}`;
+		articles.slice(0, 10).forEach((news, i) => {
+			message += `${i + 1}. *${news.title || "Untitled"}*\n   _— ${news.author || "Unknown"}_\n\n`;
 		});
+
+		sendMessageWTyping(from, { text: message.trim() }, { quoted: msg });
 	} catch (err) {
 		console.error("News error:", err);
-		sendMessageWTyping(from, { text: "❌ Error fetching news." }, { quoted: msg });
+		sendMessageWTyping(from, { text: `❌ Error fetching news: ${err.message}` }, { quoted: msg });
 	}
 };
 

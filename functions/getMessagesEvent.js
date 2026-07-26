@@ -6,7 +6,7 @@ import notifyOwner from "./getOwnerSend.js";
 import { readFileEfficiently } from "./fileUtils.js";
 
 const prefix = process.env.PREFIX;
-const moderatos = [...process.env.MODERATORS?.split(",")];
+const moderatos = process.env.MODERATORS ? process.env.MODERATORS.split(",").map((s) => s.trim()).filter(Boolean) : [];
 import getGroupAdmins from "./getGroupAdmins.js";
 import { stickerForward, forwardGroup } from "../functions/getStickerForward.js";
 import { createMembersData, getMemberData, member } from "../sqlite-DB/membersDataDb.js";

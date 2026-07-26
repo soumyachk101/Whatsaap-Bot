@@ -1,73 +1,51 @@
-import dotenv from "dotenv";
-dotenv.config();
-import { TwitterApi } from "twitter-api-v2";
 import fs from "fs";
-import axios from "axios";
-
-const getRandom = (ext) => {
-	return `${Math.floor(Math.random() * 10000)}${ext}`;
-};
-
-const client = new TwitterApi(process.env.TWITTER_BEARER_TOKEN);
+import memoryManager from "../../../functions/memoryUtils.js";
+import { downloadViaCobalt } from "../../../functions/cobaltHelper.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { evv, sendMessageWTyping } = msgInfoObj;
-	if (!args[0]) return sendMessageWTyping(from, { text: "Provide Twitter Video URL." }, { quoted: msg });
-	let tweetUrl = args[0];
+	if (!args[0]) return sendMessageWTyping(from, { text: "❌ Provide Twitter/X Video URL." }, { quoted: msg });
+	let tweetUrl = args[0].trim();
 
-	if (!tweetUrl.startsWith("http"))
-		return sendMessageWTyping(from, { text: "Provide Twitter Video URL." }, { quoted: msg });
+	if (!tweetUrl.startsWith("http")) {
+		return sendMessageWTyping(from, { text: "❌ Provide valid Twitter/X Video URL." }, { quoted: msg });
+	}
 
-	let url = `Direct link for ${evv}\n\n`;
-
-	const fileDown = getRandom(".mp4");
-
+	let fileDown = null;
 	try {
-		const tweetId = tweetUrl.split("/").pop().split("?")[0];
-		const tweet = await client.v2.singleTweet(tweetId, {
-			expansions: ["attachments.media_keys"],
-			"media.fields": ["variants"],
-		});
-
-		const media = tweet.includes?.media?.[0];
-		if (!media || media.type !== "video") {
-			console.log("No video found in this tweet.");
-			return;
+		await sendMessageWTyping(from, { text: "⏳ Downloading Twitter/X video..." }, { quoted: msg });
+		const downloadedPaths = await downloadViaCobalt(tweetUrl, null, false);
+		if (!downloadedPaths || downloadedPaths.length === 0) {
+			throw new Error("No video found for this tweet");
 		}
 
-		const highestBitrateVariant = media.variants
-			.filter((variant) => variant.content_type === "video/mp4")
-			.reduce((prev, current) => (prev.bit_rate > current.bit_rate ? prev : current));
+		fileDown = downloadedPaths[0];
+		if (!fs.existsSync(fileDown)) {
+			throw new Error("Downloaded video file missing");
+		}
 
-		const videoUrl = highestBitrateVariant.url;
-		const response = await axios({
-			url: videoUrl,
-			method: "GET",
-			responseType: "stream",
-		});
+		const stats = await fs.promises.stat(fileDown);
+		const fileSizeMB = stats.size / 1024 / 1024;
+		if (fileSizeMB > 50) {
+			throw new Error(`Video too large: ${fileSizeMB.toFixed(2)}MB (max 50MB)`);
+		}
 
-		const writer = fs.createWriteStream(fileDown);
-		response.data.pipe(writer);
-
-		writer.on("finish", () => {
-			console.log("Video downloaded successfully.");
-			url += "🎬 " + videoUrl + "\n\n";
-			sock.sendMessage(from, { video: fs.readFileSync(fileDown), mimetype: "video/mp4" }, { quoted: msg });
-			fs.unlinkSync(fileDown);
-		});
-
-		writer.on("error", (err) => {
-			console.error("Error downloading video:", err);
-			sendMessageWTyping(from, { text: "Error downloading video." }, { quoted: msg });
-			fs.unlinkSync(fileDown);
-		});
-	} catch (error) {
-		console.error("Error fetching tweet:", error);
-		sendMessageWTyping(
+		await sendMessageWTyping(
 			from,
-			{ text: `*Sorry* No Video Found\nCheck your _spelling or try another video_.` },
+			{ video: await fs.promises.readFile(fileDown), mimetype: "video/mp4", caption: "🎬 *Twitter Video Downloaded*" },
 			{ quoted: msg }
 		);
+	} catch (error) {
+		console.error("Twitter download error:", error);
+		sendMessageWTyping(
+			from,
+			{ text: `❌ Failed to download Twitter video: ${error.message}` },
+			{ quoted: msg }
+		);
+	} finally {
+		if (fileDown && fs.existsSync(fileDown)) {
+			memoryManager.safeUnlink(fileDown);
+		}
 	}
 };
 

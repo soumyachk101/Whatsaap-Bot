@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-const myNumbers = process.env.MY_NUMBER.split(",").map(n => n.trim()).filter(Boolean);
+const myNumbers = process.env.MY_NUMBER ? process.env.MY_NUMBER.split(",").map(n => n.trim()).filter(Boolean) : [];
 const myNumber = [
 	...myNumbers.map(n => n + "@s.whatsapp.net"),
 	...myNumbers.map(n => n + "@lid"),

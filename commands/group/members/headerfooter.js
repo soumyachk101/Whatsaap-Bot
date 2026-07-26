@@ -68,11 +68,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	if ((isMedia && !msg.message.videoMessage) || isTaggedImage) {
-		let downloadFilePath;
-		if (msg.message.imageMessage) {
-			downloadFilePath = msg.message.imageMessage;
-		} else {
-			downloadFilePath = msg.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
+		let downloadFilePath = msg.message?.imageMessage || msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
+		if (!downloadFilePath) {
+			return sendMessageWTyping(from, { text: "❌ Please reply to an image to add text." }, { quoted: msg });
 		}
 		const stream = await downloadContentFromMessage(downloadFilePath, "image");
 		let buffer = Buffer.from([]);
