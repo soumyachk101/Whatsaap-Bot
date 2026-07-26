@@ -50,15 +50,15 @@ app.use(sessionMiddleware);
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(
 	express.static(path.join(__dirname, "public"), {
-		maxAge: "1d",
-		etag: false,
+		maxAge: 0,
+		etag: true,
 	})
 );
 
 // Serve the React dashboard build (public/app/) at /admin
 app.use(
 	"/admin",
-	express.static(path.join(__dirname, "public", "app"), { maxAge: "1d", etag: false })
+	express.static(path.join(__dirname, "public", "app"), { maxAge: 0, etag: true })
 );
 
 app.set("views", path.join(__dirname, "./public"));

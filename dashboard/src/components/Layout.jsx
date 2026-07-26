@@ -66,7 +66,7 @@ export default function Layout({ children }) {
       <aside className={`sidebar ${isMenuOpen ? 'open' : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 8px', marginBottom: 32 }}>
           <div style={{ width: 32, height: 32, borderRadius: 6, overflow: 'hidden' }}>
-            <img src="/downloadbuddy.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src="/downloadbuddy.jpg?v=2" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <div>
             <h1 style={{ fontSize: '0.875rem', fontWeight: 600, letterSpacing: '-0.025em' }}>DownloadBuddy</h1>
