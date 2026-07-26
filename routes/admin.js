@@ -131,6 +131,12 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 			.map(m => ({
 				name: (m.username || m._id.split("@")[0]).slice(0, 22),
 				messages: m.totalmsg || 0,
+				text: m.texttotal || 0,
+				image: m.imagetotal || 0,
+				video: m.videototal || 0,
+				sticker: m.stickertotal || 0,
+				pdf: m.pdftotal || 0,
+				xp: m.xp || 0,
 			}));
 
 		// Message type aggregation

@@ -102,7 +102,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"poll", "vote",
 			"confess", "confession",
 			"level", "rank", "xp",
-			"epicgames", "epic", "freegames"
+			"epicgames", "epic", "freegames",
+			"leaderboard", "top", "rankings", "topmembers"
 		],
 		"🔐  *ᴘʀɪᴠᴀᴄʏ & sᴇᴄᴜʀɪᴛʏ*": [
 			"qr", "qrcode",
@@ -116,7 +117,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"help", "menu", 
 			"alive", "a", "ping", 
 			"start", 
-			"stats", 
+			"stats", "analysis", "chatanalytics", "chatstats", "grpstats",
 			"donate", "donation", 
 			"dev", "developer", 
 			"mycount", 
