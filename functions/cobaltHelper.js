@@ -3,6 +3,8 @@ import fs from "fs";
 import stream from "stream";
 import { promisify } from "util";
 import path from "path";
+import { exec } from "child_process";
+import snapsave from "snapsave-downloader";
 import memoryManager from "./memoryUtils.js";
 
 const pipeline = promisify(stream.pipeline);
@@ -19,13 +21,87 @@ export class CobaltDownloadError extends Error {
 }
 
 /**
- * Download media via Cobalt API
- * @param {string} url - The URL to download
- * @param {string} outputDir - Directory to save files (if null, uses memoryManager temp dir)
- * @param {boolean} audioOnly - Whether to extract audio only
- * @returns {Promise<Array<string>>} - Array of downloaded file paths
+ * Fallback downloader using yt-dlp binary
+ */
+export const downloadWithYtDlp = (url, outputDir = null, audioOnly = false) => {
+    return new Promise((resolve, reject) => {
+        const ext = audioOnly ? ".mp3" : ".mp4";
+        let tempFile;
+        if (outputDir) {
+            tempFile = path.join(outputDir, `ytdlp_${Date.now()}_${Math.floor(Math.random() * 1000)}${ext}`);
+        } else {
+            tempFile = memoryManager.generateTempFileName(ext);
+        }
+
+        const args = audioOnly
+            ? `-f bestaudio --extract-audio --audio-format mp3 -o "${tempFile}" "${url}"`
+            : `-f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "${tempFile}" "${url}"`;
+
+        console.log(`[yt-dlp Fallback] Running yt-dlp for ${url}...`);
+        exec(`yt-dlp ${args}`, { timeout: 60000 }, (err) => {
+            if (err || !fs.existsSync(tempFile) || fs.statSync(tempFile).size === 0) {
+                if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
+                return reject(err || new Error("yt-dlp produced an empty file"));
+            }
+            console.log(`[yt-dlp Fallback] Downloaded successfully: ${tempFile}`);
+            resolve([tempFile]);
+        });
+    });
+};
+
+/**
+ * Fallback downloader for Instagram using snapsave-downloader
+ */
+export const downloadWithSnapSave = async (url, outputDir = null) => {
+    console.log(`[SnapSave Fallback] Fetching Instagram media for ${url}...`);
+    const res = await snapsave(url);
+    if (!res || !res.status || !Array.isArray(res.data) || res.data.length === 0) {
+        throw new Error("SnapSave returned no media data");
+    }
+
+    const downloadedFiles = [];
+    for (const item of res.data) {
+        const mediaUrl = item.url || item.thumbnail;
+        if (!mediaUrl) continue;
+
+        const isVideo = Boolean(item.url) || (item.filename && item.filename.endsWith(".mp4")) || mediaUrl.includes(".mp4");
+        const ext = isVideo ? ".mp4" : ".jpg";
+
+        let tempFile;
+        if (outputDir) {
+            tempFile = path.join(outputDir, `snapsave_${Date.now()}_${Math.floor(Math.random() * 1000)}${ext}`);
+        } else {
+            tempFile = memoryManager.generateTempFileName(ext);
+        }
+
+        const fileStream = fs.createWriteStream(tempFile);
+        const downloadReq = await axios.get(mediaUrl, {
+            responseType: "stream",
+            headers: item.headers || { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+            timeout: 30000
+        });
+
+        await pipeline(downloadReq.data, fileStream);
+        if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+            downloadedFiles.push(tempFile);
+        }
+    }
+
+    if (downloadedFiles.length === 0) {
+        throw new Error("SnapSave download yielded no valid files");
+    }
+
+    console.log(`[SnapSave Fallback] Successfully downloaded ${downloadedFiles.length} file(s)`);
+    return downloadedFiles;
+};
+
+/**
+ * Download media via Cobalt API with fallback to yt-dlp & SnapSave
  */
 export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false) => {
+    const isInstagram = url.includes("instagram.com");
+    const isReelOrTv = isInstagram && (url.includes("/reel/") || url.includes("/tv/"));
+
     let response;
     let success = false;
     let lastError = null;
@@ -33,10 +109,9 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
     const baseApiUrl = process.env.COBALT_API_URL;
     const apiKey = process.env.COBALT_API_KEY;
 
-    // Ordered list of instances to try (Primary: User Railway Cobalt instance)
+    // Ordered list of working instances
     const instances = [
         "https://imputcobalt-api-production-dda7.up.railway.app",
-        "https://api.cobalt.tools",
         "https://dog.kittycat.boo",
         "https://rue-cobalt.xenon.zone",
         "https://cobaltapi.cjs.nz"
@@ -60,17 +135,15 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
                 "Content-Type": "application/json"
             };
 
-            // Only use API key on the primary base instance if it matches
             if (apiKey && apiUrl === baseApiUrl) {
                 headers["Authorization"] = `Api-Key ${apiKey}`;
             }
 
             response = await axios.post(apiUrl, payload, {
                 headers,
-                timeout: 20000 // 20s timeout
+                timeout: 20000
             });
 
-            // If it returns an error status gracefully, we still want to throw/fallback
             if (response.data && response.data.status === "error") {
                 const errorCode = response.data.error?.code || "unknown_error";
                 console.warn(`[Cobalt Fallback] ${apiUrl} failed with: ${errorCode}. Trying next...`);
@@ -79,7 +152,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
             }
 
             success = true;
-            break; // Success! Exit the loop.
+            break;
 
         } catch (err) {
             if (err.response && err.response.data && err.response.data.status === "error") {
@@ -88,88 +161,104 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
                 lastError = err.response;
             } else {
                 console.warn(`[Cobalt Fallback] ${apiUrl} failed to connect. Trying next...`);
-                // Network error, just save as last error to throw later if all fail
                 lastError = { data: { status: "error", error: { code: "network_error" } } };
             }
         }
     }
 
-    if (!success) {
-        response = lastError;
-    }
+    if (success && response && response.data) {
+        const data = response.data;
+        const items = [];
 
-    const data = response.data;
+        if (data.status === "picker") {
+            const videoItems = data.picker.filter((item) => item.type === "video" || (item.url && (item.url.includes(".mp4") || item.url.includes("video"))));
+            const photoItems = data.picker.filter((item) => item.type === "photo");
 
-    // Handle error status
-    if (data.status === "error") {
-        const errorCode = data.error?.code || "unknown_error";
-        if (errorCode.startsWith("error.api.auth.")) {
-            console.error("\n=======================================================");
-            console.error("🚨 COBALT API AUTHENTICATION ERROR 🚨");
-            console.error(`Error Code: ${errorCode}`);
-            console.error("Check your COBALT_API_KEY and COBALT_API_URL in .env");
-            console.error("=======================================================\n");
+            if (videoItems.length > 0) {
+                videoItems.forEach((item) => {
+                    if (item.url) items.push({ url: item.url, type: "video" });
+                });
+            } else if (photoItems.length > 0 && !isReelOrTv) {
+                photoItems.forEach((item) => {
+                    if (item.url) items.push({ url: item.url, type: "photo" });
+                });
+            } else {
+                for (const item of data.picker) {
+                    if (item.url) {
+                        const itemType = isReelOrTv ? "video" : (item.type || "auto");
+                        items.push({ url: item.url, type: itemType });
+                    }
+                }
+            }
+        } else if (data.status === "tunnel" || data.status === "redirect") {
+            if (isReelOrTv && data.filename && data.filename.endsWith(".jpg")) {
+                console.warn("[Cobalt] Received JPEG thumbnail for Reel URL. Falling back to SnapSave...");
+            } else {
+                items.push({ url: data.url, type: "auto" });
+            }
+        } else if (data.status === "local-processing") {
+            if (data.tunnel) {
+                data.tunnel.forEach((tUrl) => items.push({ url: tUrl, type: "auto" }));
+            }
+        } else if (data.status === "success" || data.status === "stream") {
+            items.push({ url: data.url, type: "auto" });
         }
-        throw new CobaltDownloadError(errorCode, `Cobalt Error: ${errorCode}`);
-    }
 
-    const items = [];
-    if (data.status === "picker") {
-        const isReelOrTv = url.includes("/reel/") || url.includes("/tv/");
-        const videoItems = data.picker.filter((item) => item.type === "video" || (item.url && (item.url.includes(".mp4") || item.url.includes("video"))));
-        const photoItems = data.picker.filter((item) => item.type === "photo");
+        if (items.length > 0) {
+            const downloadedFiles = [];
+            for (const itemObj of items) {
+                const itemUrl = typeof itemObj === "string" ? itemObj : itemObj.url;
+                const itemType = typeof itemObj === "string" ? "auto" : itemObj.type;
+                if (!itemUrl) continue;
+                
+                const ext = audioOnly ? ".mp3" : itemType === "photo" ? ".jpg" : ".mp4";
+                
+                let tempFile;
+                if (outputDir) {
+                    tempFile = path.join(outputDir, `cobalt_${Date.now()}_${Math.floor(Math.random() * 1000)}${ext}`);
+                } else {
+                    tempFile = memoryManager.generateTempFileName(ext);
+                }
+                
+                const fileStream = fs.createWriteStream(tempFile);
+                const downloadReq = await axios.get(itemUrl, { responseType: "stream", timeout: 30000 });
+                
+                await pipeline(downloadReq.data, fileStream);
+                downloadedFiles.push(tempFile);
+            }
 
-        if (videoItems.length > 0) {
-            videoItems.forEach((item) => {
-                if (item.url) items.push({ url: item.url, type: "video" });
-            });
-        } else if (photoItems.length > 0 && !isReelOrTv) {
-            photoItems.forEach((item) => {
-                if (item.url) items.push({ url: item.url, type: "photo" });
-            });
-        } else {
-            for (const item of data.picker) {
-                if (item.url) {
-                    const itemType = isReelOrTv ? "video" : (item.type || "auto");
-                    items.push({ url: item.url, type: itemType });
+            if (downloadedFiles.length > 0) {
+                if (isReelOrTv) {
+                    const hasVideo = downloadedFiles.some(f => f.endsWith(".mp4"));
+                    if (!hasVideo) {
+                        console.warn("[Cobalt] Downloaded file for Reel is not a video. Unlinking photo and trying SnapSave...");
+                        downloadedFiles.forEach(f => memoryManager.safeUnlink(f));
+                    } else {
+                        return downloadedFiles;
+                    }
+                } else {
+                    return downloadedFiles;
                 }
             }
         }
-    } else if (data.status === "tunnel" || data.status === "redirect") {
-        items.push({ url: data.url, type: "auto" });
-    } else if (data.status === "local-processing") {
-        if (data.tunnel) {
-            data.tunnel.forEach((tUrl) => items.push({ url: tUrl, type: "auto" }));
-        }
-    } else if (data.status === "success" || data.status === "stream") {
-        items.push({ url: data.url, type: "auto" });
-    } else {
-        throw new CobaltDownloadError("unknown_status", `Unknown Cobalt status: ${data.status}`);
     }
 
-    const downloadedFiles = [];
-    for (const itemObj of items) {
-        const itemUrl = typeof itemObj === "string" ? itemObj : itemObj.url;
-        const itemType = typeof itemObj === "string" ? "auto" : itemObj.type;
-        if (!itemUrl) continue;
-        
-        const ext = audioOnly ? ".mp3" : itemType === "photo" ? ".jpg" : ".mp4";
-        
-        let tempFile;
-        if (outputDir) {
-            tempFile = path.join(outputDir, `cobalt_${Date.now()}_${Math.floor(Math.random() * 1000)}${ext}`);
-        } else {
-            tempFile = memoryManager.generateTempFileName(ext);
+    if (isInstagram) {
+        try {
+            return await downloadWithSnapSave(url, outputDir);
+        } catch (snapErr) {
+            console.warn(`[SnapSave Fallback] Failed for ${url}:`, snapErr.message);
         }
-        
-        const fileStream = fs.createWriteStream(tempFile);
-        const downloadReq = await axios.get(itemUrl, { responseType: "stream", timeout: 30000 });
-        
-        await pipeline(downloadReq.data, fileStream);
-        downloadedFiles.push(tempFile);
     }
 
-    return downloadedFiles;
+    try {
+        return await downloadWithYtDlp(url, outputDir, audioOnly);
+    } catch (ytdlpErr) {
+        console.error(`[yt-dlp Fallback] Failed for ${url}:`, ytdlpErr.message);
+    }
+
+    const errorCode = lastError?.data?.error?.code || "download_failed";
+    throw new CobaltDownloadError(errorCode, `Failed to download media for ${url}`);
 };
 
 export default downloadViaCobalt;
