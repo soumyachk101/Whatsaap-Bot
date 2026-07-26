@@ -1,5 +1,5 @@
 import { downloadMediaMessage, proto } from "baileys";
-import WSF, { Sticker, StickerTypes } from "wa-sticker-formatter";
+import WSF from "wa-sticker-formatter";
 
 import fs from "fs";
 const getRandom = (ext) => {
