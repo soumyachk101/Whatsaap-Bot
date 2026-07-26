@@ -223,17 +223,27 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
                 }
                 
                 const fileStream = fs.createWriteStream(tempFile);
-                const downloadReq = await axios.get(itemUrl, {
-                    responseType: "stream",
-                    timeout: 60000,
-                    headers: {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                        "Accept": "*/*"
-                    }
-                });
-                
-                await pipeline(downloadReq.data, fileStream);
-                downloadedFiles.push(tempFile);
+                try {
+                    const downloadReq = await axios.get(itemUrl, {
+                        responseType: "stream",
+                        timeout: 60000,
+                        headers: {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                            "Accept": "*/*"
+                        }
+                    });
+                    
+                    await pipeline(downloadReq.data, fileStream);
+                } catch (dlErr) {
+                    console.warn(`[Cobalt] Stream download error for ${itemUrl}:`, dlErr.message);
+                }
+
+                if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                    downloadedFiles.push(tempFile);
+                } else {
+                    console.warn(`[Cobalt] Downloaded file ${tempFile} is empty (0 bytes). Unlinking...`);
+                    if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
+                }
             }
 
             if (downloadedFiles.length > 0) {
