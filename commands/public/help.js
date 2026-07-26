@@ -176,6 +176,12 @@ ${readMore}
 ╰───────────────────╯
 
 ╭───────────────────╮
+   ⚠️  *ɢʀᴏᴜᴘ ɴᴏᴛɪᴄᴇ*
+├───────────────────┤
+  ◦ _If *Admin-Only Mode* is enabled in a group, the bot will respond to Group Admins only. Commands from non-admin members will be ignored._
+╰───────────────────╯
+
+╭───────────────────╮
    ✨  *ᴜsᴇʀ ᴄᴏᴍᴍᴀɴᴅs*
 ╰───────────────────╯
 ${publicCmdText}
