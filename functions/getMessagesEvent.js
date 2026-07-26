@@ -469,8 +469,6 @@ const getCommand = async (sock, msg, cache) => {
 					return sendMessageWTyping(from, { text: `Command blocked for this group.` }, { quoted: msg });
 				}
 			}
-		if (commandsPublic[command] || commandsMembers[command] || commandsAdmins[command] || commandsOwners[command]) {
-			sock.sendMessage(from, { react: { text: "👀", key: msg.key } }).catch(err => console.error("[Reaction Error]", err));
 		}
 
 		if (commandsPublic[command]) {
