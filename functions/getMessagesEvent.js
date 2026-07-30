@@ -483,9 +483,6 @@ const getCommand = async (sock, msg, cache) => {
 			console.log(`[PROFILE] Command '${command}' (public) took ${t1 - t0}ms`);
 			return result;
 		} else if (commandsMembers[command]) {
-			if (!isGroup) {
-				return sendMessageWTyping(from, { text: "```This command can only be used in a group.```" }, { quoted: msg });
-			}
 			const t0 = Date.now();
 			const result = await commandsMembers[command](sock, msg, from, args, msgInfoObj);
 			const t1 = Date.now();
