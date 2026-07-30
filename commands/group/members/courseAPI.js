@@ -1,41 +1,75 @@
 import axios from "axios";
 
-const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping } = msgInfoObj;
-	var new_order = "date";
-	var new_page = args ? args[0] : 1;
-	var arg_free = 0;
-	var arg_keyword = "";
-	var arg_language = "";
-	let mess = "";
-	await axios(
-		"https://www.real.discount/api/all-courses/?store=Udemy&page=" +
-			new_page +
-			"&per_page=10&orderby=" +
-			new_order +
-			"&free=" +
-			arg_free +
-			"&search=" +
-			arg_keyword +
-			"&language=" +
-			arg_language
-	)
-		.then((res) => {
-			mess = `🎓 *Free Udemy Courses*\n\n`;
-			res.data.results.forEach((value, i) => {
-				mess += `${i + 1}. *${value.name}*\n🔗 ${value.url}\n\n`;
-			});
-			sendMessageWTyping(from, { text: mess.trim() }, { quoted: msg });
-		})
-		.catch((err) => {
-			sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });
-			console.log(err);
+const COURSE_PAGE_LIMIT = 1000;
+const REQUEST_TIMEOUT_MS = 15_000;
+
+const handler = async (_sock, msg, from, args, msgInfoObj) => {
+	const { sendMessageWTyping, prefix } = msgInfoObj;
+	const requestedPage = args[0] || "1";
+	const page = Number.parseInt(requestedPage, 10);
+
+	if (!/^\d+$/.test(requestedPage) || page < 1 || page > COURSE_PAGE_LIMIT) {
+		return sendMessageWTyping(
+			from,
+			{ text: `❌ Page number 1 se ${COURSE_PAGE_LIMIT} ke beech dein.\nUsage: ${prefix}un 1` },
+			{ quoted: msg }
+		);
+	}
+
+	try {
+		const response = await axios.get("https://cdn.real.discount/api/courses", {
+			params: {
+				store: "udemy",
+				page,
+				limit: 15,
+				sortBy: "sale_start",
+				sortOrder: "desc",
+			},
+			timeout: REQUEST_TIMEOUT_MS,
+			headers: { "User-Agent": "Mozilla/5.0 (compatible; DownloadBuddy/2.2)" },
 		});
+
+		const courses = (response.data?.items || [])
+			.filter((course) => (
+				String(course.store || "").toLowerCase() === "udemy" &&
+				course.name &&
+				course.url &&
+				Number(course.sale_price) === 0
+			))
+			.slice(0, 10);
+		if (courses.length === 0) {
+			return sendMessageWTyping(
+				from,
+				{ text: "❌ Is page par koi Udemy course offer nahi mila. Dusra page try karein." },
+				{ quoted: msg }
+			);
+		}
+
+		const lines = courses.map((course, index) => `${index + 1}. *${course.title}*\n🔗 ${course.url}`);
+		const text = [
+			"🎓 *Latest Udemy Course Offers*",
+			`📄 Page: ${page}`,
+			"",
+			...lines,
+			"",
+			`Next page: *${prefix}un ${page + 1}*`,
+			"_Course price/coupon checkout par verify karein._",
+		].join("\n");
+
+		return sendMessageWTyping(from, { text }, { quoted: msg });
+	} catch (error) {
+		console.error("[un course lookup error]", error.message);
+		return sendMessageWTyping(
+			from,
+			{ text: "❌ Course service abhi available nahi hai. Thodi der baad try karein." },
+			{ quoted: msg }
+		);
+	}
 };
 
 export default () => ({
-	cmd: ["un"],
-	desc: "Get Udemy courses for free",
-	usage: "un | <page number>",
+	cmd: ["un", "udemy"],
+	desc: "Show latest Udemy course offers",
+	usage: "un [page number]",
 	handler,
 });

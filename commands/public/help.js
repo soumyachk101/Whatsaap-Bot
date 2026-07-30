@@ -120,7 +120,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"stats", "analysis", "chatanalytics", "chatstats", "grpstats",
 			"donate", "donation", 
 			"dev", "developer", 
-			"mycount", 
+			"mycount", "daystats", "dailystats", "daily",
 			"myGrpCount", "totalg",
 			"headerfooter"
 		]

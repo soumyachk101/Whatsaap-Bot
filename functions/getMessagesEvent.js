@@ -10,8 +10,8 @@ const moderatos = process.env.MODERATORS ? process.env.MODERATORS.split(",").map
 import getGroupAdmins from "./getGroupAdmins.js";
 import { stickerForward, forwardGroup } from "../functions/getStickerForward.js";
 import { createMembersData, getMemberData, member } from "../sqlite-DB/membersDataDb.js";
-import { createGroupData, getGroupData, group } from "../sqlite-DB/groupDataDb.js";
-import { commandsPublic, commandsMembers, commandsAdmins, commandsOwners } from "./getAddCommands.js";
+import { createGroupData, getGroupData, recordGroupDailyStats, group } from "../sqlite-DB/groupDataDb.js";
+import { commandsPublic, commandsMembers, commandsAdmins, commandsOwners, commandsReady } from "./getAddCommands.js";
 import { getBotData } from "../sqlite-DB/botDataDb.js";
 import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
@@ -49,6 +49,9 @@ const getCommand = async (sock, msg, cache) => {
 	const startTime = process.hrtime();
 
 	try {
+		// Command modules are imported asynchronously at startup. Never treat an
+		// early user command as unknown while that loading is still in progress.
+		await commandsReady();
 		if (!sock || !sock.user) return;
 		if (sock.startupTime && Date.now() - sock.startupTime < 1000) return;
 		const messageKeys = Object.keys(msg.message);
@@ -188,10 +191,11 @@ const getCommand = async (sock, msg, cache) => {
 		const isGroup = from.endsWith("@g.us");
 		const botJid = sock.user.id.includes(":") ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : sock.user.id;
 		const senderJid = msg.key.fromMe ? botJid : (isGroup ? msg.key.participant : msg.key.remoteJid);
-		const isOwner = myNumber.includes(senderJid) || botNumber.includes(senderJid) || msg.key.fromMe;
+		const botIdentityJids = [...new Set([...botNumber, botJid])];
+		const isOwner = myNumber.includes(senderJid) || botIdentityJids.includes(senderJid) || msg.key.fromMe;
 		if (!senderJid || !senderJid.includes("@")) return;
 
-		const updateId = msg.key.fromMe ? botNumber[0] : senderJid;
+		const updateId = senderJid;
 		const updateName = msg.key.fromMe ? sock.user.name : msg.pushName;
 
 		// 1. Ensure group metadata and database record are initialized
@@ -272,6 +276,7 @@ const getCommand = async (sock, msg, cache) => {
 						);
 					}
 					await group.updateOne({ _id: from }, { $inc: { totalMsgCount: 1 } });
+					await recordGroupDailyStats(from, mediaTypeField);
 				} catch (e) {
 					console.error("[group member update error]", e.message);
 				}
@@ -284,7 +289,7 @@ const getCommand = async (sock, msg, cache) => {
 		// 5. Mention bot tag sticker logic
 		if (msg.message.extendedTextMessage) {
 			if (
-				msg.message.extendedTextMessage.contextInfo?.mentionedJid?.some(jid => botNumber.includes(jid))
+				msg.message.extendedTextMessage.contextInfo?.mentionedJid?.some(jid => botIdentityJids.includes(jid))
 			) {
 				try {
 					const stickerBuffer = await getTagSticker();
@@ -417,7 +422,7 @@ const getCommand = async (sock, msg, cache) => {
 			groupMetadata,
 			groupAdmins,
 			isGroupAdmin,
-			botNumber,
+			botNumber: botIdentityJids,
 			sendMessageWTyping,
 			notifyOwner,
 			updateName,
@@ -478,12 +483,18 @@ const getCommand = async (sock, msg, cache) => {
 			console.log(`[PROFILE] Command '${command}' (public) took ${t1 - t0}ms`);
 			return result;
 		} else if (commandsMembers[command]) {
+			if (!isGroup) {
+				return sendMessageWTyping(from, { text: "```This command can only be used in a group.```" }, { quoted: msg });
+			}
 			const t0 = Date.now();
 			const result = await commandsMembers[command](sock, msg, from, args, msgInfoObj);
 			const t1 = Date.now();
 			console.log(`[PROFILE] Command '${command}' (members) took ${t1 - t0}ms`);
 			return result;
 		} else if (commandsAdmins[command]) {
+			if (!isGroup) {
+				return sendMessageWTyping(from, { text: "```This command can only be used in a group.```" }, { quoted: msg });
+			}
 			const t0 = Date.now();
 			let result;
 			if (isGroupAdmin || isOwner || moderatos.includes(senderNumber)) {

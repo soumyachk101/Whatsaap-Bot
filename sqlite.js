@@ -76,6 +76,22 @@ class Collection {
             const searchKey = key === '_id' ? '_id' : key;
             const expected = query[key];
 
+            if (expected && typeof expected === 'object' && !Array.isArray(expected) && expected.$elemMatch) {
+                const value = item[searchKey];
+                if (!Array.isArray(value) || !value.some(entry => this._matchItem(entry, expected.$elemMatch))) return false;
+                continue;
+            }
+
+            if (expected && typeof expected === 'object' && !Array.isArray(expected) && expected.$in) {
+                const value = item[searchKey];
+                if (Array.isArray(value)) {
+                    if (!value.some(entry => expected.$in.includes(entry))) return false;
+                } else if (!expected.$in.includes(value)) {
+                    return false;
+                }
+                continue;
+            }
+
             if (expected && typeof expected === 'object' && !Array.isArray(expected) && expected.$regex) {
                 const re = new RegExp(expected.$regex, expected.$options || '');
                 if (!re.test(String(item[searchKey] || ''))) return false;
@@ -90,6 +106,27 @@ class Collection {
             }
         }
         return true;
+    }
+
+    _setPath(data, dottedKey, value) {
+        const parts = dottedKey.split('.');
+        let target = data;
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (target[parts[i]] == null || typeof target[parts[i]] !== 'object') target[parts[i]] = {};
+            target = target[parts[i]];
+        }
+        target[parts[parts.length - 1]] = value;
+    }
+
+    _incrementPath(data, dottedKey, value) {
+        const parts = dottedKey.split('.');
+        let target = data;
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (target[parts[i]] == null || typeof target[parts[i]] !== 'object') target[parts[i]] = {};
+            target = target[parts[i]];
+        }
+        const lastKey = parts[parts.length - 1];
+        target[lastKey] = (Number(target[lastKey]) || 0) + value;
     }
 
     find(query = {}, options = {}) {
@@ -205,7 +242,7 @@ class Collection {
                         target[parts[parts.length - 1]] = value;
                     });
                 } else {
-                    data[key] = value;
+                    this._setPath(data, key, value);
                 }
             }
         }
@@ -224,7 +261,7 @@ class Collection {
                         target[lastKey] = (target[lastKey] || 0) + value;
                     });
                 } else {
-                    data[key] = (data[key] || 0) + value;
+                    this._incrementPath(data, key, value);
                 }
             }
         }
@@ -232,7 +269,12 @@ class Collection {
         if (update.$push) {
             for (const key in update.$push) {
                 if (!Array.isArray(data[key])) data[key] = [];
-                data[key].push(update.$push[key]);
+                const value = update.$push[key];
+                if (value && typeof value === 'object' && Array.isArray(value.$each)) {
+                    data[key].push(...value.$each);
+                } else {
+                    data[key].push(value);
+                }
             }
         }
 
@@ -262,7 +304,7 @@ class Collection {
         if (update.$addToSet) {
             for (const key in update.$addToSet) {
                 if (!Array.isArray(data[key])) data[key] = [];
-                const val = update.$addToSet[key].$each || [update.$addToSet[key]];
+                const val = update.$addToSet[key]?.$each || [update.$addToSet[key]];
                 for (const v of val) {
                     if (!data[key].includes(v)) data[key].push(v);
                 }

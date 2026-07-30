@@ -93,12 +93,12 @@ const addCommands = async () => {
 	await loadCommands(mainPath + "owner/", commandsOwners, ownerCommandsList);
 	console.log(`✅ Loaded ${Object.keys(commandsOwners).length} owner commands`);
 
-	await deleteFiles("./", [".webp", ".jpeg", ".jpg", ".mp3", ".mp4", ".png", ".gif"]);
 	console.log("🎉 All commands loaded successfully!");
 };
 
 // Store command loading promise to ensure commands are fully loaded before returning
 const commandLoadPromise = addCommands();
+const commandsReady = () => commandLoadPromise;
 
 const cmdToText = async () => {
 	await commandLoadPromise;
@@ -111,4 +111,4 @@ const cmdToText = async () => {
 	};
 };
 
-export { commandsPublic, commandsMembers, commandsAdmins, commandsOwners, cmdToText };
+export { commandsPublic, commandsMembers, commandsAdmins, commandsOwners, cmdToText, commandsReady };
