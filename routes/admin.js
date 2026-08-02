@@ -22,6 +22,21 @@ router.get("/api/status", (req, res) => {
 	});
 });
 
+// ── Public health check endpoint (no auth — for uptime monitoring & container health checks) ──
+router.get(["/health", "/api/health"], (req, res) => {
+	const mem = process.memoryUsage();
+	res.status(200).json({
+		status: "ok",
+		uptime: Math.floor(process.uptime()),
+		timestamp: new Date().toISOString(),
+		connected: !!req.app.locals.botConnected,
+		memory: {
+			heapUsedMB: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
+			rssMB: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
+		},
+	});
+});
+
 // ── Public pairing code endpoint (no auth — used by index.ejs for initial setup) ───────────
 router.post("/api/pair", async (req, res) => {
 	const { phoneNumber } = req.body;
