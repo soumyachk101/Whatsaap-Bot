@@ -398,33 +398,35 @@ export default function Analytics() {
         <div style={{ height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
           {mediaView === 'donut' ? (
             <>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={typeData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={110}
-                    dataKey="value"
-                    paddingAngle={6}
-                    stroke="none"
-                    cornerRadius={8}
-                  >
-                    {typeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={`url(#${entry.gradId})`} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomGlassTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ position: 'absolute', textAlign: 'center', pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', textAlign: 'center', pointerEvents: 'none', zIndex: 0 }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
                   {totalMessages.toLocaleString()}
                 </div>
                 <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
                   Total Formats
                 </div>
+              </div>
+              <div style={{ width: '100%', height: '100%', zIndex: 10, position: 'relative' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={typeData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={80}
+                      outerRadius={110}
+                      dataKey="value"
+                      paddingAngle={6}
+                      stroke="none"
+                      cornerRadius={8}
+                    >
+                      {typeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`url(#${entry.gradId})`} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomGlassTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </>
           ) : (
