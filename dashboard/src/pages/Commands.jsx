@@ -39,7 +39,7 @@ export default function Commands() {
     ))
     try {
       await toggleCommand(cmd, newDisabled, aliases)
-      toast(newDisabled ? `Command disabled: ${cmd}` : `Command enabled: ${cmd}`)
+      toast(newDisabled ? `Disabled: #${cmd}` : `Enabled: #${cmd}`)
     } catch (err) {
       setAll(prev => prev.map(c =>
         c.cmd.some(k => aliases.includes(k)) ? { ...c, disabledGlobally: currentlyDisabled } : c
@@ -48,65 +48,91 @@ export default function Commands() {
     }
   }
 
+  const badgeClass = (type) => {
+    switch (type) {
+      case 'public': return 'badge-emerald'
+      case 'group':  return 'badge-blue'
+      case 'admin':  return 'badge-amber'
+      case 'owner':  return 'badge-purple'
+      default:       return 'badge-zinc'
+    }
+  }
+
   return (
-    <div>
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      
+      {/* Page Title */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.025em' }}>Commands</h2>
-          <p className="text-muted" style={{ marginTop: '0.25rem' }}>Manage and toggle bot commands globally.</p>
+          <h1 style={{ fontSize: '1.375rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)' }}>
+            Command Catalog
+          </h1>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
+            View all available bot commands and toggle their global availability.
+          </p>
         </div>
+        <span className="badge badge-zinc" style={{ padding: '0.3rem 0.75rem' }}>
+          {all.length} Total Commands
+        </span>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      {/* Filter & Search Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
           {TYPE_FILTERS.map(f => (
             <button 
               key={f} 
-              className={`btn ${filter === f ? 'btn-secondary' : 'btn-ghost'}`} 
+              className={`btn ${filter === f ? 'btn-primary' : 'btn-secondary'}`} 
               onClick={() => setFilter(f)}
-              style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem', textTransform: 'capitalize', border: '1px solid var(--border)' }}
+              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', textTransform: 'capitalize' }}
             >
               {f}
             </button>
           ))}
         </div>
-        <div className="mobile-w-full">
-          <input
-            className="input mobile-w-full"
-            placeholder="Search commands..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '250px', height: '2rem' }}
-          />
-        </div>
+        <input
+          className="input"
+          placeholder="Search commands or descriptions..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ width: '260px' }}
+        />
       </div>
 
+      {/* Commands Table */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '30vh', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>Loading commands...</div>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '30vh', gap: '0.75rem' }}>
+          <div className="spinner" />
+          <span style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>Loading command catalog...</span>
+        </div>
       ) : (
-        <div className="table-wrap">
+        <div className="table-container">
           {rows.length ? (
             <table>
               <thead>
                 <tr>
-                  <th>Command</th>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Status</th>
+                  <th style={{ width: '28%' }}>Command Aliases</th>
+                  <th style={{ width: '14%' }}>Scope Type</th>
+                  <th style={{ width: '44%' }}>Description</th>
+                  <th style={{ width: '14%', textAlign: 'right' }}>Global Status</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map(c => (
                   <tr key={c.cmd[0]}>
-                    <td style={{ fontWeight: 500, fontFamily: 'monospace' }}>{c.cmd.join(', ')}</td>
+                    <td style={{ fontWeight: 600, fontFamily: 'monospace', color: '#fafafa', fontSize: '0.8125rem' }}>
+                      {c.cmd.map(a => `#${a}`).join(', ')}
+                    </td>
                     <td>
-                      <span className="badge" style={{ textTransform: 'capitalize' }}>
+                      <span className={`badge ${badgeClass(c.type)}`} style={{ textTransform: 'capitalize' }}>
                         {c.type}
                       </span>
                     </td>
-                    <td className="text-muted">{c.desc || '—'}</td>
-                    <td>
-                      <label className="toggle">
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+                      {c.desc || 'No description available'}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <label className="toggle-switch" style={{ verticalAlign: 'middle' }}>
                         <input
                           type="checkbox"
                           checked={!c.disabledGlobally}
@@ -120,10 +146,13 @@ export default function Commands() {
               </tbody>
             </table>
           ) : (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>No commands found.</div>
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.8125rem' }}>
+              No commands match current filter or search criteria.
+            </div>
           )}
         </div>
       )}
+
     </div>
   )
 }

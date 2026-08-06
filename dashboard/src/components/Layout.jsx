@@ -68,7 +68,6 @@ export default function Layout({ children }) {
       
       <aside className={`sidebar ${isMenuOpen ? 'open' : ''}`}>
         
-        {/* ── Brand Header with PNG Logo ──────────────────────────── */}
         <div className="brand-logo">
           <img 
             src="/downloadbuddy.jpg?v=2" 
@@ -82,7 +81,6 @@ export default function Layout({ children }) {
           </div>
         </div>
 
-        {/* ── Section: Core ───────────────────────────────────────── */}
         <div className="section-label">Core Management</div>
         <nav className="nav">
           {NAV_MAIN.map(({ to, icon, label, end }) => (
@@ -93,7 +91,6 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* ── Section: Engine ─────────────────────────────────────── */}
         <div className="section-label" style={{ marginTop: '0.75rem' }}>Engine & Tools</div>
         <nav className="nav">
           {NAV_SYSTEM.map(({ to, icon, label }) => (
@@ -104,10 +101,7 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* ── Sidebar Footer ─────────────────────────────────────── */}
         <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-          
-          {/* Live Status Card */}
           <div className="sidebar-status-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -142,7 +136,6 @@ export default function Layout({ children }) {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             
-            {/* Breadcrumb */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}>
               <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>Admin</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-dim)' }}><polyline points="9 18 15 12 9 6"></polyline></svg>

@@ -4,11 +4,10 @@ dotenv.config();
 import { cmdToText } from "../../functions/getAddCommands.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	let { isGroup, sendMessageWTyping } = msgInfoObj;
+	let { isGroup, sendMessageWTyping, updateName, senderJid } = msgInfoObj;
 	let prefix = process.env.PREFIX ? process.env.PREFIX.trim() : "#";
 
 	const { publicCommands, groupCommands, adminCommands, ownerCommands } = await cmdToText();
-
 	const allCommands = [...publicCommands, ...groupCommands, ...adminCommands, ...ownerCommands];
 
 	// ─── Single Command Lookup: #help <command> ─────────────────────────
@@ -23,18 +22,18 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const usage = found.usage ? `${prefix}${found.usage}` : `${prefix}${cmdName}`;
 
 			const info =
-`╭─── *COMMAND INFO* ───╮
-│
-│  📌 *Command:* \`${prefix}${cmdName}\`
-│  📝 *Description:* ${desc}
-│  💡 *Usage:* \`${usage}\`${aliases ? `\n│  🏷️ *Aliases:* ${aliases}` : ""}
-│
-╰──────────────────────╯`;
+`🎀 *Command Info* 🎀
+
+🌸 *Name:* \`${prefix}${cmdName}\`
+📝 *Description:* ${desc}
+🪄 *Usage:* \`${usage}\`${aliases ? `\n🏷️ *Aliases:* ${aliases}` : ""}
+
+✨ *Hope this helps!* ✨`;
 
 			return await sendMessageWTyping(from, { text: info }, { quoted: msg });
 		} else {
 			return await sendMessageWTyping(from, {
-				text: `❌ Command \`${prefix}${targetCmd}\` not found.\n\nType \`${prefix}help\` to see all available commands.`
+				text: `🥺 Oopsie! Command \`${prefix}${targetCmd}\` not found.\n\nType \`${prefix}help\` to see the magic menu! ✨`
 			}, { quoted: msg });
 		}
 	}
@@ -51,12 +50,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			seen.add(primary);
 			const shortAliases = c.cmd.slice(1, 3).map(a => `${prefix}${a}`).join(" ");
 			const aliasStr = shortAliases ? ` _(${shortAliases})_` : "";
-			lines.push(`  ▸ \`${prefix}${primary}\`${aliasStr}`);
+			lines.push(` 🍡 \`${prefix}${primary}\`${aliasStr}`);
 		}
 		return lines.join("\n");
 	};
 
-	// Split public commands into meaningful categories using file-based heuristics
 	const downloaderKeywords = ["download", "dl", "d", "v", "song", "play", "music", "insta", "i", "fb", "facebook", "fbdl", "yt", "ytv", "vs", "yta", "twitter", "tw", "x", "pin", "mp3", "mp4", "reddit", "idp", "dp", "tiktok", "tt", "mp3convt", "tomp3"];
 	const aiKeywords = ["downloadbuddy", "db", "gemini", "groq", "llama", "roast", "shayari", "rap", "fortune", "story", "recipe", "imagine", "dream", "gen", "genimg", "imagen", "gen2", "genimg2", "flashgen", "make", "chatbot"];
 	const stickerKeywords = ["sticker", "s", "attp", "textsticker", "ts", "stickertext", "steal", "stealn", "meme", "image", "toimg", "removebg", "bg", "text", "txt", "texmeme", "sets", "stealtext", "customstealtext"];
@@ -84,14 +82,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const sectionHeaders = {
-		downloader: "📥  *DOWNLOADERS & MEDIA*",
-		ai:         "🤖  *AI & CHATBOT*",
-		sticker:    "🎨  *STICKER & CREATIVE*",
-		search:     "🔍  *SEARCH & INFO*",
-		utility:    "🛠️  *UTILITIES & TOOLS*",
-		fun:        "🎮  *FUN & SOCIAL*",
-		system:     "⚙️  *SYSTEM & BOT INFO*",
-		other:      "📁  *OTHER COMMANDS*",
+		downloader: "📥 *Download & Media* 📥",
+		ai:         "🤖 *AI & Magic* 🪄",
+		sticker:    "🎨 *Stickers & Art* 🎨",
+		search:     "🔍 *Search & Explore* 🌍",
+		utility:    "🛠️ *Tools & Utility* ⚙️",
+		fun:        "🎮 *Fun & Games* 🧸",
+		system:     "⚙️ *System Info* 💻",
+		other:      "📁 *Other Stuffs* 🌈",
 	};
 
 	let sections = [];
@@ -104,40 +102,41 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	}
 
-	// Admin commands (show only in groups)
 	if (isGroup && adminCommands.length > 0) {
-		seen.clear(); // reset for admin section
+		seen.clear();
 		const adminList = formatCmdList(adminCommands);
 		if (adminList.trim()) {
-			sections.push(`🔐  *GROUP ADMIN*\n${adminList}`);
+			sections.push(`🔐 *Group Admins Only* 👑\n${adminList}`);
 		}
 	}
 
-	// Owner commands (show only in groups)
 	if (isGroup && ownerCommands.length > 0) {
 		seen.clear();
 		const ownerList = formatCmdList(ownerCommands);
 		if (ownerList.trim()) {
-			sections.push(`👑  *BOT OWNER*\n${ownerList}`);
+			sections.push(`💖 *Bot Owner Only* 💖\n${ownerList}`);
 		}
 	}
 
 	const totalCount = allUserCmds.length + adminCommands.length + ownerCommands.length;
+	const userName = updateName || senderJid.split("@")[0];
 
 	const menu =
-`╭━━━━━━━━━━━━━━━━━━━━━━╮
-┃  ✨ *DOWNLOADBUDDY*  ✨
-┃  WhatsApp Bot Menu
-╰━━━━━━━━━━━━━━━━━━━━━━╯
+`✨ *DownloadBuddy OG* ✨
 
-📊 *Prefix:* \`${prefix}\`  ⚡ *Commands:* \`${totalCount}\`
+Hii ${userName}! 🌸 Welcome to my menu~
+Here are all the magical things I can do for you! 🥰
+
+🎀 *Quick Stats:*
+  • *Prefix:* \`${prefix}\`
+  • *Commands:* \`${totalCount} Total\`
+  • *Status:* \`Happy & Online\` 💖
 
 ${sections.join("\n\n")}
 
-╭──────────────────────╮
-│ 💡 \`${prefix}help <cmd>\` for details
-│ 📞 \`${prefix}dev\` for contact
-╰──────────────────────╯`;
+🎈 *Pro Tip:*
+  Type \`${prefix}help <cmd>\` to learn more about a command!
+  E.g. \`${prefix}help sticker\` ✨`;
 
 	await sendMessageWTyping(from, { text: menu }, { quoted: msg });
 };

@@ -2,6 +2,10 @@ import db from "../sqlite.js";
 
 const group = db.db().collection("Groups");
 
+// Fast In-Memory Cache for Group Data (30s TTL)
+const groupCache = new Map();
+const CACHE_TTL = 30_000;
+
 const statsDay = (date = new Date()) => {
 	const timeZone = process.env.STATS_TIMEZONE || "Asia/Kolkata";
 	const parts = new Intl.DateTimeFormat("en", {
@@ -24,14 +28,10 @@ const emptyDailyStats = (date) => ({
 	pdftotal: 0,
 });
 
-/**
- * Stores a compact per-day aggregate. Old documents that predate this feature
- * are kept intact; the latest 180 days are retained for predictable DB size.
- */
 const recordGroupDailyStats = async (groupJid, mediaTypeField, date = new Date()) => {
 	try {
-		const current = await group.findOne({ _id: groupJid });
-		if (!current) return;
+		const current = await getGroupData(groupJid);
+		if (!current || current === -1) return;
 
 		const day = statsDay(date);
 		const history = Array.isArray(current.dailyStats) ? [...current.dailyStats] : [];
@@ -48,16 +48,34 @@ const recordGroupDailyStats = async (groupJid, mediaTypeField, date = new Date()
 			.slice(-180);
 
 		await group.updateOne({ _id: groupJid }, { $set: { dailyStats: recentHistory } });
+		groupCache.delete(groupJid);
 	} catch (err) {
 		console.error("[daily group stats error]", err.message);
 	}
 };
 
-const createGroupData = async (groupJid, groupMetadata) => {
+const getGroupData = async (groupJid) => {
+	const cached = groupCache.get(groupJid);
+	if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+		return cached.data;
+	}
 	try {
 		const res = await group.findOne({ _id: groupJid });
-		if (res == null) {
-			await group.insertOne({
+		if (res) {
+			groupCache.set(groupJid, { data: res, timestamp: Date.now() });
+		}
+		return res;
+	} catch (err) {
+		console.error("[groupDataDb error]", err.message);
+		return cached ? cached.data : -1;
+	}
+};
+
+const createGroupData = async (groupJid, groupMetadata) => {
+	try {
+		const res = await getGroupData(groupJid);
+		if (res == null || res === -1) {
+			const newDoc = {
 				_id: groupJid,
 				isBotOn: true,
 				isImgOn: false,
@@ -75,7 +93,9 @@ const createGroupData = async (groupJid, groupMetadata) => {
 				members: [],
 				chatHistory: [],
 				dailyStats: [],
-			});
+			};
+			await group.insertOne(newDoc);
+			groupCache.set(groupJid, { data: newDoc, timestamp: Date.now() });
 		} else {
 			await group.updateOne(
 				{ _id: groupJid },
@@ -86,20 +106,16 @@ const createGroupData = async (groupJid, groupMetadata) => {
 					},
 				}
 			);
+			groupCache.delete(groupJid);
 		}
 	} catch (err) {
 		console.error("[groupDataDb error]", err.message);
 	}
 };
 
-const getGroupData = async (groupJid) => {
-	try {
-		const res = await group.findOne({ _id: groupJid });
-		return res;
-	} catch (err) {
-		console.error("[groupDataDb error]", err.message);
-		return -1;
-	}
+const clearGroupCache = (groupJid) => {
+	if (groupJid) groupCache.delete(groupJid);
+	else groupCache.clear();
 };
 
-export { getGroupData, createGroupData, recordGroupDailyStats, statsDay, group };
+export { getGroupData, createGroupData, recordGroupDailyStats, statsDay, group, clearGroupCache };

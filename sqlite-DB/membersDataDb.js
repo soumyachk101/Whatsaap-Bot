@@ -40,15 +40,32 @@ const createMembersData = async (jid, name) => {
 	}
 };
 
+// Fast In-Memory Cache for Member Data (30s TTL)
+const memberCache = new Map();
+const CACHE_TTL = 30_000;
+
 const getMemberData = async (jid) => {
+	const cached = memberCache.get(jid);
+	if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+		return cached.data;
+	}
 	try {
 		let res = await member.findOne({ _id: jid });
-		if (res) return res;
+		if (res) {
+			memberCache.set(jid, { data: res, timestamp: Date.now() });
+			return res;
+		}
 		return -1;
 	} catch (err) {
 		console.error("[membersDataDb error]", err.message);
-		return -1;
+		return cached ? cached.data : -1;
 	}
 };
 
-export { createMembersData, getMemberData, member };
+const clearMemberCache = (jid) => {
+	if (jid) memberCache.delete(jid);
+	else memberCache.clear();
+};
+
+export { createMembersData, getMemberData, member, clearMemberCache };
+

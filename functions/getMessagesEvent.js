@@ -196,66 +196,70 @@ const getCommand = async (sock, msg, cache) => {
 			}
 			const groupDbRecord = await getGroupData(from);
 			if (!groupDbRecord || groupDbRecord === -1) {
-				await createGroupData(from, groupMetadata);
+				createGroupData(from, groupMetadata).catch(() => {});
 			}
 		}
 
-		await createMembersData(updateId, updateName);
-		if (senderJid !== updateId) {
-			await createMembersData(senderJid, msg.pushName || "");
-		}
-
-		const mediaTypeField =
-			type === "conversation" || type === "extendedTextMessage" ? "texttotal" :
-			type === "imageMessage" ? "imagetotal" :
-			type === "videoMessage" ? "videototal" :
-			type === "stickerMessage" ? "stickertotal" :
-			type === "documentMessage" ? "pdftotal" : null;
-
-		if (mediaTypeField) {
-			const xpGain = (
-				mediaTypeField === "texttotal" ? 5 :
-				mediaTypeField === "imagetotal" ? 8 :
-				mediaTypeField === "videototal" ? 10 :
-				mediaTypeField === "stickertotal" ? 3 :
-				mediaTypeField === "pdftotal" ? 5 : 3
-			);
-
-			await member.updateOne(
-				{ _id: updateId },
-				{
-					$inc: { totalmsg: 1, [mediaTypeField]: 1, xp: xpGain },
-					$set: { username: updateName, lastXPGain: Date.now() }
+		// Asynchronous non-blocking background database stats tracking
+		(async () => {
+			try {
+				await createMembersData(updateId, updateName);
+				if (senderJid !== updateId) {
+					await createMembersData(senderJid, msg.pushName || "");
 				}
-			).catch((e) => console.error("[member update error]", e.message));
 
-			if (isGroup) {
-				try {
-					const r = await group.updateOne(
-						{ _id: from, "members.id": updateId },
-						{
-							$inc: { "members.$.count": 1, [`members.$.${mediaTypeField}`]: 1 },
-							$set: { "members.$.name": updateName },
-						}
+				const mediaTypeField =
+					type === "conversation" || type === "extendedTextMessage" ? "texttotal" :
+					type === "imageMessage" ? "imagetotal" :
+					type === "videoMessage" ? "videototal" :
+					type === "stickerMessage" ? "stickertotal" :
+					type === "documentMessage" ? "pdftotal" : null;
+
+				if (mediaTypeField) {
+					const xpGain = (
+						mediaTypeField === "texttotal" ? 5 :
+						mediaTypeField === "imagetotal" ? 8 :
+						mediaTypeField === "videototal" ? 10 :
+						mediaTypeField === "stickertotal" ? 3 :
+						mediaTypeField === "pdftotal" ? 5 : 3
 					);
-					if (r.matchedCount === 0) {
-						const newMember = {
-							id: updateId, name: updateName, count: 1,
-							texttotal: 0, imagetotal: 0, videototal: 0, stickertotal: 0, pdftotal: 0,
-						};
-						newMember[mediaTypeField] = 1;
-						await group.updateOne(
-							{ _id: from },
-							{ $push: { members: newMember } }
-						);
+
+					await member.updateOne(
+						{ _id: updateId },
+						{
+							$inc: { totalmsg: 1, [mediaTypeField]: 1, xp: xpGain },
+							$set: { username: updateName, lastXPGain: Date.now() }
+						}
+					).catch((e) => console.error("[member update error]", e.message));
+
+					if (isGroup) {
+						const r = await group.updateOne(
+							{ _id: from, "members.id": updateId },
+							{
+								$inc: { "members.$.count": 1, [`members.$.${mediaTypeField}`]: 1 },
+								$set: { "members.$.name": updateName },
+							}
+						).catch(() => null);
+
+						if (r && r.matchedCount === 0) {
+							const newMember = {
+								id: updateId, name: updateName, count: 1,
+								texttotal: 0, imagetotal: 0, videototal: 0, stickertotal: 0, pdftotal: 0,
+							};
+							newMember[mediaTypeField] = 1;
+							await group.updateOne(
+								{ _id: from },
+								{ $push: { members: newMember } }
+							).catch(() => {});
+						}
+						await group.updateOne({ _id: from }, { $inc: { totalMsgCount: 1 } }).catch(() => {});
+						await recordGroupDailyStats(from, mediaTypeField).catch(() => {});
 					}
-					await group.updateOne({ _id: from }, { $inc: { totalMsgCount: 1 } });
-					await recordGroupDailyStats(from, mediaTypeField);
-				} catch (e) {
-					console.error("[group member update error]", e.message);
 				}
+			} catch (e) {
+				console.error("[background stats tracking error]", e.message);
 			}
-		}
+		})();
 
 		if (!isCmd && (type == "stickerMessage" || type == "documentMessage")) return;
 

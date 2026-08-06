@@ -1,8 +1,5 @@
-import os from "os";
-import { execSync } from "child_process";
-
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping, startTime, updateName } = msgInfoObj;
+	const { sendMessageWTyping, startTime, updateName, senderJid } = msgInfoObj;
 	try {
 		const uptime = process.uptime();
 		const hours = Math.floor(uptime / 3600);
@@ -15,28 +12,38 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const responseTimeInSeconds = responseTime / 1000;
 
 		const memoryUsage = process.memoryUsage();
-		const usedMB = (memoryUsage.rss / 1024 / 1024).toFixed(2);
+		const usedMB = (memoryUsage.heapUsed / 1024 / 1024).toFixed(1);
+		const totalMB = (memoryUsage.rss / 1024 / 1024).toFixed(1);
 
 		const friendlyPlatform = process.env.PLATFORM_NAME || "MacOS";
 		const arch = process.env.PLATFORM_ARCH || "ARM64";
 		const platform = `${friendlyPlatform} (${arch})`;
 		const cpu = process.env.CPU_NAME || "Apple M5";
+		const userName = updateName || senderJid.split("@")[0];
+
+		const formattedLatency = responseTime >= 1000 
+			? `${responseTimeInSeconds.toFixed(2)}s` 
+			: `${Math.round(responseTime)}ms`;
 
 		const response =
-			`*👋🏻 Hello ${updateName}*\n\n` +
-			`*🎾 DownloadBuddy is Online!*\n` +
-			`*🟢 Response Time:* ${
-				responseTime >= 1000 ? `${responseTimeInSeconds.toFixed(2)}s` : `${responseTime.toFixed(2)}ms`
-			}\n` +
-			`*⏱️ Uptime:* ${simpleUptime}\n` +
-			`*🧠 RAM Usage:* ${usedMB} MB\n` +
-			`*💻 CPU:* ${cpu}\n` +
-			`*🌍 Platform:* ${platform}`;
+`🎀 *DownloadBuddy Status* 🎀
+
+Hiii ${userName}! 🥰 I'm feeling great today!
+
+✨ *How I'm Doing Right Now:* ✨
+  • 🟢 *Status:* \`Happy & Online\` 💖
+  • ⚡ *Speed (Latency):* \`${formattedLatency}\` 🚀
+  • ⏱️ *Awake For:* \`${simpleUptime}\` ☀️
+  • 🧠 *Brain Power (RAM):* \`${usedMB}MB / ${totalMB}MB\` 🍭
+  • 💻 *Heart (CPU):* \`${cpu}\`
+  • 🌍 *Home (Platform):* \`${platform}\`
+
+🎈 Type \`#help\` to see what we can do together! 🥰`;
 
 		return sendMessageWTyping(from, { text: response }, { quoted: msg });
 	} catch (err) {
 		console.error("Alive command error:", err);
-		return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
+		return sendMessageWTyping(from, { text: `🥺 Oopsie! Error: ${err.message}` }, { quoted: msg });
 	}
 };
 
