@@ -12,6 +12,7 @@ const Icons = {
   Analytics: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>,
   Broadcast: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>,
   Health: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>,
+  Logout: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>,
 }
 
 const NAV_MAIN = [
@@ -67,7 +68,7 @@ export default function Layout({ children }) {
       
       <aside className={`sidebar ${isMenuOpen ? 'open' : ''}`}>
         
-        {/* Brand Header with PNG Logo */}
+        {/* ── Brand Header with PNG Logo ──────────────────────────── */}
         <div className="brand-logo">
           <img 
             src="/downloadbuddy.jpg?v=2" 
@@ -77,11 +78,11 @@ export default function Layout({ children }) {
           />
           <div>
             <div className="brand-name">DownloadBuddy</div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', fontWeight: 500 }}>WhatsApp Bot Core</div>
+            <div className="brand-subtitle">WhatsApp Bot Engine</div>
           </div>
         </div>
 
-        {/* Section 1: Core Management */}
+        {/* ── Section: Core ───────────────────────────────────────── */}
         <div className="section-label">Core Management</div>
         <nav className="nav">
           {NAV_MAIN.map(({ to, icon, label, end }) => (
@@ -92,8 +93,8 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* Section 2: Engine & Tools */}
-        <div className="section-label" style={{ marginTop: '1rem' }}>Engine & Tools</div>
+        {/* ── Section: Engine ─────────────────────────────────────── */}
+        <div className="section-label" style={{ marginTop: '0.75rem' }}>Engine & Tools</div>
         <nav className="nav">
           {NAV_SYSTEM.map(({ to, icon, label }) => (
             <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
@@ -103,23 +104,32 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* Sidebar Footer Status */}
-        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-          <div style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: connected ? '#10b981' : '#ef4444' }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: connected ? '#34d399' : '#f87171' }}>
-                {connected ? 'Engine Online' : 'Engine Offline'}
+        {/* ── Sidebar Footer ─────────────────────────────────────── */}
+        <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+          
+          {/* Live Status Card */}
+          <div className="sidebar-status-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className={connected ? 'pulse-live' : ''} style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: connected ? '#10b981' : '#ef4444', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: connected ? '#34d399' : '#f87171' }}>
+                  {connected ? 'Engine Online' : 'Engine Offline'}
+                </span>
+              </div>
+              <span className="badge badge-zinc" style={{ fontSize: '0.625rem', padding: '0.1rem 0.4rem' }}>
+                {stats ? fmtUptime(stats.uptime) : '—'}
               </span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-              {stats ? fmtUptime(stats.uptime) : '0s'}
-            </span>
+            <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.625rem', color: 'var(--text-dim)' }}>
+              <span>Heap: {stats?.memoryUsage?.heapUsed ? Math.round(stats.memoryUsage.heapUsed / 1024 / 1024) + 'MB' : '—'}</span>
+              <span>·</span>
+              <span>Groups: {stats?.groupCount ?? '—'}</span>
+            </div>
           </div>
 
-          <button className="btn btn-ghost" onClick={handleLogout} style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            Sign Out Session
+          <button className="btn btn-ghost" onClick={handleLogout} style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--text-dim)', fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}>
+            {Icons.Logout}
+            Sign Out
           </button>
         </div>
 
@@ -132,23 +142,24 @@ export default function Layout({ children }) {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             
-            {/* Breadcrumb Path */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
+            {/* Breadcrumb */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}>
               <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>Admin</span>
-              <span style={{ color: 'var(--text-dim)' }}>/</span>
-              <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-main)' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-dim)' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
+              <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                 {activeLabel}
-              </h2>
+              </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="badge badge-purple" style={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>
-              MongoDB Atlas Persistent
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 500 }}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className={`badge ${connected ? 'badge-emerald' : 'badge-rose'}`}>
+              <span className={connected ? 'pulse-live' : ''} style={{ width: 5, height: 5, borderRadius: '50%', background: connected ? '#10b981' : '#ef4444' }} />
+              {connected ? 'Connected' : 'Offline'}
+            </span>
+            <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', fontWeight: 500, fontFamily: 'monospace' }}>
+              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
           </div>
         </header>
 

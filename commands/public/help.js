@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { cmdToText } from "../../functions/getAddCommands.js";
-import { member } from "../../sqlite-DB/membersDataDb.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { isGroup, sendMessageWTyping } = msgInfoObj;
@@ -10,10 +9,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	const { publicCommands, groupCommands, adminCommands, ownerCommands } = await cmdToText();
 
-	// Single command lookup mode (#help song, #help insta)
+	const allCommands = [...publicCommands, ...groupCommands, ...adminCommands, ...ownerCommands];
+
+	// ─── Single Command Lookup: #help <command> ─────────────────────────
 	if (args.length > 0) {
 		const targetCmd = args[0].toLowerCase().replace(/^[#./!]/, "");
-		const allCommands = [...publicCommands, ...groupCommands, ...adminCommands, ...ownerCommands];
 		const found = allCommands.find(c => Array.isArray(c.cmd) && c.cmd.includes(targetCmd));
 
 		if (found) {
@@ -22,119 +22,129 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const desc = found.desc || "No description available.";
 			const usage = found.usage ? `${prefix}${found.usage}` : `${prefix}${cmdName}`;
 
-			const singleMenu =
-`📌 *COMMAND INFO:* \`${prefix}${cmdName}\`
-━━━━━━━━━━━━━━━━━━━━
-📝 *Description:* ${desc}
-💡 *Usage:* \`${usage}\`` +
-(aliases ? `\n🏷️ *Aliases:* ${aliases}` : "");
+			const info =
+`╭─── *COMMAND INFO* ───╮
+│
+│  📌 *Command:* \`${prefix}${cmdName}\`
+│  📝 *Description:* ${desc}
+│  💡 *Usage:* \`${usage}\`${aliases ? `\n│  🏷️ *Aliases:* ${aliases}` : ""}
+│
+╰──────────────────────╯`;
 
-			return await sendMessageWTyping(from, { text: singleMenu }, { quoted: msg });
+			return await sendMessageWTyping(from, { text: info }, { quoted: msg });
+		} else {
+			return await sendMessageWTyping(from, {
+				text: `❌ Command \`${prefix}${targetCmd}\` not found.\n\nType \`${prefix}help\` to see all available commands.`
+			}, { quoted: msg });
 		}
 	}
 
-	// Dynamic Command Mapping by Categories
-	const categories = {
-		"📥 *DOWNLOADERS & MEDIA*": [
-			"download", "dl", "d", "song", "play", "music", "insta", "i", "ig", 
-			"fb", "facebook", "fbdl", "yt", "ytv", "yts", "vs", "twitter", "tw", "x", 
-			"pin", "pinterest", "mp3", "mp4", "reddit", "idp"
-		],
-		"🔍 *SEARCH & INFO*": [
-			"google", "gs", "search", "img", "image", "imgsearch", "news", "wiki"
-		],
-		"🤖 *AI & CHATBOT*": [
-			"gemini", "roast", "shayari", "rap", "story", "recipe", "groq", "llama",
-			"db", "downloadbuddy", "say", "tts", "imagine", "gen", "transcribe"
-		],
-		"🎨 *STICKER & CREATIVE*": [
-			"sticker", "s", "attp", "textsticker", "ts", "steal", "meme",
-			"toimg", "removebg", "bg", "genimg"
-		],
-		"🛠️ *UTILITIES & TOOLS*": [
-			"calc", "calculate", "tr", "translate", "weather", "w", "remind",
-			"lyrics", "l", "dictionary", "dict", "ud", "advice", "fact",
-			"horo", "joke", "quote"
-		],
-		"🎮 *FUN & GROUP RANK*": [
-			"ship", "tod", "poll", "confess", "level", "rank", "xp",
-			"epic", "leaderboard", "top"
-		],
-		"⚙️ *SYSTEM & BOT INFO*": [
-			"help", "menu", "alive", "ping", "stats", "dev", "mycount", "daily"
-		]
+	// ─── Build Full Menu ────────────────────────────────────────────────
+	const seen = new Set();
+
+	const formatCmdList = (commands) => {
+		const lines = [];
+		for (const c of commands) {
+			if (!Array.isArray(c.cmd) || c.cmd.length === 0) continue;
+			const primary = c.cmd[0];
+			if (seen.has(primary)) continue;
+			seen.add(primary);
+			const shortAliases = c.cmd.slice(1, 3).map(a => `${prefix}${a}`).join(" ");
+			const aliasStr = shortAliases ? ` _(${shortAliases})_` : "";
+			lines.push(`  ▸ \`${prefix}${primary}\`${aliasStr}`);
+		}
+		return lines.join("\n");
+	};
+
+	// Split public commands into meaningful categories using file-based heuristics
+	const downloaderKeywords = ["download", "dl", "d", "v", "song", "play", "music", "insta", "i", "fb", "facebook", "fbdl", "yt", "ytv", "vs", "yta", "twitter", "tw", "x", "pin", "mp3", "mp4", "reddit", "idp", "dp", "tiktok", "tt", "mp3convt", "tomp3"];
+	const aiKeywords = ["downloadbuddy", "db", "gemini", "groq", "llama", "roast", "shayari", "rap", "fortune", "story", "recipe", "imagine", "dream", "gen", "genimg", "imagen", "gen2", "genimg2", "flashgen", "make", "chatbot"];
+	const stickerKeywords = ["sticker", "s", "attp", "textsticker", "ts", "stickertext", "steal", "stealn", "meme", "image", "toimg", "removebg", "bg", "text", "txt", "texmeme", "sets", "stealtext", "customstealtext"];
+	const searchKeywords = ["google", "gs", "search", "yts", "img", "news", "newscategories", "newscate", "categories", "cate", "wiki"];
+	const utilityKeywords = ["calc", "calculate", "tr", "translate", "weather", "w", "remind", "reminder", "lyrics", "lyric", "l", "dictionary", "dict", "ud", "urban", "advice", "fact", "horo", "horoscope", "joke", "quote", "proquote", "qpt", "qpoetry", "say", "tts", "transcribe", "tr2", "voice2text", "vtt", "crypto", "price", "coin", "convert", "currency", "password", "passwd", "pass", "genpass", "qr", "qrcode", "note", "notes", "bookmark", "save", "todo", "todos", "task", "pomo", "pomodoro", "focus", "timer", "true", "truecaller", "birthday", "bday", "bdy", "gender", "runcode"];
+	const funKeywords = ["ship", "love", "match", "tod", "truthdare", "truth", "dare", "poll", "vote", "confess", "anon", "level", "lvl", "rank", "xp", "epic", "epicgames", "freegames", "leaderboard", "top", "rankings", "topmembers", "nsfw", "donation", "donate"];
+	const systemKeywords = ["help", "menu", "alive", "a", "ping", "stats", "mystats", "dev", "developer", "mycount", "total", "daystats", "dailystats", "daily", "start", "totalg", "analysis", "chatanalytics", "chatstats", "grpstats", "delete", "d", "dd", "delmsg", "getwarn"];
+
+	const categorize = (cmd) => {
+		const aliases = cmd.cmd || [];
+		if (aliases.some(a => downloaderKeywords.includes(a))) return "downloader";
+		if (aliases.some(a => aiKeywords.includes(a))) return "ai";
+		if (aliases.some(a => stickerKeywords.includes(a))) return "sticker";
+		if (aliases.some(a => searchKeywords.includes(a))) return "search";
+		if (aliases.some(a => utilityKeywords.includes(a))) return "utility";
+		if (aliases.some(a => funKeywords.includes(a))) return "fun";
+		if (aliases.some(a => systemKeywords.includes(a))) return "system";
+		return "other";
 	};
 
 	const allUserCmds = [...publicCommands, ...groupCommands];
-	const displayedCmds = new Set();
-	let categoryBlocks = [];
+	const buckets = { downloader: [], ai: [], sticker: [], search: [], utility: [], fun: [], system: [], other: [] };
+	for (const c of allUserCmds) {
+		buckets[categorize(c)].push(c);
+	}
 
-	for (const [catName, aliases] of Object.entries(categories)) {
-		const matches = allUserCmds.filter(c => Array.isArray(c.cmd) && c.cmd.some(alias => aliases.includes(alias)));
-		if (matches.length > 0) {
-			const cmdPills = [];
-			matches.forEach(c => {
-				const primary = c.cmd[0];
-				if (!displayedCmds.has(primary)) {
-					displayedCmds.add(primary);
-					cmdPills.push(`\`${prefix}${primary}\``);
-				}
-			});
-			if (cmdPills.length > 0) {
-				categoryBlocks.push(`${catName}\n${cmdPills.join(" • ")}`);
-			}
+	const sectionHeaders = {
+		downloader: "📥  *DOWNLOADERS & MEDIA*",
+		ai:         "🤖  *AI & CHATBOT*",
+		sticker:    "🎨  *STICKER & CREATIVE*",
+		search:     "🔍  *SEARCH & INFO*",
+		utility:    "🛠️  *UTILITIES & TOOLS*",
+		fun:        "🎮  *FUN & SOCIAL*",
+		system:     "⚙️  *SYSTEM & BOT INFO*",
+		other:      "📁  *OTHER COMMANDS*",
+	};
+
+	let sections = [];
+	for (const [key, header] of Object.entries(sectionHeaders)) {
+		const cmds = buckets[key];
+		if (cmds.length === 0) continue;
+		const list = formatCmdList(cmds);
+		if (list.trim()) {
+			sections.push(`${header}\n${list}`);
 		}
 	}
 
-	// Collect any uncategorized public/member commands
-	const uncategorized = [];
-	allUserCmds.forEach(c => {
-		if (Array.isArray(c.cmd)) {
-			const primary = c.cmd[0];
-			if (!displayedCmds.has(primary)) {
-				displayedCmds.add(primary);
-				uncategorized.push(`\`${prefix}${primary}\``);
-			}
-		}
-	});
-
-	if (uncategorized.length > 0) {
-		categoryBlocks.push(`📁 *OTHER COMMANDS*\n${uncategorized.join(" • ")}`);
-	}
-
-	// Admin Commands
-	let adminBlock = "";
+	// Admin commands (show only in groups)
 	if (isGroup && adminCommands.length > 0) {
-		const adminCmdPills = adminCommands.map(c => `\`${prefix}${c.cmd[0]}\``).join(" • ");
-		adminBlock = `\n🛠️ *GROUP ADMIN COMMANDS*\n${adminCmdPills}\n`;
+		seen.clear(); // reset for admin section
+		const adminList = formatCmdList(adminCommands);
+		if (adminList.trim()) {
+			sections.push(`🔐  *GROUP ADMIN*\n${adminList}`);
+		}
 	}
 
-	// Owner Commands
-	let ownerBlock = "";
+	// Owner commands (show only in groups)
 	if (isGroup && ownerCommands.length > 0) {
-		const ownerCmdPills = ownerCommands.map(c => `\`${prefix}${c.cmd[0]}\``).join(" • ");
-		ownerBlock = `\n👑 *OWNER COMMANDS*\n${ownerCmdPills}\n`;
+		seen.clear();
+		const ownerList = formatCmdList(ownerCommands);
+		if (ownerList.trim()) {
+			sections.push(`👑  *BOT OWNER*\n${ownerList}`);
+		}
 	}
 
-	const totalCmdCount = allUserCmds.length + adminCommands.length + ownerCommands.length;
+	const totalCount = allUserCmds.length + adminCommands.length + ownerCommands.length;
 
-	const menuHeader =
-`✨ *DOWNLOADBUDDY BOT MENU* ✨
-📌 *Prefix:* \`${prefix}\` | ⚡ *Total Commands:* \`${totalCmdCount}\`
-━━━━━━━━━━━━━━━━━━━━
+	const menu =
+`╭━━━━━━━━━━━━━━━━━━━━━━╮
+┃  ✨ *DOWNLOADBUDDY*  ✨
+┃  WhatsApp Bot Menu
+╰━━━━━━━━━━━━━━━━━━━━━━╯
 
-${categoryBlocks.join("\n\n")}
-${adminBlock}${ownerBlock}
-━━━━━━━━━━━━━━━━━━━━
-💡 *Tip:* Type \`${prefix}help <command>\` for detailed usage!
-💬 *Dev Contact:* \`${prefix}dev\``;
+📊 *Prefix:* \`${prefix}\`  ⚡ *Commands:* \`${totalCount}\`
 
-	await sendMessageWTyping(from, { text: menuHeader }, { quoted: msg });
+${sections.join("\n\n")}
+
+╭──────────────────────╮
+│ 💡 \`${prefix}help <cmd>\` for details
+│ 📞 \`${prefix}dev\` for contact
+╰──────────────────────╯`;
+
+	await sendMessageWTyping(from, { text: menu }, { quoted: msg });
 };
 
 export default () => ({
 	cmd: ["help", "menu"],
 	desc: "Display organized bot commands menu",
-	usage: "help",
+	usage: "help [command]",
 	handler,
 });
