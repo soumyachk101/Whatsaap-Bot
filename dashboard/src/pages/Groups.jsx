@@ -15,108 +15,125 @@ function GroupCard({ grp, allCommands, onUpdate, onAddBlock, onRemoveBlock }) {
   const availableToBlock = allCommands.filter(c => !(grp.cmdBlocked || []).includes(c))
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="card-header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="card card-hover" style={{ display: 'flex', flexDirection: 'column' }}>
+      
+      {/* Header */}
+      <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+        <div>
+          <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-main)', wordBreak: 'break-word', marginBottom: '0.15rem' }}>
+            {grp.grpName || 'Unnamed Group'}
+          </h3>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+            {grp._id.replace('@g.us', '')}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {grp.adminOnly && (
+            <span className="badge badge-rose">Admin Only</span>
+          )}
+          <span className={`badge ${grp.isBotOn !== false ? 'badge-emerald' : 'badge-purple'}`}>
+            {grp.isBotOn !== false ? 'Active' : 'Disabled'}
+          </span>
+        </div>
+      </div>
+
+      {/* Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.25rem' }}>
+        <div style={{ padding: '0.625rem 0.75rem', background: '#121215', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 500 }}>Total Msgs</span>
+          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            {(grp.totalMsgCount || grp.totalmsg || 0).toLocaleString()}
+          </span>
+        </div>
+        <div style={{ padding: '0.625rem 0.75rem', background: '#121215', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 500 }}>Members</span>
+          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            {grp.members?.length || grp.memberCount || 0}
+          </span>
+        </div>
+      </div>
+
+      {/* Toggles */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-main)' }}>Bot Active</span>
+          <label className="toggle-switch">
+            <input type="checkbox" checked={grp.isBotOn !== false} onChange={(e) => handleToggle('isBotOn', e.target.checked)} disabled={loading} />
+            <span className="slider" />
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 className="card-title" style={{ fontSize: '1rem', fontWeight: 600, wordBreak: 'break-word' }}>{grp.grpName || 'Unknown Group'}</h3>
-            <p className="text-muted" style={{ fontSize: '0.75rem', fontFamily: 'monospace', marginTop: '0.25rem' }}>{grp._id.replace('@g.us', '')}</p>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-main)' }}>Admin Only Mode</span>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Responds only to admins</div>
           </div>
-          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-            {grp.adminOnly && (
-              <span className="badge badge-warning" style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>Admin Only</span>
-            )}
-            <div className={`badge ${grp.isBotOn ? 'badge-success' : 'badge-destructive'}`}>
-              {grp.isBotOn ? 'Active' : 'Inactive'}
-            </div>
-          </div>
+          <label className="toggle-switch">
+            <input type="checkbox" checked={grp.adminOnly || false} onChange={(e) => handleToggle('adminOnly', e.target.checked)} disabled={loading} />
+            <span className="slider" />
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-main)' }}>Anti-Link Protection</span>
+          <label className="toggle-switch">
+            <input type="checkbox" checked={grp.antilink || false} onChange={(e) => handleToggle('antilink', e.target.checked)} disabled={loading} />
+            <span className="slider" />
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-main)' }}>NSFW Media Filter</span>
+          <label className="toggle-switch">
+            <input type="checkbox" checked={grp.nsfw || false} onChange={(e) => handleToggle('nsfw', e.target.checked)} disabled={loading} />
+            <span className="slider" />
+          </label>
         </div>
       </div>
 
-      <div className="card-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--secondary)', borderRadius: 'var(--radius)' }}>
-            <span className="text-muted">Total Msgs</span>
-            <span style={{ fontWeight: 500 }}>{grp.totalMsgCount || grp.totalmsg || 0}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--secondary)', borderRadius: 'var(--radius)' }}>
-            <span className="text-muted">Members</span>
-            <span style={{ fontWeight: 500 }}>{grp.members?.length || grp.memberCount || 0}</span>
-          </div>
+      {/* Blocked Commands Section */}
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Blocked Commands
         </div>
-
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Bot Enabled</span>
-            <label className="toggle">
-              <input type="checkbox" checked={grp.isBotOn || false} onChange={(e) => handleToggle('isBotOn', e.target.checked)} disabled={loading} />
-              <span className="slider" />
-            </label>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Admin Only Mode</span>
-              <p className="text-muted" style={{ fontSize: '0.7rem', margin: 0 }}>Bot responds to admins only</p>
-            </div>
-            <label className="toggle">
-              <input type="checkbox" checked={grp.adminOnly || false} onChange={(e) => handleToggle('adminOnly', e.target.checked)} disabled={loading} />
-              <span className="slider" />
-            </label>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Anti-Link</span>
-            <label className="toggle">
-              <input type="checkbox" checked={grp.antilink || false} onChange={(e) => handleToggle('antilink', e.target.checked)} disabled={loading} />
-              <span className="slider" />
-            </label>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>NSFW Filter</span>
-            <label className="toggle">
-              <input type="checkbox" checked={grp.nsfw || false} onChange={(e) => handleToggle('nsfw', e.target.checked)} disabled={loading} />
-              <span className="slider" />
-            </label>
-          </div>
+        
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.75rem', minHeight: '26px' }}>
+          {grp.cmdBlocked?.length ? grp.cmdBlocked.map(c => (
+            <span key={c} className="badge badge-rose" style={{ padding: '0.15rem 0.5rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              #{c}
+              <button onClick={() => onRemoveBlock(grp._id, c)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1 }}>×</button>
+            </span>
+          )) : <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>None</span>}
         </div>
-
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Blocked Commands</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.75rem', minHeight: '1.75rem' }}>
-            {grp.cmdBlocked?.length ? grp.cmdBlocked.map(c => (
-              <span key={c} className="badge badge-destructive" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.125rem 0.25rem 0.125rem 0.5rem' }}>
-                #{c}
-                <button onClick={() => onRemoveBlock(grp._id, c)} style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1 }}>×</button>
-              </span>
-            )) : <span className="text-muted" style={{ fontSize: '0.75rem' }}>No commands blocked</span>}
-          </div>
-          
-          <form 
-            onSubmit={e => { 
-              e.preventDefault()
-              if (selectedCmd) { 
-                onAddBlock(grp._id, selectedCmd)
-                setSelectedCmd('') 
-              } 
-            }}
-            style={{ display: 'flex', gap: '0.5rem' }}
+        
+        <form 
+          onSubmit={e => { 
+            e.preventDefault()
+            if (selectedCmd) { 
+              onAddBlock(grp._id, selectedCmd)
+              setSelectedCmd('') 
+            } 
+          }}
+          style={{ display: 'flex', gap: '0.5rem' }}
+        >
+          <select
+            className="input"
+            style={{ fontSize: '0.75rem', padding: '0.4rem 0.6rem' }}
+            value={selectedCmd}
+            onChange={e => setSelectedCmd(e.target.value)}
           >
-            <select
-              className="input"
-              style={{ height: '2.25rem', fontSize: '0.75rem', flex: 1, backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-              value={selectedCmd}
-              onChange={e => setSelectedCmd(e.target.value)}
-            >
-              <option value="">-- Select command to block --</option>
-              {availableToBlock.map(c => (
-                <option key={c} value={c}>#{c}</option>
-              ))}
-            </select>
-            <button className="btn btn-secondary" type="submit" disabled={!selectedCmd} style={{ height: '2.25rem', padding: '0 0.75rem', fontSize: '0.75rem' }}>Block</button>
-          </form>
-        </div>
+            <option value="">Select command to block...</option>
+            {availableToBlock.map(c => (
+              <option key={c} value={c}>#{c}</option>
+            ))}
+          </select>
+          <button className="btn btn-secondary" type="submit" disabled={!selectedCmd} style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}>
+            Block
+          </button>
+        </form>
       </div>
+
     </div>
   )
 }
@@ -130,26 +147,22 @@ const SORTS = [
 
 export default function Groups() {
   const toast = useToast()
-  const [groups,  setGroups]  = useState([])
+  const [groups, setGroups] = useState([])
   const [allCommands, setAllCommands] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search,  setSearch]  = useState('')
-  const [sort,    setSort]    = useState('totalmsg')
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState('totalmsg')
 
   useEffect(() => {
     Promise.all([getGroups(), getCommands()])
       .then(([grpsData, cmdsData]) => {
-        setGroups(grpsData)
-
-        // Extract all command names from command categories
+        setGroups(grpsData || [])
         const namesSet = new Set()
         if (cmdsData) {
           ['publicCommands', 'groupCommands', 'adminCommands', 'ownerCommands'].forEach(cat => {
             if (Array.isArray(cmdsData[cat])) {
               cmdsData[cat].forEach(item => {
-                if (Array.isArray(item.cmd)) {
-                  item.cmd.forEach(c => namesSet.add(c))
-                }
+                if (Array.isArray(item.cmd)) item.cmd.forEach(c => namesSet.add(c))
               })
             }
           })
@@ -177,7 +190,7 @@ export default function Groups() {
     setGroups(g => g.map(x => x._id === jid ? { ...x, ...data } : x))
     try {
       await updateGroup(jid, data)
-      toast('Group updated')
+      toast('Group updated', true)
     } catch (err) {
       setGroups(prev)
       toast(err.message, false)
@@ -191,7 +204,7 @@ export default function Groups() {
     setGroups(prev => prev.map(g => g._id === jid ? { ...g, cmdBlocked: updated } : g))
     try {
       await updateGroup(jid, { cmdBlocked: updated })
-      toast(`Blocked: #${cmd}`)
+      toast(`Blocked #${cmd}`, true)
     } catch (err) {
       setGroups(prev => prev.map(g => g._id === jid ? { ...g, cmdBlocked: grp.cmdBlocked } : g))
       toast(err.message, false)
@@ -205,50 +218,52 @@ export default function Groups() {
     setGroups(prev => prev.map(g => g._id === jid ? { ...g, cmdBlocked: updated } : g))
     try {
       await updateGroup(jid, { cmdBlocked: updated })
-      toast(`Unblocked: #${cmd}`)
+      toast(`Unblocked #${cmd}`, true)
     } catch (err) {
       setGroups(prev => prev.map(g => g._id === jid ? { ...g, cmdBlocked: grp.cmdBlocked } : g))
       toast(err.message, false)
     }
   }
 
-  const activeCount = groups.filter(g => g.isBotOn).length
+  const activeCount = groups.filter(g => g.isBotOn !== false).length
 
   return (
-    <div>
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.025em' }}>Groups</h2>
-          <p className="text-muted" style={{ marginTop: '0.25rem' }}>{groups.length} total · <span className="text-success">{activeCount} active</span></p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>Groups Management</h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+            {groups.length} total groups · {activeCount} bot active
+          </p>
         </div>
-      </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {SORTS.map(s => (
-            <button 
-              key={s.key} 
-              className={`btn ${sort === s.key ? 'btn-secondary' : 'btn-ghost'}`} 
-              onClick={() => setSort(s.key)}
-              style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem', border: '1px solid var(--border)' }}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
         <input
           className="input"
           placeholder="Search groups..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ width: '300px', height: '2.5rem' }}
+          style={{ width: '280px' }}
         />
       </div>
 
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {SORTS.map(s => (
+          <button 
+            key={s.key} 
+            className={`btn ${sort === s.key ? 'btn-primary' : 'btn-secondary'}`} 
+            onClick={() => setSort(s.key)}
+            style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Loading groups...</div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Loading groups...</div>
       ) : rows.length ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <div className="grid grid-cols-3">
           {rows.map(g => (
             <GroupCard
               key={g._id}
@@ -261,8 +276,9 @@ export default function Groups() {
           ))}
         </div>
       ) : (
-        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>No groups found.</div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>No groups match search query.</div>
       )}
+
     </div>
   )
 }

@@ -42,55 +42,63 @@ router.post("/api/pair", async (req, res) => {
 	const { phoneNumber } = req.body;
 	if (!phoneNumber) return res.status(400).json({ error: "Phone number required." });
 
-	const sock = req.app.locals.sock;
-	if (!sock) return res.status(503).json({ error: "Bot is not ready yet. Try again in a moment." });
+	let sock = req.app.locals.sock;
+
+	if (!sock && req.app.locals.reconnect) {
+		req.app.locals.reconnect();
+		await new Promise(res => setTimeout(res, 2000));
+		sock = req.app.locals.sock;
+	}
+
+	if (!sock) return res.status(503).json({ error: "Bot socket is initializing. Please wait 3 seconds and try again." });
 
 	if (sock.user) {
-		return res.status(400).json({ error: "Bot is already logged in. Use the admin panel to manage the connection." });
+		return res.status(400).json({ error: "Bot is already logged in. Use the admin panel to manage connection." });
 	}
 
 	try {
-		const clean = String(phoneNumber).replace(/\D/g, "");
-		if (clean.length < 7) return res.status(400).json({ error: "Invalid phone number — include country code, digits only." });
+		let clean = String(phoneNumber).replace(/\D/g, "");
+		if (clean.length < 7) return res.status(400).json({ error: "Invalid phone number — include country code (e.g. 919876543210)." });
 		const code = await sock.requestPairingCode(clean);
 		res.json({ ok: true, code });
 	} catch (err) {
-		res.status(500).json({ error: err.message });
+		console.error("Pairing code error:", err);
+		res.status(500).json({ error: err.message || "Failed to generate pairing code." });
 	}
 });
 
-// ── JSON auth endpoints (used by React app) ────────────────────────────────────
+// ── JSON auth endpoints (used by React app & Dashboard) ─────────────────────────
 
-router.get("/api/admin/me", (req, res) => {
+router.get(["/api/me", "/api/admin/me"], (req, res) => {
 	if (req.session?.isAdmin) return res.json({ authenticated: true });
 	res.status(401).json({ authenticated: false });
 });
 
-router.post("/api/admin/login", (req, res) => {
+router.post(["/api/login", "/api/admin/login"], (req, res) => {
 	const { password } = req.body;
-	if (password === process.env.ADMIN_PASSWORD) {
+	const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
+	if (password === expectedPassword) {
 		req.session.isAdmin = true;
 		return res.json({ ok: true });
 	}
 	res.status(401).json({ error: "Incorrect password." });
 });
 
-router.post("/api/admin/logout", (req, res) => {
+router.post(["/api/logout", "/api/admin/logout"], (req, res) => {
 	req.session.destroy(() => res.json({ ok: true }));
 });
 
 // ── Legacy form login/logout (kept for QR page fallback) ─────────────────────
 
 router.get("/admin/login", (req, res) => {
-	// Serve React SPA — index.html is served by the static middleware in index.js
-	// This GET is only reached when the static file isn't found; redirect to root.
 	if (req.session?.isAdmin) return res.redirect("/admin");
 	res.redirect("/admin/#/login");
 });
 
 router.post("/admin/login", (req, res) => {
 	const { password } = req.body;
-	if (password === process.env.ADMIN_PASSWORD) {
+	const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
+	if (password === expectedPassword) {
 		req.session.isAdmin = true;
 		return res.redirect("/admin");
 	}
@@ -198,7 +206,7 @@ router.get("/api/admin/bot/health", requireAdmin, (req, res) => {
 				rss: mem.rss,
 				external: mem.external,
 			},
-			connected: !!req.app.locals.sock,
+			connected: !!(req.app.locals.sock && req.app.locals.sock.user),
 			nodeVersion: process.version,
 			pid: process.pid,
 			platform: process.platform,

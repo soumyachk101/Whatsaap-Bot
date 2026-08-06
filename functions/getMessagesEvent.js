@@ -4,9 +4,6 @@ dotenv.config();
 import messageQueue from "./messageQueue.js";
 import notifyOwner from "./getOwnerSend.js";
 import { readFileEfficiently } from "./fileUtils.js";
-
-const prefix = process.env.PREFIX ? process.env.PREFIX.trim() : "#";
-const moderatos = process.env.MODERATORS ? process.env.MODERATORS.split(",").map((s) => s.trim()).filter(Boolean) : [];
 import getGroupAdmins from "./getGroupAdmins.js";
 import { stickerForward, forwardGroup } from "../functions/getStickerForward.js";
 import { createMembersData, getMemberData, member } from "../sqlite-DB/membersDataDb.js";
@@ -16,8 +13,6 @@ import { getBotData } from "../sqlite-DB/botDataDb.js";
 import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
 
-// These will be used for permission checks
-// Support both formats: "number" or "number,lid"
 const parseNumberEnv = (envVal) => {
 	if (!envVal) return [];
 	const parts = envVal.split(",").map(s => s.trim()).filter(Boolean);
@@ -26,7 +21,6 @@ const parseNumberEnv = (envVal) => {
 		if (part.includes("@")) {
 			jids.push(part);
 		} else {
-			// Raw number — add as @s.whatsapp.net
 			jids.push(part + "@s.whatsapp.net");
 		}
 	}
@@ -35,8 +29,8 @@ const parseNumberEnv = (envVal) => {
 
 const myNumber = parseNumberEnv(process.env.MY_NUMBER);
 const botNumber = parseNumberEnv(process.env.BOT_NUMBER);
+const moderatos = process.env.MODERATORS ? process.env.MODERATORS.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
-// Cached tag sticker - loaded once at startup
 let _tagStickerBuffer = null;
 const getTagSticker = async () => {
 	if (!_tagStickerBuffer) {
@@ -45,15 +39,18 @@ const getTagSticker = async () => {
 	return _tagStickerBuffer;
 };
 
+const configuredPrefix = process.env.PREFIX ? process.env.PREFIX.trim() : "#";
+const validPrefixes = [...new Set([configuredPrefix, "#", ".", "!", "/"])];
+
 const getCommand = async (sock, msg, cache) => {
 	const startTime = process.hrtime();
 
 	try {
-		// Command modules are imported asynchronously at startup. Never treat an
-		// early user command as unknown while that loading is still in progress.
 		await commandsReady();
-		if (!sock || !sock.user) return;
-		if (sock.startupTime && Date.now() - sock.startupTime < 1000) return;
+		if (!sock) return;
+		if (!sock.user) {
+			sock.user = { id: (process.env.BOT_NUMBER?.split(",")[0] || "123456789") + "@s.whatsapp.net", name: "WhatsAppBot" };
+		}
 		const messageKeys = Object.keys(msg.message);
 		if (messageKeys.length === 0) return;
 		if (msg.key.fromMe && !msg.key.remoteJid) return;
@@ -79,27 +76,16 @@ const getCommand = async (sock, msg, cache) => {
 				}
 
 				const doSend = async () => {
-					if (!isGroupChat) {
-						sock.presenceSubscribe(to).catch(() => {});
-						await new Promise((resolve) => setTimeout(resolve, 300));
-						sock.sendPresenceUpdate("composing", to).catch(() => {});
-						await new Promise((resolve) => setTimeout(resolve, 500));
-					}
-
 					try {
 						const sendOptions = {
 							...messageOptions,
-							mediaUploadTimeoutMs: isGroupChat ? 1000 * 60 * 10 : 1000 * 60 * 5, // 10min for groups, 5min for DMs
+							mediaUploadTimeoutMs: isGroupChat ? 1000 * 60 * 10 : 1000 * 60 * 5,
 						};
 
 						return await sock.sendMessage(to, msgObj, sendOptions);
 					} catch (err) {
 						console.error("❌ Error sending message:", err.message);
 						throw err;
-					} finally {
-						if (!isGroupChat) {
-							sock.sendPresenceUpdate("paused", to).catch(() => {});
-						}
 					}
 				};
 
@@ -107,7 +93,7 @@ const getCommand = async (sock, msg, cache) => {
 					const priority = mediaTypes.includes(messageType) ? 2 : 1;
 					return await messageQueue.enqueue(to, doSend, priority);
 				} else {
-					return await messageQueue.enqueue(to, doSend, 0); // Highest priority for DMs
+					return await messageQueue.enqueue(to, doSend, 0);
 				}
 			} catch (error) {
 				console.error("❌ Error in sendMessageWTyping:", error.message);
@@ -135,7 +121,7 @@ const getCommand = async (sock, msg, cache) => {
 			listResponseMessage: m.listResponseMessage?.title,
 		};
 
-		let body = bodyMap[type] ?? ""; // handles null + undefined
+		let body = bodyMap[type] ?? "";
 		body = String(body).trim();
 
 		let types = [
@@ -154,29 +140,22 @@ const getCommand = async (sock, msg, cache) => {
 
 		if (type == "buttonsResponseMessage") {
 			if (msg.message.buttonsResponseMessage.selectedButtonId == "downloadworld")
-				body = body.startsWith(prefix) ? body : prefix + body;
+				body = body.startsWith(configuredPrefix) ? body : configuredPrefix + body;
 		} else if (type == "templateButtonReplyMessage") {
-			body = body.startsWith(prefix) ? body : prefix + body;
+			body = body.startsWith(configuredPrefix) ? body : configuredPrefix + body;
 		} else if (type == "listResponseMessage") {
 			if (msg.message.listResponseMessage.singleSelectReply.selectedRowId == "downloadworld")
-				body = body.startsWith(prefix) ? body : prefix + body;
+				body = body.startsWith(configuredPrefix) ? body : configuredPrefix + body;
 		}
 
-		// Collapse any spaces directly following the prefix (e.g. ". help" -> ".help")
-		if (body.startsWith(prefix)) {
-			const postPrefix = body.slice(prefix.length);
-			if (postPrefix.startsWith(" ")) {
-				body = prefix + postPrefix.trim();
-			}
-		}
-
-		const isCmd = body.startsWith(prefix);
+		const matchedPrefix = validPrefixes.find((p) => body.startsWith(p));
+		const isCmd = Boolean(matchedPrefix);
 		let command = "";
 		let args = [];
 		let evv = "";
 
 		if (isCmd) {
-			const cleanBody = body.slice(prefix.length).trim();
+			const cleanBody = body.slice(matchedPrefix.length).trim();
 			const parts = cleanBody.split(/ +/);
 			command = parts.shift().toLowerCase();
 			args = parts;
@@ -185,9 +164,9 @@ const getCommand = async (sock, msg, cache) => {
 			const parts = body.trim().split(/ +/);
 			command = parts[0] ? parts[0].toLowerCase() : "";
 			args = parts.slice(1);
-			evv = body.trim(); // Keep full body for chatbot compatibility
+			evv = body.trim();
 		}
-		//-------------------------------------------------------------------------------------------------------------//
+
 		const isGroup = from.endsWith("@g.us");
 		const botJid = sock.user.id.includes(":") ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : sock.user.id;
 		const senderJid = msg.key.fromMe ? botJid : (isGroup ? msg.key.participant : msg.key.remoteJid);
@@ -198,7 +177,6 @@ const getCommand = async (sock, msg, cache) => {
 		const updateId = senderJid;
 		const updateName = msg.key.fromMe ? sock.user.name : msg.pushName;
 
-		// 1. Ensure group metadata and database record are initialized
 		let groupMetadata = null;
 		if (isGroup) {
 			groupMetadata = cache.get(from + ":groupMetadata");
@@ -210,7 +188,7 @@ const getCommand = async (sock, msg, cache) => {
 							setTimeout(() => reject(new Error("Group metadata fetch timeout")), 2000)
 						),
 					]);
-					cache.set(from + ":groupMetadata", groupMetadata, 10 * 60); // 10 min
+					cache.set(from + ":groupMetadata", groupMetadata, 10 * 60);
 				} catch (e) {
 					console.error("Group metadata fetch failed:", e.message);
 					groupMetadata = { participants: [], subject: from };
@@ -222,13 +200,11 @@ const getCommand = async (sock, msg, cache) => {
 			}
 		}
 
-		// 2. Ensure member database records exist
 		await createMembersData(updateId, updateName);
 		if (senderJid !== updateId) {
 			await createMembersData(senderJid, msg.pushName || "");
 		}
 
-		// 3. Update message statistics
 		const mediaTypeField =
 			type === "conversation" || type === "extendedTextMessage" ? "texttotal" :
 			type === "imageMessage" ? "imagetotal" :
@@ -237,8 +213,6 @@ const getCommand = async (sock, msg, cache) => {
 			type === "documentMessage" ? "pdftotal" : null;
 
 		if (mediaTypeField) {
-			// XP gain: text=5, image=8, video=10, sticker=3, doc=5
-			// Caps prevent spam abuse; user must be the *sender* (not just fromMe)
 			const xpGain = (
 				mediaTypeField === "texttotal" ? 5 :
 				mediaTypeField === "imagetotal" ? 8 :
@@ -283,10 +257,8 @@ const getCommand = async (sock, msg, cache) => {
 			}
 		}
 
-		// 4. Return early for non-command sticker and document messages
 		if (!isCmd && (type == "stickerMessage" || type == "documentMessage")) return;
 
-		// 5. Mention bot tag sticker logic
 		if (isCmd && msg.message.extendedTextMessage) {
 			if (
 				msg.message.extendedTextMessage.contextInfo?.mentionedJid?.some(jid => botIdentityJids.includes(jid))
@@ -302,11 +274,9 @@ const getCommand = async (sock, msg, cache) => {
 
 		const senderNumber = senderJid.includes(":") ? senderJid.split(":")[0] : senderJid.split("@")[0];
 
-		// 6. Fetch fully loaded member and group data
 		let senderData = await getMemberData(senderJid);
 		let groupData = isGroup ? await getGroupData(from) : null;
 		
-		// ── BOT OFF CHECK IN GROUPS ──────────────────────────────────────────────────
 		if (isGroup && groupData && groupData.isBotOn === false) {
 			const allowedWhenOff = command.startsWith("group") || command.startsWith("dev") || command === "bot" || isOwner;
 			if (!allowedWhenOff) {
@@ -314,31 +284,26 @@ const getCommand = async (sock, msg, cache) => {
 			}
 		}
 
-		// ── PERMISSIONS ──────────────────────────────────────────────────────────────
 		const groupAdmins = isGroup ? getGroupAdmins(groupMetadata.participants) : [];
 		const isGroupAdmin = isGroup ? (groupAdmins?.includes(senderJid) || false) : false;
 
-		// ── ADMIN ONLY FEATURE ────────────────────────────────────────────────────────
 		if (isGroup && groupData?.adminOnly && !isGroupAdmin && !isOwner && !moderatos.includes(senderNumber)) {
-			// In Admin Only mode, ignore all messages and commands from non-admin users
 			return;
 		}
 
-		// ── ANTI-LINK FEATURE ────────────────────────────────────────────────────────
 		if (isGroup && groupData?.antilink && !isGroupAdmin && !isOwner) {
 			const linkRegex = /chat.whatsapp.com\/([0-9A-Za-z]{20,24})|(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-z]{2,6}(\/[^\s]*)?/gi;
 			if (linkRegex.test(body)) {
 				console.log(`[ANTILINK] Link detected from ${senderJid} in ${groupMetadata.subject}. Deleting...`);
 				try {
 					await sock.sendMessage(from, { delete: msg.key });
-					return; // Stop processing further
+					return;
 				} catch (err) {
 					console.error("[ANTILINK error] Failed to delete message:", err.message);
 				}
 			}
 		}
 
-		// ── NSFW FILTER FEATURE ──────────────────────────────────────────────────────
 		if (isGroup && groupData?.nsfw && type === "imageMessage" && !isGroupAdmin && !isOwner) {
 			try {
 				const buffer = await downloadMediaMessage(msg, "buffer", {});
@@ -348,7 +313,7 @@ const getCommand = async (sock, msg, cache) => {
 						console.log(`[NSFW] Sexually explicit image detected from ${senderJid} in ${groupMetadata.subject}. Deleting...`);
 						await sock.sendMessage(from, { delete: msg.key });
 						await sendMessageWTyping(from, { text: `🚫 NSFW content is not allowed in this group. @${senderJid.split("@")[0]} has been warned.` }, { mentions: [senderJid] });
-						return; // Stop processing
+						return;
 					}
 				}
 			} catch (err) {
@@ -368,10 +333,9 @@ const getCommand = async (sock, msg, cache) => {
 				});
 			}
 		}
-		//-------------------------------------------------------------------------------------------------------------//
+
 		if (senderData?.isBlock) return;
 
-		//--------------------------------------------CHAT-BOT-FEATURE------------------------------------------------//
 		const isChatBotOn = groupData ? groupData.isChatBotOn : false;
 		if (isCmd && isGroup && isChatBotOn && (type == "conversation" || type == "extendedTextMessage")) {
 			let isTaggedBot = false;
@@ -414,13 +378,13 @@ const getCommand = async (sock, msg, cache) => {
 				);
 			}
 		}
-		//---------------------------------------------------NO-CMD----------------------------------------------------//
+
 		if (!isCmd) return;
-		//-------------------------------------------------------------------------------------------------------------//
+
 		sock.readMessages([msg.key]).catch(() => {});
 
 		const msgInfoObj = {
-			prefix,
+			prefix: matchedPrefix,
 			type,
 			content,
 			evv,
@@ -538,30 +502,6 @@ const getCommand = async (sock, msg, cache) => {
 	} catch (error) {
 		console.error("❌ Error processing message:", error.message);
 		console.error("📍 Error stack:", error.stack);
-		console.error(
-			"📝 Message details:",
-			JSON.stringify(
-				{
-					from: msg?.key?.remoteJid,
-					id: msg?.key?.id,
-					fromMe: msg?.key?.fromMe,
-					messageType: Object.keys(msg?.message || {})[0],
-				},
-				null,
-				2
-			)
-		);
-		if (sock && sock.user && msg && msg.key && msg.key.remoteJid) {
-			setTimeout(async () => {
-				try {
-					await sock.sendMessage(msg.key.remoteJid, {
-						text: "❌ Sorry, I encountered an error processing your message. Please try again in a moment.",
-					});
-				} catch (sendError) {
-					console.error("❌ Failed to send error message:", sendError.message);
-				}
-			}, 1000);
-		}
 	}
 };
 

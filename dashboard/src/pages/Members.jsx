@@ -3,24 +3,24 @@ import { getMembers, memberAction } from '../lib/api.js'
 import { useToast } from '../App.jsx'
 
 const SORTS = [
-  { key: 'totalmsg',    label: 'Total Messages' },
-  { key: 'texttotal',   label: 'Text' },
-  { key: 'imagetotal',  label: 'Image' },
-  { key: 'videototal',  label: 'Video' },
-  { key: 'stickertotal',label: 'Sticker' },
-  { key: 'pdftotal',    label: 'PDF' },
+  { key: 'totalmsg', label: 'Total Messages' },
+  { key: 'texttotal', label: 'Text' },
+  { key: 'imagetotal', label: 'Images' },
+  { key: 'videototal', label: 'Videos' },
+  { key: 'stickertotal', label: 'Stickers' },
+  { key: 'pdftotal', label: 'Documents' },
 ]
 
 const LIMIT = 50
 
 export default function Members() {
   const toast = useToast()
-  const [data,    setData]    = useState(null)
+  const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [page,    setPage]    = useState(1)
-  const [sort,    setSort]    = useState('totalmsg')
-  const [order,   setOrder]   = useState('desc')
-  const [search,  setSearch]  = useState('')
+  const [page, setPage] = useState(1)
+  const [sort, setSort] = useState('totalmsg')
+  const [order, setOrder] = useState('desc')
+  const [search, setSearch] = useState('')
   const debounce = useRef(null)
 
   function load(p = page, s = sort, o = order, q = search) {
@@ -51,7 +51,7 @@ export default function Members() {
   async function handleAction(jid, action) {
     try {
       await memberAction(jid, action)
-      toast(`Action applied: ${action}`)
+      toast(`Action applied: ${action}`, true)
       load()
     } catch (err) { toast(err.message, false) }
   }
@@ -64,100 +64,113 @@ export default function Members() {
   const pages = data ? Math.ceil(data.total / LIMIT) : 0
 
   return (
-    <div>
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.025em' }}>Members</h2>
-          <p className="text-muted" style={{ marginTop: '0.25rem' }}>{data ? `${data.total.toLocaleString()} members found` : 'Loading...'}</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>Members Leaderboard</h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+            {data ? `${data.total.toLocaleString()} registered participants` : 'Loading...'}
+          </p>
         </div>
-      </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {SORTS.map(s => (
-            <button 
-              key={s.key} 
-              className={`btn ${sort === s.key ? 'btn-secondary' : 'btn-ghost'}`} 
-              onClick={() => handleSort(s.key)}
-              style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem', border: '1px solid var(--border)' }}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
         <input
-          className="input mobile-w-full"
+          className="input"
           placeholder="Search by JID or name..."
           value={search}
           onChange={e => handleSearch(e.target.value)}
-          style={{ width: '300px', height: '2.5rem' }}
+          style={{ width: '280px' }}
         />
       </div>
 
-      <div className="table-wrap">
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {SORTS.map(s => (
+          <button 
+            key={s.key} 
+            className={`btn ${sort === s.key ? 'btn-primary' : 'btn-secondary'}`} 
+            onClick={() => handleSort(s.key)}
+            style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="table-container">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Loading members...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Loading members...</div>
         ) : !data?.members?.length ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>No members found.</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>No members found.</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>JID</th>
-                <th>Name</th>
+                <th style={{ width: '60px' }}>Rank</th>
+                <th>Participant JID</th>
+                <th>Username</th>
                 {[['totalmsg','Total'],['texttotal','Text'],['imagetotal','Img'],['videototal','Vid'],['stickertotal','Sticker'],['pdftotal','PDF']].map(([f,l]) => (
                   <th key={f} onClick={() => handleSort(f)} style={{ cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>{l} <Arrow field={f} /></div>
                   </th>
                 ))}
                 <th>Status</th>
-                <th>Warns</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {data.members.map(m => (
-                <tr key={m._id} style={{ opacity: m.isBlock ? 0.6 : 1 }}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{m._id.replace('@s.whatsapp.net', '')}</td>
-                  <td className="text-muted">{m.username || '—'}</td>
-                  <td style={{ fontWeight: 500 }}>{m.totalmsg    || 0}</td>
-                  <td>{m.texttotal  || 0}</td>
-                  <td>{m.imagetotal || 0}</td>
-                  <td>{m.videototal || 0}</td>
-                  <td>{m.stickertotal || 0}</td>
-                  <td>{m.pdftotal   || 0}</td>
-                  <td>
-                    <span className={`badge ${m.isBlock ? 'badge-destructive' : 'badge-success'}`}>
-                      {m.isBlock ? 'Blocked' : 'Active'}
-                    </span>
-                  </td>
-                  <td>
-                     {m.warning?.length > 0 ? <span className="text-warning font-medium">{m.warning.length}</span> : 0}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      {m.isBlock
-                        ? <button className="btn btn-secondary" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem' }} onClick={() => handleAction(m._id, 'unblock')}>Unblock</button>
-                        : <button className="btn btn-danger-ghost" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem' }} onClick={() => handleAction(m._id, 'block')}>Block</button>
-                      }
-                      <button className="btn btn-ghost" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem', border: '1px solid var(--border)' }} onClick={() => handleAction(m._id, 'resetWarnings')}>Unwarn</button>
-                      <button className="btn btn-ghost" style={{ height: '1.5rem', fontSize: '0.7rem', padding: '0 0.5rem', border: '1px solid var(--border)' }} onClick={() => handleAction(m._id, 'resetMsgCount')}>Zero</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {data.members.map((m, idx) => {
+                const rank = (page - 1) * LIMIT + idx + 1
+                return (
+                  <tr key={m._id} style={{ opacity: m.isBlock ? 0.6 : 1 }}>
+                    <td style={{ fontWeight: 700, color: rank === 1 ? '#f59e0b' : rank === 2 ? '#9ca3af' : rank === 3 ? '#b45309' : 'var(--text-dim)' }}>
+                      #{rank}
+                    </td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
+                      {m._id.replace('@s.whatsapp.net', '')}
+                    </td>
+                    <td style={{ fontWeight: 500, color: 'var(--text-main)' }}>{m.username || '—'}</td>
+                    <td style={{ fontWeight: 700, color: '#fafafa' }}>{(m.totalmsg || 0).toLocaleString()}</td>
+                    <td>{(m.texttotal || 0).toLocaleString()}</td>
+                    <td>{(m.imagetotal || 0).toLocaleString()}</td>
+                    <td>{(m.videototal || 0).toLocaleString()}</td>
+                    <td>{(m.stickertotal || 0).toLocaleString()}</td>
+                    <td>{(m.pdftotal || 0).toLocaleString()}</td>
+                    <td>
+                      <span className={`badge ${m.isBlock ? 'badge-rose' : 'badge-emerald'}`}>
+                        {m.isBlock ? 'Blocked' : 'Active'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        {m.isBlock
+                          ? <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => handleAction(m._id, 'unblock')}>Unblock</button>
+                          : <button className="btn btn-danger" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => handleAction(m._id, 'block')}>Block</button>
+                        }
+                        <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => handleAction(m._id, 'resetMsgCount')}>Reset</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
       </div>
 
       {pages > 1 && (
-        <div className="pagination">
-          <button disabled={page <= 1} onClick={() => handlePage(page - 1)}>Previous</button>
-          <span>Page {page} of {pages}</span>
-          <button disabled={page >= pages} onClick={() => handlePage(page + 1)}>Next</button>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+          <button className="btn btn-secondary" disabled={page <= 1} onClick={() => handlePage(page - 1)}>
+            Previous
+          </button>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+            Page {page} of {pages}
+          </span>
+          <button className="btn btn-secondary" disabled={page >= pages} onClick={() => handlePage(page + 1)}>
+            Next
+          </button>
         </div>
       )}
+
     </div>
   )
 }

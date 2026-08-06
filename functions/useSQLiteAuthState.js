@@ -1,24 +1,39 @@
 import db from "../sqlite.js";
-import { initAuthCreds, proto } from "baileys";
-import { BufferJSON } from "baileys";
+import { initAuthCreds, proto, BufferJSON } from "baileys";
+
+const authCol = db.db().collection("AuthState");
 
 const useSQLiteAuthState = async () => {
-	const writeData = (data, id) => {
-		const value = JSON.stringify(data, BufferJSON.replacer);
-		db.prepare("INSERT OR REPLACE INTO AuthState (id, value) VALUES (?, ?)").run(id, value);
+	const writeData = async (data, id) => {
+		try {
+			const value = JSON.stringify(data, BufferJSON.replacer);
+			await authCol.updateOne({ _id: id }, { $set: { value } }, { upsert: true });
+		} catch (err) {
+			console.error(`[AuthState write error for ${id}]`, err.message);
+		}
 	};
 
-	const readData = (id) => {
-		const row = db.prepare("SELECT value FROM AuthState WHERE id = ?").get(id);
-		if (!row) return null;
-		return JSON.parse(row.value, BufferJSON.reviver);
+	const readData = async (id) => {
+		try {
+			const row = await authCol.findOne({ _id: id });
+			if (!row || !row.value) return null;
+			return JSON.parse(row.value, BufferJSON.reviver);
+		} catch (err) {
+			console.error(`[AuthState read error for ${id}]`, err.message);
+			return null;
+		}
 	};
 
-	const removeData = (id) => {
-		db.prepare("DELETE FROM AuthState WHERE id = ?").run(id);
+	const removeData = async (id) => {
+		try {
+			await authCol.deleteMany({ _id: id });
+		} catch (err) {
+			console.error(`[AuthState remove error for ${id}]`, err.message);
+		}
 	};
 
-	const creds = readData("creds") || initAuthCreds();
+	const credsData = await readData("creds");
+	const creds = credsData || initAuthCreds();
 
 	return {
 		state: {
@@ -27,7 +42,7 @@ const useSQLiteAuthState = async () => {
 				get: async (type, ids) => {
 					const data = {};
 					for (const id of ids) {
-						let value = readData(`${type}-${id}`);
+						let value = await readData(`${type}-${id}`);
 						if (type === "app-state-sync-key" && value) {
 							value = proto.Message.AppStateSyncKeyData.fromObject(value);
 						}
@@ -40,29 +55,32 @@ const useSQLiteAuthState = async () => {
 						for (const id in data[type]) {
 							const value = data[type][id];
 							if (value) {
-								writeData(value, `${type}-${id}`);
+								await writeData(value, `${type}-${id}`);
 							} else {
-								removeData(`${type}-${id}`);
+								await removeData(`${type}-${id}`);
 							}
 						}
 					}
 				},
 			},
 		},
-		saveCreds: () => {
-			writeData(creds, "creds");
-			console.log("💾 Credentials saved to SQLite");
+		saveCreds: async () => {
+			await writeData(creds, "creds");
+			console.log("💾 WhatsApp credentials saved to AuthState");
 		},
 		cleanup: () => {
-			// No-op for SQLite (connection is shared and managed by sqlite.js)
-			// This function exists to satisfy the getSocket.js cleanup contract
+			// Shared collection manager
 		},
 	};
 };
 
-const clearSQLiteAuthState = () => {
-	db.prepare("DELETE FROM AuthState").run();
-	console.log("🗑️ SQLite Auth State cleared");
+const clearSQLiteAuthState = async () => {
+	try {
+		await authCol.deleteMany({});
+		console.log("🗑️ Auth State cleared");
+	} catch (err) {
+		console.error("[AuthState clear error]", err.message);
+	}
 };
 
 export { useSQLiteAuthState, clearSQLiteAuthState };

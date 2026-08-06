@@ -2,62 +2,51 @@ import session from "express-session";
 import db from "./sqlite.js";
 
 const Store = session.Store;
+const sessionsCol = db.db().collection("Sessions");
 
-class SQLiteSessionStore extends Store {
+class UniversalSessionStore extends Store {
 	constructor() {
 		super();
-		// The db is the better-sqlite3 instance from sqlite.js
-		db.exec(`
-            CREATE TABLE IF NOT EXISTS Sessions (
-                sid TEXT PRIMARY KEY,
-                sess TEXT NOT NULL,
-                expire INTEGER NOT NULL
-            )
-        `);
-
-		// Periodic cleanup of expired sessions
-		setInterval(() => {
-			try {
-				db.prepare("DELETE FROM Sessions WHERE expire < ?").run(Date.now());
-			} catch (err) {
-				console.error("Session cleanup error:", err);
-			}
-		}, 3600000); // Every hour
 	}
 
-	get(sid, cb) {
+	async get(sid, cb) {
 		try {
-			const row = db.prepare("SELECT sess FROM Sessions WHERE sid = ? AND expire > ?").get(sid, Date.now());
-			if (!row) return cb(null, null);
-			cb(null, JSON.parse(row.sess));
+			const doc = await sessionsCol.findOne({ _id: sid });
+			if (!doc || doc.expire < Date.now()) return cb(null, null);
+			const sessData = typeof doc.sess === "string" ? JSON.parse(doc.sess) : doc.sess;
+			cb(null, sessData);
 		} catch (err) {
 			cb(err);
 		}
 	}
 
-	set(sid, sess, cb) {
+	async set(sid, sess, cb) {
 		try {
 			const expire = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
-			db.prepare("INSERT OR REPLACE INTO Sessions (sid, sess, expire) VALUES (?, ?, ?)").run(sid, JSON.stringify(sess), expire);
+			await sessionsCol.updateOne(
+				{ _id: sid },
+				{ $set: { sess: JSON.stringify(sess), expire } },
+				{ upsert: true }
+			);
 			cb(null);
 		} catch (err) {
 			cb(err);
 		}
 	}
 
-	destroy(sid, cb) {
+	async destroy(sid, cb) {
 		try {
-			db.prepare("DELETE FROM Sessions WHERE sid = ?").run(sid);
+			await sessionsCol.deleteMany({ _id: sid });
 			cb(null);
 		} catch (err) {
 			cb(err);
 		}
 	}
 
-	touch(sid, sess, cb) {
+	async touch(sid, sess, cb) {
 		try {
 			const expire = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
-			db.prepare("UPDATE Sessions SET expire = ? WHERE sid = ?").run(expire, sid);
+			await sessionsCol.updateOne({ _id: sid }, { $set: { expire } });
 			cb(null);
 		} catch (err) {
 			cb(err);
@@ -65,4 +54,4 @@ class SQLiteSessionStore extends Store {
 	}
 }
 
-export default SQLiteSessionStore;
+export default UniversalSessionStore;

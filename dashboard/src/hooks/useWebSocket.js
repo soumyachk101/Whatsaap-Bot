@@ -1,36 +1,30 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getHealth } from '../lib/api.js'
 
 export function useWebSocket() {
-  const [status, setStatus] = useState('disconnected')
-  const wsRef = useRef(null)
+  const [status, setStatus] = useState('connected')
 
   useEffect(() => {
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${proto}//${location.host}`
-    let ws
+    let isMounted = true
 
-    function connect() {
-      ws = new WebSocket(url)
-      wsRef.current = ws
-
-      ws.onopen  = () => setStatus('connected')
-      ws.onclose = () => { setStatus('disconnected'); setTimeout(connect, 5000) }
-      ws.onerror = () => { setStatus('disconnected') }
-
-      ws.onmessage = (evt) => {
-        try {
-          const data = JSON.parse(evt.data)
-          if (data.type === 'status') {
-            setStatus(data.status === 'connected' ? 'connected' : 'disconnected')
+    const checkStatus = () => {
+      getHealth()
+        .then(res => {
+          if (isMounted) {
+            setStatus(res && res.connected !== false ? 'connected' : 'disconnected')
           }
-        } catch (_) {}
-      }
+        })
+        .catch(() => {
+          if (isMounted) setStatus('disconnected')
+        })
     }
 
-    connect()
+    checkStatus()
+    const interval = setInterval(checkStatus, 10000) // Poll every 10s smoothly
+
     return () => {
-      ws.onclose = null
-      ws.close()
+      isMounted = false
+      clearInterval(interval)
     }
   }, [])
 
