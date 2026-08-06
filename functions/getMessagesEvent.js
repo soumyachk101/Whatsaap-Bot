@@ -281,7 +281,7 @@ const getCommand = async (sock, msg, cache) => {
 		let senderData = await getMemberData(senderJid);
 		let groupData = isGroup ? await getGroupData(from) : null;
 		
-		if (isGroup && groupData && groupData.isBotOn === false) {
+		if (isGroup && (!groupData || groupData.isBotOn === false)) {
 			const allowedWhenOff = command.startsWith("group") || command.startsWith("dev") || command === "bot" || isOwner;
 			if (!allowedWhenOff) {
 				return;
@@ -436,7 +436,7 @@ const getCommand = async (sock, msg, cache) => {
 		if (!isRegisteredCmd) return;
 
 		if (isGroup) {
-			let resBotOn = groupData ? groupData.isBotOn !== false : true;
+			let resBotOn = groupData ? groupData.isBotOn === true : false;
 			if (resBotOn == false && !(command.startsWith("group") || command.startsWith("dev") || command === "bot")) {
 				return;
 			}

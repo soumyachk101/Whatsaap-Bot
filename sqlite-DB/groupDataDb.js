@@ -77,7 +77,7 @@ const createGroupData = async (groupJid, groupMetadata) => {
 		if (res == null || res === -1) {
 			const newDoc = {
 				_id: groupJid,
-				isBotOn: true,
+				isBotOn: false,
 				isImgOn: false,
 				isChatBotOn: false,
 				is91Only: false,
