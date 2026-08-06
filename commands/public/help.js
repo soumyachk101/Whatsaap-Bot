@@ -50,8 +50,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			seen.add(primary);
 			const shortAliases = c.cmd.slice(1, 3).map(a => `${prefix}${a}`).join(" ");
 			const aliasStr = shortAliases ? ` _(${shortAliases})_` : "";
-			const descStr = c.desc ? ` - ${c.desc}` : "";
-			lines.push(`  ▸ \`${prefix}${primary}\`${aliasStr}${descStr}`);
+			
+			lines.push(`  ▸ \`${prefix}${primary}\`${aliasStr}`);
+			if (c.desc) {
+				lines.push(`    └ _${c.desc}_`);
+			}
 		}
 		return lines.join("\n");
 	};
