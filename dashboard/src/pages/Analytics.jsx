@@ -51,10 +51,10 @@ const CustomGlassTooltip = ({ active, payload, label }) => {
         background: 'rgba(9, 9, 13, 0.94)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255, 255, 255, 0.18)',
-        borderRadius: '10px',
-        padding: '0.75rem 1rem',
-        boxShadow: '0 12px 30px -5px rgba(0, 0, 0, 0.8), 0 0 15px rgba(56, 189, 248, 0.15)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        padding: '0.85rem 1.1rem',
+        boxShadow: '0 12px 32px -5px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.03)',
         color: '#fff',
         minWidth: '150px',
       }}>
@@ -311,21 +311,27 @@ export default function Analytics() {
           <ResponsiveContainer width="100%" height="100%">
             {chartType === 'area' ? (
               <AreaChart data={topGroups.slice(0, 8)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} />
-                <Area type="monotone" dataKey="messages" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#cyanG)" />
+                <defs>
+                  <filter id="glow1" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
+                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '3 3' }} />
+                <Area type="monotone" dataKey="messages" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#cyanG)" filter="url(#glow1)" />
               </AreaChart>
             ) : chartType === 'bar' ? (
               <BarChart data={topGroups.slice(0, 8)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
-                <Bar dataKey="messages" radius={[8, 8, 0, 0]} barSize={28}>
+                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
+                <Bar dataKey="messages" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }}>
                   {topGroups.slice(0, 8).map((_, i) => (
-                    <Cell key={i} fill={PALETTE[i % PALETTE.length].main} />
+                    <Cell key={i} fill={`url(#${PALETTE[i % PALETTE.length].gradId})`} />
                   ))}
                 </Bar>
               </BarChart>
@@ -398,14 +404,15 @@ export default function Analytics() {
                     data={typeData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={75}
-                    outerRadius={105}
+                    innerRadius={80}
+                    outerRadius={110}
                     dataKey="value"
-                    paddingAngle={5}
+                    paddingAngle={6}
                     stroke="none"
+                    cornerRadius={8}
                   >
                     {typeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={`url(#${entry.gradId})`} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomGlassTooltip />} />
@@ -423,13 +430,13 @@ export default function Analytics() {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={typeData} margin={{ top: 10, right: 15, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={32}>
+                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }}>
                   {typeData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
+                    <Cell key={index} fill={`url(#${entry.gradId})`} />
                   ))}
                 </Bar>
               </BarChart>
@@ -475,13 +482,13 @@ export default function Analytics() {
           <div style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topMembers.slice(0, 10)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
-                <Bar dataKey="messages" name="Total Messages" radius={[8, 8, 0, 0]} barSize={26}>
+                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
+                <Bar dataKey="messages" name="Total Messages" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }}>
                   {topMembers.slice(0, 10).map((_, i) => (
-                    <Cell key={i} fill={PALETTE[i % PALETTE.length].main} />
+                    <Cell key={i} fill={`url(#${PALETTE[i % PALETTE.length].gradId})`} />
                   ))}
                 </Bar>
               </BarChart>
@@ -491,14 +498,14 @@ export default function Analytics() {
           <div style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topMembers.slice(0, 10)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
-                <Bar dataKey="text" name="Text Messages" stackId="a" fill="#38bdf8" radius={[0, 0, 4, 4]} barSize={26} />
-                <Bar dataKey="image" name="Images" stackId="a" fill="#34d399" />
-                <Bar dataKey="video" name="Videos" stackId="a" fill="#fb7185" />
-                <Bar dataKey="sticker" name="Stickers" stackId="a" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
+                <Bar dataKey="text" name="Text Messages" stackId="a" fill="url(#cyanG)" radius={[0, 0, 4, 4]} barSize={24} />
+                <Bar dataKey="image" name="Images" stackId="a" fill="url(#emeraldG)" />
+                <Bar dataKey="video" name="Videos" stackId="a" fill="url(#roseG)" />
+                <Bar dataKey="sticker" name="Stickers" stackId="a" fill="url(#amberG)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
