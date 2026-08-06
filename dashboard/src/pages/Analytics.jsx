@@ -322,7 +322,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
                 <Bar dataKey="messages" radius={[8, 8, 0, 0]} barSize={28}>
                   {topGroups.slice(0, 8).map((_, i) => (
                     <Cell key={i} fill={PALETTE[i % PALETTE.length].main} />
@@ -426,7 +426,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={32}>
                   {typeData.map((entry, index) => (
                     <Cell key={index} fill={entry.color} />
@@ -478,7 +478,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
                 <Bar dataKey="messages" name="Total Messages" radius={[8, 8, 0, 0]} barSize={26}>
                   {topMembers.slice(0, 10).map((_, i) => (
                     <Cell key={i} fill={PALETTE[i % PALETTE.length].main} />
@@ -494,7 +494,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomGlassTooltip />} />
+                <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', rx: 4, ry: 4 }} />
                 <Bar dataKey="text" name="Text Messages" stackId="a" fill="#38bdf8" radius={[0, 0, 4, 4]} barSize={26} />
                 <Bar dataKey="image" name="Images" stackId="a" fill="#34d399" />
                 <Bar dataKey="video" name="Videos" stackId="a" fill="#fb7185" />

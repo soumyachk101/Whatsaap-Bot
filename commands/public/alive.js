@@ -27,11 +27,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		const response =
 `╭━━━━━━━━━━━━━━━━━━━━━━╮
-┃  ⚙️ *ENGINE STATUS*  ⚙️
+┃  🎾 *ENGINE STATUS*
 ┃  DownloadBuddy System
 ╰━━━━━━━━━━━━━━━━━━━━━━╯
 
-👤 *Greetings, ${userName}!*
+👤 *Greetings, @${senderJid.split('@')[0]}!*
 
 📉 *PERFORMANCE METRICS*
 ╭────────────────────────
@@ -47,7 +47,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 │ 📌 \`#help\` to view all commands
 ╰──────────────────────╯`;
 
-		return sendMessageWTyping(from, { text: response }, { quoted: msg });
+		return sendMessageWTyping(from, { text: response, mentions: [senderJid] }, { quoted: msg });
 	} catch (err) {
 		console.error("Alive command error:", err);
 		return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
