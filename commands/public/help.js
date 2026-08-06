@@ -22,18 +22,18 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const usage = found.usage ? `${prefix}${found.usage}` : `${prefix}${cmdName}`;
 
 			const info =
-`🎀 *Command Info* 🎀
-
-🌸 *Name:* \`${prefix}${cmdName}\`
-📝 *Description:* ${desc}
-🪄 *Usage:* \`${usage}\`${aliases ? `\n🏷️ *Aliases:* ${aliases}` : ""}
-
-✨ *Hope this helps!* ✨`;
+`╭─── *COMMAND INFO* ───╮
+│
+│  📌 *Command:* \`${prefix}${cmdName}\`
+│  📝 *Description:* ${desc}
+│  💡 *Usage:* \`${usage}\`${aliases ? `\n│  🏷️ *Aliases:* ${aliases}` : ""}
+│
+╰──────────────────────╯`;
 
 			return await sendMessageWTyping(from, { text: info }, { quoted: msg });
 		} else {
 			return await sendMessageWTyping(from, {
-				text: `🥺 Oopsie! Command \`${prefix}${targetCmd}\` not found.\n\nType \`${prefix}help\` to see the magic menu! ✨`
+				text: `❌ Command \`${prefix}${targetCmd}\` not found.\n\nType \`${prefix}help\` to see all available commands.`
 			}, { quoted: msg });
 		}
 	}
@@ -50,7 +50,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			seen.add(primary);
 			const shortAliases = c.cmd.slice(1, 3).map(a => `${prefix}${a}`).join(" ");
 			const aliasStr = shortAliases ? ` _(${shortAliases})_` : "";
-			lines.push(` 🍡 \`${prefix}${primary}\`${aliasStr}`);
+			const descStr = c.desc ? ` - ${c.desc}` : "";
+			lines.push(`  ▸ \`${prefix}${primary}\`${aliasStr}${descStr}`);
 		}
 		return lines.join("\n");
 	};
@@ -82,14 +83,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	const sectionHeaders = {
-		downloader: "📥 *Download & Media* 📥",
-		ai:         "🤖 *AI & Magic* 🪄",
-		sticker:    "🎨 *Stickers & Art* 🎨",
-		search:     "🔍 *Search & Explore* 🌍",
-		utility:    "🛠️ *Tools & Utility* ⚙️",
-		fun:        "🎮 *Fun & Games* 🧸",
-		system:     "⚙️ *System Info* 💻",
-		other:      "📁 *Other Stuffs* 🌈",
+		downloader: "📥  *DOWNLOADERS & MEDIA*",
+		ai:         "🤖  *AI & CHATBOT*",
+		sticker:    "🎨  *STICKER & CREATIVE*",
+		search:     "🔍  *SEARCH & INFO*",
+		utility:    "🛠️  *UTILITIES & TOOLS*",
+		fun:        "🎮  *FUN & SOCIAL*",
+		system:     "⚙️  *SYSTEM & BOT INFO*",
+		other:      "📁  *OTHER COMMANDS*",
 	};
 
 	let sections = [];
@@ -102,41 +103,40 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	}
 
+	// Admin commands (show only in groups)
 	if (isGroup && adminCommands.length > 0) {
-		seen.clear();
+		seen.clear(); // reset for admin section
 		const adminList = formatCmdList(adminCommands);
 		if (adminList.trim()) {
-			sections.push(`🔐 *Group Admins Only* 👑\n${adminList}`);
+			sections.push(`🔐  *GROUP ADMIN*\n${adminList}`);
 		}
 	}
 
+	// Owner commands (show only in groups)
 	if (isGroup && ownerCommands.length > 0) {
 		seen.clear();
 		const ownerList = formatCmdList(ownerCommands);
 		if (ownerList.trim()) {
-			sections.push(`💖 *Bot Owner Only* 💖\n${ownerList}`);
+			sections.push(`👑  *BOT OWNER*\n${ownerList}`);
 		}
 	}
 
 	const totalCount = allUserCmds.length + adminCommands.length + ownerCommands.length;
-	const userName = updateName || senderJid.split("@")[0];
 
 	const menu =
-`✨ *DownloadBuddy OG* ✨
+`╭━━━━━━━━━━━━━━━━━━━━━━╮
+┃  ✨ *DOWNLOADBUDDY*  ✨
+┃  WhatsApp Bot Menu
+╰━━━━━━━━━━━━━━━━━━━━━━╯
 
-Hii ${userName}! 🌸 Welcome to my menu~
-Here are all the magical things I can do for you! 🥰
-
-🎀 *Quick Stats:*
-  • *Prefix:* \`${prefix}\`
-  • *Commands:* \`${totalCount} Total\`
-  • *Status:* \`Happy & Online\` 💖
+📊 *Prefix:* \`${prefix}\`  ⚡ *Commands:* \`${totalCount}\`
 
 ${sections.join("\n\n")}
 
-🎈 *Pro Tip:*
-  Type \`${prefix}help <cmd>\` to learn more about a command!
-  E.g. \`${prefix}help sticker\` ✨`;
+╭──────────────────────╮
+│ 💡 \`${prefix}help <cmd>\` for details
+│ 📞 \`${prefix}dev\` for contact
+╰──────────────────────╯`;
 
 	await sendMessageWTyping(from, { text: menu }, { quoted: msg });
 };

@@ -451,6 +451,35 @@ class Collection {
         }
         return { deletedCount };
     }
+
+    async bulkWrite(ops, options = {}) {
+        if (mongoDbInstance) {
+            try {
+                return await mongoDbInstance.collection(this.tableName).bulkWrite(ops, options);
+            } catch (err) {
+                console.error(`[Mongo bulkWrite error in ${this.tableName}]`, err.message);
+            }
+        }
+
+        // SQLite Fallback
+        let matchedCount = 0;
+        let modifiedCount = 0;
+        let deletedCount = 0;
+
+        sqliteDb.transaction(async () => {
+            for (const op of ops) {
+                if (op.updateOne) {
+                    const res = await this.updateOne(op.updateOne.filter, op.updateOne.update, { upsert: op.updateOne.upsert });
+                    if (res && res.matchedCount) matchedCount += res.matchedCount;
+                } else if (op.deleteOne) {
+                    const res = await this.deleteMany(op.deleteOne.filter); // deletes one because id is unique
+                    if (res && res.deletedCount) deletedCount += res.deletedCount;
+                }
+            }
+        })();
+
+        return { matchedCount, modifiedCount, deletedCount };
+    }
 }
 
 const db = {

@@ -26,24 +26,31 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			: `${Math.round(responseTime)}ms`;
 
 		const response =
-`🎀 *DownloadBuddy Status* 🎀
+`╭━━━━━━━━━━━━━━━━━━━━━━╮
+┃  ⚙️ *ENGINE STATUS*  ⚙️
+┃  DownloadBuddy System
+╰━━━━━━━━━━━━━━━━━━━━━━╯
 
-Hiii ${userName}! 🥰 I'm feeling great today!
+👤 *Greetings, ${userName}!*
 
-✨ *How I'm Doing Right Now:* ✨
-  • 🟢 *Status:* \`Happy & Online\` 💖
-  • ⚡ *Speed (Latency):* \`${formattedLatency}\` 🚀
-  • ⏱️ *Awake For:* \`${simpleUptime}\` ☀️
-  • 🧠 *Brain Power (RAM):* \`${usedMB}MB / ${totalMB}MB\` 🍭
-  • 💻 *Heart (CPU):* \`${cpu}\`
-  • 🌍 *Home (Platform):* \`${platform}\`
+📉 *PERFORMANCE METRICS*
+╭────────────────────────
+│ 🟢 *Status:* \`ONLINE & READY\`
+│ 📡 *Latency:* \`${formattedLatency}\`
+│ ⏳ *Uptime:* \`${simpleUptime}\`
+│ 💾 *Memory:* \`${usedMB}MB / ${totalMB}MB\`
+│ 🛠️ *CPU Core:* \`${cpu}\`
+│ 🖥️ *Platform:* \`${platform}\`
+╰────────────────────────
 
-🎈 Type \`#help\` to see what we can do together! 🥰`;
+╭──────────────────────╮
+│ 📌 \`#help\` to view all commands
+╰──────────────────────╯`;
 
 		return sendMessageWTyping(from, { text: response }, { quoted: msg });
 	} catch (err) {
 		console.error("Alive command error:", err);
-		return sendMessageWTyping(from, { text: `🥺 Oopsie! Error: ${err.message}` }, { quoted: msg });
+		return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
 	}
 };
 
