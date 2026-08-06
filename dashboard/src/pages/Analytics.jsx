@@ -7,11 +7,11 @@ import {
 import { getAnalytics } from '../lib/api.js'
 
 const PALETTE = [
-  { name: 'Cyan', main: '#38bdf8', light: '#7dd3fc', dark: '#0284c7', gradId: 'cyanG' },
-  { name: 'Emerald', main: '#34d399', light: '#6ee7b7', dark: '#059669', gradId: 'emeraldG' },
-  { name: 'Rose', main: '#fb7185', light: '#fecdd3', dark: '#e11d48', gradId: 'roseG' },
-  { name: 'Amber', main: '#fbbf24', light: '#fde68a', dark: '#d97706', gradId: 'amberG' },
-  { name: 'Purple', main: '#c084fc', light: '#e9d5ff', dark: '#7e22ce', gradId: 'purpleG' },
+  { name: 'Electric Blue', main: '#00f2fe', gradId: 'electricG' },
+  { name: 'Neon Violet', main: '#b224ef', gradId: 'violetG' },
+  { name: 'Cyber Teal', main: '#00f2c3', gradId: 'tealG' },
+  { name: 'Sunset Gold', main: '#f6d365', gradId: 'goldG' },
+  { name: 'Crimson Red', main: '#ff0844', gradId: 'crimsonG' },
 ]
 
 function MetricTile({ title, value, subtext, iconClass, icon, badge, highlightColor }) {
@@ -133,11 +133,11 @@ export default function Analytics() {
   const mediaPct = totalMessages ? Math.round((mediaTotal / totalMessages) * 100) : 0
 
   const typeData = [
-    { name: 'Text Messages', value: typeBreakdown.text, color: '#38bdf8', icon: '💬', gradId: 'cyanG' },
-    { name: 'Images', value: typeBreakdown.image, color: '#34d399', icon: '🖼️', gradId: 'emeraldG' },
-    { name: 'Videos', value: typeBreakdown.video, color: '#fb7185', icon: '🎥', gradId: 'roseG' },
-    { name: 'Stickers', value: typeBreakdown.sticker, color: '#fbbf24', icon: '🎭', gradId: 'amberG' },
-    { name: 'Documents / PDFs', value: typeBreakdown.pdf, color: '#c084fc', icon: '📄', gradId: 'purpleG' },
+    { name: 'Text Messages', value: typeBreakdown.text, color: '#00f2fe', icon: '💬', gradId: 'electricG' },
+    { name: 'Images', value: typeBreakdown.image, color: '#b224ef', icon: '🖼️', gradId: 'violetG' },
+    { name: 'Videos', value: typeBreakdown.video, color: '#ff0844', icon: '🎥', gradId: 'crimsonG' },
+    { name: 'Stickers', value: typeBreakdown.sticker, color: '#f6d365', icon: '🎭', gradId: 'goldG' },
+    { name: 'Documents / PDFs', value: typeBreakdown.pdf, color: '#00f2c3', icon: '📄', gradId: 'tealG' },
   ].filter(d => d.value > 0)
 
   const radarData = [
@@ -153,25 +153,25 @@ export default function Analytics() {
       {/* SVG Gradient definitions */}
       <svg style={{ height: 0, width: 0, position: 'absolute' }}>
         <defs>
-          <linearGradient id="cyanG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.85} />
-            <stop offset="100%" stopColor="#818cf8" stopOpacity={0.08} />
+          <linearGradient id="electricG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#00f2fe" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#4facfe" stopOpacity={0.1} />
           </linearGradient>
-          <linearGradient id="emeraldG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#34d399" stopOpacity={0.85} />
-            <stop offset="100%" stopColor="#059669" stopOpacity={0.08} />
+          <linearGradient id="violetG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#b224ef" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#7579ff" stopOpacity={0.1} />
           </linearGradient>
-          <linearGradient id="purpleG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#c084fc" stopOpacity={0.85} />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.08} />
+          <linearGradient id="tealG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#00f2c3" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#0098f0" stopOpacity={0.1} />
           </linearGradient>
-          <linearGradient id="roseG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fb7185" stopOpacity={0.85} />
-            <stop offset="100%" stopColor="#e11d48" stopOpacity={0.08} />
+          <linearGradient id="crimsonG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ff0844" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#ffb199" stopOpacity={0.1} />
           </linearGradient>
-          <linearGradient id="amberG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.85} />
-            <stop offset="100%" stopColor="#d97706" stopOpacity={0.08} />
+          <linearGradient id="goldG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f6d365" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#fda085" stopOpacity={0.1} />
           </linearGradient>
         </defs>
       </svg>
@@ -221,7 +221,7 @@ export default function Analytics() {
           subtext="Messages processed"
           iconClass="icon-box-cyan"
           badge="Live"
-          highlightColor="#38bdf8"
+          highlightColor="#00f2fe"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
         />
         <MetricTile
@@ -229,7 +229,7 @@ export default function Analytics() {
           value={`${activeGroups} / ${totalGroups}`}
           subtext={`${totalGroups ? Math.round((activeGroups / totalGroups) * 100) : 0}% Active Rate`}
           iconClass="icon-box-emerald"
-          highlightColor="#34d399"
+          highlightColor="#00f2c3"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>}
         />
         <MetricTile
@@ -237,7 +237,7 @@ export default function Analytics() {
           value={totalMembers.toLocaleString()}
           subtext="Unique WhatsApp users"
           iconClass="icon-box-purple"
-          highlightColor="#c084fc"
+          highlightColor="#b224ef"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>}
         />
         <MetricTile
@@ -245,7 +245,7 @@ export default function Analytics() {
           value={blockedMembers.toLocaleString()}
           subtext="Blocked users"
           iconClass="icon-box-amber"
-          highlightColor="#fbbf24"
+          highlightColor="#ff0844"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>}
         />
       </div>
@@ -258,19 +258,19 @@ export default function Analytics() {
             <p className="text-muted" style={{ fontSize: '0.75rem' }}>Real-time Text vs Rich Media balance</p>
           </div>
           <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.825rem' }}>
-            <span style={{ color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8' }} />
+            <span style={{ color: '#00f2fe', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00f2fe' }} />
               💬 Text: {textPct}% ({textTotal.toLocaleString()})
             </span>
-            <span style={{ color: '#c084fc', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#c084fc' }} />
+            <span style={{ color: '#b224ef', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#b224ef' }} />
               🖼️ Media: {mediaPct}% ({mediaTotal.toLocaleString()})
             </span>
           </div>
         </div>
         <div style={{ height: '0.85rem', width: '100%', background: 'rgba(255,255,255,0.04)', borderRadius: '9999px', overflow: 'hidden', display: 'flex', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ width: `${textPct}%`, background: 'linear-gradient(90deg, #38bdf8, #818cf8)', transition: 'width 0.8s ease' }} />
-          <div style={{ width: `${mediaPct}%`, background: 'linear-gradient(90deg, #c084fc, #f472b6)', transition: 'width 0.8s ease' }} />
+          <div style={{ width: `${textPct}%`, background: 'linear-gradient(90deg, #00f2fe, #4facfe)', transition: 'width 0.8s ease' }} />
+          <div style={{ width: `${mediaPct}%`, background: 'linear-gradient(90deg, #b224ef, #7579ff)', transition: 'width 0.8s ease' }} />
         </div>
       </div>
 
@@ -321,7 +321,7 @@ export default function Analytics() {
                 <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
                 <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
                 <Tooltip content={<CustomGlassTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                <Area type="monotone" dataKey="messages" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#cyanG)" filter="url(#glow1)" />
+                <Area type="monotone" dataKey="messages" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#electricG)" filter="url(#glow1)" />
               </AreaChart>
             ) : chartType === 'bar' ? (
               <BarChart data={topGroups.slice(0, 8)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
@@ -340,7 +340,7 @@ export default function Analytics() {
                 <PolarGrid stroke="rgba(255,255,255,0.1)" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 12, fontWeight: 600 }} />
                 <PolarRadiusAxis stroke="rgba(255,255,255,0.1)" />
-                <Radar name="Messages" dataKey="A" stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.4} />
+                <Radar name="Messages" dataKey="A" stroke="#00f2fe" fill="#00f2fe" fillOpacity={0.4} />
                 <Tooltip content={<CustomGlassTooltip />} />
               </RadarChart>
             )}
@@ -502,10 +502,10 @@ export default function Analytics() {
                 <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
                 <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
                 <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
-                <Bar dataKey="text" name="Text Messages" stackId="a" fill="url(#cyanG)" radius={[0, 0, 4, 4]} barSize={24} />
-                <Bar dataKey="image" name="Images" stackId="a" fill="url(#emeraldG)" />
-                <Bar dataKey="video" name="Videos" stackId="a" fill="url(#roseG)" />
-                <Bar dataKey="sticker" name="Stickers" stackId="a" fill="url(#amberG)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="text" name="Text Messages" stackId="a" fill="url(#electricG)" radius={[0, 0, 4, 4]} barSize={24} />
+                <Bar dataKey="image" name="Images" stackId="a" fill="url(#violetG)" />
+                <Bar dataKey="video" name="Videos" stackId="a" fill="url(#crimsonG)" />
+                <Bar dataKey="sticker" name="Stickers" stackId="a" fill="url(#goldG)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
