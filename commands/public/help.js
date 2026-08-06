@@ -36,6 +36,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"transcribe", "tr2", "voice2text", "vtt"
 		],
 		"📥  *ᴅᴏᴡɴʟᴏᴀᴅᴇʀs*": [
+			"download", "dl", "d",
 			"fb", "facebook", "fbdl",
 			"mp3", "audio", 
 			"mp4", "video", 
@@ -62,7 +63,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			"gen2", "genimg2", "flashgen",
 			"nsfw"
 		],
-		"🛠️  *ᴜᴛɪʟɪᴛɪᴇs*": [
+		"🛠️  *ᴜᴛɪ🇱ɪᴛɪᴇs*": [
 			"calc", "calculate", 
 			"tr", "translate", 
 			"weather", "w", 

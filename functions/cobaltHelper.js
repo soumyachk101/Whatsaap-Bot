@@ -7,6 +7,8 @@ import { exec } from "child_process";
 import snapsave from "snapsave-downloader";
 import memoryManager from "./memoryUtils.js";
 
+import ffmpegPath from "ffmpeg-static";
+
 const pipeline = promisify(stream.pipeline);
 
 /**
@@ -37,8 +39,14 @@ export const downloadWithYtDlp = (url, outputDir = null, audioOnly = false) => {
             ? `--no-playlist --max-filesize 50M -f bestaudio --extract-audio --audio-format mp3 -o "${tempFile}" "${url}"`
             : `--no-playlist --max-filesize 50M -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "${tempFile}" "${url}"`;
 
+        const env = { ...process.env };
+        if (ffmpegPath) {
+            const ffmpegDir = path.dirname(ffmpegPath);
+            env.PATH = `${ffmpegDir}${path.delimiter}${env.PATH || ""}`;
+        }
+
         console.log(`[yt-dlp Fallback] Running yt-dlp for ${url}...`);
-        exec(`yt-dlp ${args}`, { timeout: 60000 }, (err) => {
+        exec(`yt-dlp ${args}`, { timeout: 60000, env }, (err) => {
             if (err || !fs.existsSync(tempFile) || fs.statSync(tempFile).size === 0) {
                 if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
                 return reject(err || new Error("yt-dlp produced an empty file"));
@@ -111,12 +119,13 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 
     // Ordered list of working instances
     const instances = [
+        "https://api.cobalt.tools",
+        "https://cobalt.kwiatekmom.tokyo",
         "https://imputcobalt-api-production-dda7.up.railway.app",
         "https://dog.kittycat.boo",
         "https://rue-cobalt.xenon.zone",
         "https://cobaltapi.cjs.nz",
-        "https://cobalt.api.scie.nz",
-        "https://cobalt.kwiatekmom.tokyo"
+        "https://cobalt.api.scie.nz"
     ];
 
     if (baseApiUrl && !instances.includes(baseApiUrl)) {

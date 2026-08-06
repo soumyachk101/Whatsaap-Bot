@@ -6,10 +6,13 @@ import { downloadViaCobalt } from "../../../functions/cobaltHelper.js";
 const findSongURL = async (name) => {
 	try {
 		const r = await yts(`${name}`);
-		if (!r.videos || r.videos.length === 0) {
-			throw new Error("No results found");
+		if (r && Array.isArray(r.videos) && r.videos.length > 0) {
+			return r.videos[0];
 		}
-		return r.videos[0];
+		if (r && r.type === "video") {
+			return r;
+		}
+		throw new Error("No results found");
 	} catch (error) {
 		console.error("Search error:", error);
 		throw new Error("Failed to search for song");
@@ -17,7 +20,7 @@ const findSongURL = async (name) => {
 };
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { evv, command, sendMessageWTyping } = msgInfoObj;
+	const { evv, prefix, sendMessageWTyping } = msgInfoObj;
 
 	let songQuery = evv ? evv.trim() : "";
 	if (!songQuery && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
@@ -28,7 +31,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (!songQuery) {
 		return sendMessageWTyping(
 			from,
-			{ text: `❌ *Please enter a song name or YouTube link!*\n\nExample: \`-song Kesariya\` or reply to a link/name.` },
+			{ text: `❌ *Please enter a song name or audio link!*\n\nExample: \`${prefix}song Kesariya\` or reply to a song link/name.` },
 			{ quoted: msg }
 		);
 	}
@@ -40,7 +43,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		let URL = "";
 		let title = "Audio Track";
 		let durationText = "";
-		let authorName = "";
 
 		const isDirectUrl = songQuery.startsWith("http://") || songQuery.startsWith("https://");
 
@@ -52,17 +54,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				URL = videoInfo.url;
 				title = videoInfo.title || songQuery;
 				durationText = videoInfo.timestamp ? ` (${videoInfo.timestamp})` : "";
-				authorName = videoInfo.author?.name ? `\n👤 Artist: _${videoInfo.author.name}_` : "";
-				console.log("Found URL:", URL);
 			} catch (searchError) {
 				console.error("Search failed:", searchError);
 				return sendMessageWTyping(from, { text: `❌ No songs found for: *${songQuery}*` }, { quoted: msg });
 			}
 		}
 
-		await sendMessageWTyping(from, { text: `🔎 *Searching & Downloading...*\n🎵 *${title}*${durationText}` }, { quoted: msg });
+		await sendMessageWTyping(from, { text: `🔎 *Downloading Audio...*\n🎵 *${title}*${durationText}` }, { quoted: msg });
 
-		// Download using Cobalt API (with yt-dlp fallback)
 		const downloadedPaths = await downloadViaCobalt(URL, null, true);
 
 		if (!downloadedPaths || downloadedPaths.length === 0) {
@@ -85,9 +84,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			throw new Error(`Audio file too large: ${fileSizeMB.toFixed(2)}MB (max 50MB)`);
 		}
 
-		console.log(`Audio ready: ${fileSizeMB.toFixed(2)}MB - ${title}`);
-
-		// Send audio file (pass file path string so sendMessageWTyping reads it to Buffer)
 		await sendMessageWTyping(
 			from,
 			{
@@ -97,7 +93,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			},
 			{ quoted: msg }
 		);
-		console.log("Audio sent successfully");
 	} catch (err) {
 		console.error("Song download error:", err);
 		await sendMessageWTyping(from, { text: `❌ Failed to download song: ${err.message}` }, { quoted: msg });
@@ -110,7 +105,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 export default () => ({
 	cmd: ["song", "play"],
-	desc: "Download song",
-	usage: "song | play | song [song name]",
+	desc: "Download song audio",
+	usage: "song <song name or link>",
 	handler,
 });

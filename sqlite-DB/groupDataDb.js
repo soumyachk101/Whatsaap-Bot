@@ -59,7 +59,7 @@ const createGroupData = async (groupJid, groupMetadata) => {
 		if (res == null) {
 			await group.insertOne({
 				_id: groupJid,
-				isBotOn: false,
+				isBotOn: true,
 				isImgOn: false,
 				isChatBotOn: false,
 				is91Only: false,

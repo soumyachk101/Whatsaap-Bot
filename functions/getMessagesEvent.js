@@ -450,29 +450,34 @@ const getCommand = async (sock, msg, cache) => {
 			`💬 <b>In:</b> ${isGroup ? groupMetadata.subject : "Direct Message"}`,
 			msg
 		);
-		if (command != "") {
-			sock.sendMessage(from, { react: { text: "👀", key: msg.key } }).catch(err => console.error("[React Error]", err));
-			const botData = await getBotData();
-			const globallyDisabled = botData?.disabledGlobally || [];
-			if (globallyDisabled.includes(command)) {
-				return sendMessageWTyping(from, { text: `🚫 This command is globally disabled.` }, { quoted: msg });
-			}
-		}
+		const isRegisteredCmd = Boolean(
+			commandsPublic[command] ||
+			commandsMembers[command] ||
+			commandsAdmins[command] ||
+			commandsOwners[command]
+		);
+
+		if (!isRegisteredCmd) return;
+
 		if (isGroup) {
-			let resBotOn = groupData ? await groupData.isBotOn : false;
+			let resBotOn = groupData ? groupData.isBotOn !== false : true;
 			if (resBotOn == false && !(command.startsWith("group") || command.startsWith("dev") || command === "bot")) {
-				return sendMessageWTyping(from, {
-					text:
-						"```By default, bot is turned off in this group.\nAsk the Owner to activate.\n\nUse ```" +
-						prefix +
-						"dev",
-				});
+				return;
 			}
 			let blockCommandsInDB = (await groupData?.cmdBlocked) || [];
 			if (command != "" && Array.isArray(blockCommandsInDB)) {
 				if (blockCommandsInDB.includes(command)) {
 					return sendMessageWTyping(from, { text: `Command blocked for this group.` }, { quoted: msg });
 				}
+			}
+		}
+
+		if (command != "") {
+			sock.sendMessage(from, { react: { text: "👀", key: msg.key } }).catch(err => console.error("[React Error]", err));
+			const botData = await getBotData();
+			const globallyDisabled = botData?.disabledGlobally || [];
+			if (globallyDisabled.includes(command)) {
+				return sendMessageWTyping(from, { text: `🚫 This command is globally disabled.` }, { quoted: msg });
 			}
 		}
 
@@ -521,12 +526,6 @@ const getCommand = async (sock, msg, cache) => {
 			const t1 = Date.now();
 			console.log(`[PROFILE] Command '${command}' (owners) took ${t1 - t0}ms`);
 			return result;
-		} else {
-			return sendMessageWTyping(
-				from,
-				{ text: "```" + msg.pushName + " !!Use " + prefix + "help ```" },
-				{ quoted: msg }
-			);
 		}
 	} catch (error) {
 		console.error("❌ Error processing message:", error.message);

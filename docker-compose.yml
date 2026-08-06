@@ -14,9 +14,10 @@ services:
             - NODE_ENV=production
             - PORT=8080
         volumes:
-            # Persist temporary files
-            # For persistent storage, use Koyeb's volume feature or cloud storage
-            # - ./temp:/app/temp
+            # Persist SQLite Database & session files
+            - ./database.db:/app/database.db
+            - ./database.db-shm:/app/database.db-shm
+            - ./database.db-wal:/app/database.db-wal
             # Persist performance metrics
             - ./performance-metrics.json:/app/performance-metrics.json
         networks:
