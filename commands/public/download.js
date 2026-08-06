@@ -100,8 +100,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		targetUrl = videoMeta.url;
 	}
 
-	await sendMessageWTyping(from, { text: `⏳ *Downloading media...*\n🔗 ${targetUrl}` }, { quoted: msg });
-
 	let downloadedPaths = [];
 	try {
 		downloadedPaths = await downloadViaCobalt(targetUrl, null, false);
@@ -187,14 +185,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 export default () => ({
 	cmd: [
-		"download", "dl", "d", "video", "mp4",
+		"download", "dl", "d", "v", "video", "mp4",
 		"yt", "ytv", "vs",
 		"insta", "i",
 		"fb", "facebook", "fbdl",
 		"twitter", "tw", "x",
 		"pin", "tiktok", "tt"
 	],
-	desc: "Universal media downloader for all platforms (YouTube, IG, FB, Twitter, TikTok, etc.)",
-	usage: "download <url | search query>",
+	desc: "Universal downloader (Short commands: #dl | #d | #v)",
+	usage: "dl | d | v | download <url or search>",
 	handler,
 });

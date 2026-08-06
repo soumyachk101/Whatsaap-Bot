@@ -5,7 +5,7 @@ import messageQueue from "./messageQueue.js";
 import notifyOwner from "./getOwnerSend.js";
 import { readFileEfficiently } from "./fileUtils.js";
 
-const prefix = process.env.PREFIX;
+const prefix = process.env.PREFIX ? process.env.PREFIX.trim() : "#";
 const moderatos = process.env.MODERATORS ? process.env.MODERATORS.split(",").map((s) => s.trim()).filter(Boolean) : [];
 import getGroupAdmins from "./getGroupAdmins.js";
 import { stickerForward, forwardGroup } from "../functions/getStickerForward.js";
@@ -287,7 +287,7 @@ const getCommand = async (sock, msg, cache) => {
 		if (!isCmd && (type == "stickerMessage" || type == "documentMessage")) return;
 
 		// 5. Mention bot tag sticker logic
-		if (msg.message.extendedTextMessage) {
+		if (isCmd && msg.message.extendedTextMessage) {
 			if (
 				msg.message.extendedTextMessage.contextInfo?.mentionedJid?.some(jid => botIdentityJids.includes(jid))
 			) {
@@ -306,6 +306,14 @@ const getCommand = async (sock, msg, cache) => {
 		let senderData = await getMemberData(senderJid);
 		let groupData = isGroup ? await getGroupData(from) : null;
 		
+		// ── BOT OFF CHECK IN GROUPS ──────────────────────────────────────────────────
+		if (isGroup && groupData && groupData.isBotOn === false) {
+			const allowedWhenOff = command.startsWith("group") || command.startsWith("dev") || command === "bot" || isOwner;
+			if (!allowedWhenOff) {
+				return;
+			}
+		}
+
 		// ── PERMISSIONS ──────────────────────────────────────────────────────────────
 		const groupAdmins = isGroup ? getGroupAdmins(groupMetadata.participants) : [];
 		const isGroupAdmin = isGroup ? (groupAdmins?.includes(senderJid) || false) : false;
@@ -348,7 +356,7 @@ const getCommand = async (sock, msg, cache) => {
 			}
 		}
 
-		if (isGroup && type == "imageMessage" && groupData?.isAutoStickerOn) {
+		if (isCmd && isGroup && type == "imageMessage" && groupData?.isAutoStickerOn) {
 			if (msg.message.imageMessage.caption == "") {
 				commandsPublic["sticker"](sock, msg, from, args, {
 					senderJid,
@@ -365,7 +373,7 @@ const getCommand = async (sock, msg, cache) => {
 
 		//--------------------------------------------CHAT-BOT-FEATURE------------------------------------------------//
 		const isChatBotOn = groupData ? groupData.isChatBotOn : false;
-		if (isGroup && isChatBotOn && (type == "conversation" || type == "extendedTextMessage")) {
+		if (isCmd && isGroup && isChatBotOn && (type == "conversation" || type == "extendedTextMessage")) {
 			let isTaggedBot = false;
 			let tagMessage = null;
 			if (type == "extendedTextMessage") {
@@ -374,7 +382,7 @@ const getCommand = async (sock, msg, cache) => {
 				tagMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 			}
 			if (
-				["downloadbuddy", "db"].includes(body.split(" ")[0].toLowerCase()) ||
+				["downloadbuddy", "db"].includes(command) ||
 				(isTaggedBot &&
 					Object.keys(tagMessage)[0] == "conversation" &&
 					tagMessage?.conversation.startsWith("_*DownloadBuddy:*_"))

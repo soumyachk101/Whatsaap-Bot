@@ -60,8 +60,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			}
 		}
 
-		await sendMessageWTyping(from, { text: `🔎 *Downloading Audio...*\n🎵 *${title}*${durationText}` }, { quoted: msg });
-
 		const downloadedPaths = await downloadViaCobalt(URL, null, true);
 
 		if (!downloadedPaths || downloadedPaths.length === 0) {

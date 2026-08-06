@@ -80,16 +80,26 @@ app.get("/admin/*", (req, res, next) => {
 	res.sendFile(reactIndex);
 });
 
-const port = process.env.PORT || 8000;
-const server = app.listen(port, () => {
-	console.log("\nWeb-server running!\n" + getDate());
-	console.log(`Memory usage at startup: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
-	startServer();
-});
+let port = Number(process.env.PORT) || 8000;
 
-app.on("error", (error) => {
-	console.error("Web-server error:", error.message);
-});
+function listenPort(p) {
+	const s = app.listen(p, () => {
+		console.log(`\nWeb-server running on port ${p}!\n` + getDate());
+		console.log(`Memory usage at startup: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+		startServer();
+	});
+	s.on("error", (err) => {
+		if (err.code === "EADDRINUSE") {
+			console.warn(`⚠️ Port ${p} is in use. Retrying on port ${p + 1}...`);
+			listenPort(p + 1);
+		} else {
+			console.error("Web-server error:", err.message);
+		}
+	});
+	return s;
+}
+
+const server = listenPort(port);
 
 const wss = new WebSocketServer({
 	server,

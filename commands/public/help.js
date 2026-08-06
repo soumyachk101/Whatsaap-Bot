@@ -9,7 +9,7 @@ const readMore = more.repeat(4001);
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { isGroup, sendMessageWTyping } = msgInfoObj;
-	let prefix = process.env.PREFIX;
+	let prefix = process.env.PREFIX ? process.env.PREFIX.trim() : "#";
 
 	const { publicCommands, groupCommands, adminCommands, ownerCommands } = await cmdToText();
 
@@ -17,113 +17,36 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const allMembers = await member.find({}).toArray();
 	const totalUsers = allMembers.length;
 
-	const adminCmd = adminCommands;
-	const ownerCmd = ownerCommands;
-
-	// Combine all user-accessible commands
 	const allUserCommands = [...publicCommands, ...groupCommands];
 
-	// Categorize user commands with stylized names (Comprehensive List)
 	const categories = {
-		"🤖  *ᴀɪ & ᴄʜᴀᴛ*": [
-			"roast", "shayari", "rap", "fortune", "story", "recipe",
-			"groq", "llama",
-			"chatbot",
-			"downloadbuddy", "db", "gemini",
-			"runcode",
-			"say", "tts",
-			"imagine", "gen", "dream",
-			"transcribe", "tr2", "voice2text", "vtt"
+		"📥 *DOWNLOADERS*": [
+			"download", "dl", "d", "v", "song", "play", "search", "yts",
+			"insta", "i", "fb", "facebook", "fbdl", "yt", "ytv", "vs",
+			"twitter", "tw", "x", "pin", "mp3", "mp4", "reddit", "idp"
 		],
-		"📥  *ᴅᴏᴡɴʟᴏᴀᴅᴇʀs*": [
-			"download", "dl", "d",
-			"fb", "facebook", "fbdl",
-			"mp3", "audio", 
-			"mp4", "video", 
-			"reddit", 
-			"idp", "dp", 
-			"song", "play", 
-			"yta", 
-			"yt", "ytv", "vs", 
-			"insta", "i", 
-			"twitter", "tw", "x", 
-			"pin", 
-			"mp3convt", "mp4audio", "tomp3"
+		"🔍 *SEARCH & INFO*": [
+			"google", "gs", "search", "yts", "img", "imgSearch", "news"
 		],
-		"🎨  *sᴛɪᴄᴋᴇʀs & ᴍᴇᴅɪᴀ*": [
-			"sticker", "s", 
-			"attp", "textsticker", "ts", "stickertext", 
-			"sets", "stealtext",
-			"steal", 
-			"meme", "text", "txt", "texmeme",
-			"image", "toimg", 
-			"removebg", "bg", 
-			"make", "gen3", 
-			"gen", "genimg", "imagen", 
-			"gen2", "genimg2", "flashgen",
-			"nsfw"
+		"🤖 *AI & CHAT*": [
+			"gemini", "roast", "shayari", "rap", "story", "recipe", "groq", "llama",
+			"db", "downloadbuddy", "say", "tts", "imagine", "gen", "transcribe"
 		],
-		"🛠️  *ᴜᴛɪ🇱ɪᴛɪᴇs*": [
-			"calc", "calculate", 
-			"tr", "translate", 
-			"weather", "w", 
-			"remind", "reminder", 
-			"l", "lyric", "lyrics", 
-			"dictionary", "dict", 
-			"ud", "urban", 
-			"advice", 
-			"fact", 
-			"gender", 
-			"horo", "horoscope", 
-			"joke", 
-			"quote", 
-			"qpt", "qpoetry", 
-			"proquote", "pqoute", 
-			"true", "truecaller", 
-			"getwarn", 
-			"un", 
-			"delete", "d", "dd"
+		"🎨 *STICKERS & MEDIA*": [
+			"sticker", "s", "attp", "textsticker", "ts", "steal", "meme",
+			"image", "toimg", "removebg", "bg", "genimg", "nsfw"
 		],
-		"🔍  *sᴇᴀʀᴄʜ*": [
-			"google", "gs",
-			"search", "yts",
-			"img", "imgSearch",
-			"news", "categories", "cate"
+		"🛠️ *UTILITIES*": [
+			"calc", "calculate", "tr", "translate", "weather", "w", "remind",
+			"l", "lyrics", "dictionary", "dict", "ud", "advice", "fact",
+			"horo", "joke", "quote", "true"
 		],
-		"📝  *ᴘʀᴏᴅᴜᴄᴛɪᴠɪᴛʏ*": [
-			"todo", "task",
-			"note", "notes",
-			"pomo", "pomodoro", "focus",
-			"birthday", "bday",
-			"remind", "reminder"
+		"🎮 *FUN & GAMES*": [
+			"ship", "tod", "poll", "confess", "level", "rank", "xp",
+			"epic", "leaderboard", "top"
 		],
-		"🎮  *ғᴜɴ & ɢᴀᴍᴇs*": [
-			"ship",
-			"tod", "truthordare",
-			"poll", "vote",
-			"confess", "confession",
-			"level", "rank", "xp",
-			"epicgames", "epic", "freegames",
-			"leaderboard", "top", "rankings", "topmembers"
-		],
-		"🔐  *ᴘʀɪᴠᴀᴄʏ & sᴇᴄᴜʀɪᴛʏ*": [
-			"qr", "qrcode",
-			"password", "genpass",
-			"true", "truecaller"
-		],
-		"💰  *ғɪɴᴀɴᴄᴇ*": [
-			"crypto", "coin"
-		],
-		"ℹ️  *ʙᴏᴛ ɪɴғᴏ*": [
-			"help", "menu", 
-			"alive", "a", "ping", 
-			"start", 
-			"stats", "analysis", "chatanalytics", "chatstats", "grpstats",
-			"donate", "donation", 
-			"dev", "developer", 
-			"mycount", "daystats", "dailystats", "daily",
-			"myGrpCount", "totalg",
-			"headerfooter"
+		"⚙️ *BOT INFO*": [
+			"help", "menu", "alive", "ping", "stats", "dev", "mycount", "daily"
 		]
 	};
 
@@ -133,115 +56,58 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	for (const [categoryName, cmds] of Object.entries(categories)) {
 		const filtered = allUserCommands.filter(c => c.cmd.some(alias => cmds.includes(alias)));
 		if (filtered.length > 0) {
-			publicCmdText += `\n╭───────────────────────────╮\n`;
-			publicCmdText += `   ${categoryName}\n`;
-			publicCmdText += `├───────────────────────────┤\n`;
-			publicCmdText += filtered.map(cmd => {
-				cmd.cmd.forEach(alias => displayedCmds.add(alias));
-				const primary = cmd.cmd[0];
-				const others = cmd.cmd.slice(1);
-				const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
-				return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
-			}).join("\n") + "\n";
-			publicCmdText += `╰───────────────────────────╯\n`;
+			const commandNames = [];
+			filtered.forEach(c => {
+				const primary = c.cmd[0];
+				if (!displayedCmds.has(primary)) {
+					displayedCmds.add(primary);
+					commandNames.push(`\`${prefix}${primary}\``);
+				}
+			});
+			if (commandNames.length > 0) {
+				publicCmdText += `${categoryName}\n${commandNames.join(" • ")}\n\n`;
+			}
 		}
 	}
 
-	// Catch-all for uncategorized commands
-	const uncategorized = allUserCommands.filter(c => !c.cmd.some(alias => displayedCmds.has(alias)));
+	// Uncategorized
+	const uncategorized = [];
+	allUserCommands.forEach(c => {
+		const primary = c.cmd[0];
+		if (!displayedCmds.has(primary)) {
+			displayedCmds.add(primary);
+			uncategorized.push(`\`${prefix}${primary}\``);
+		}
+	});
+
 	if (uncategorized.length > 0) {
-		publicCmdText += `\n╭───────────────────────────╮\n`;
-		publicCmdText += `   📁  *ᴏᴛʜᴇʀ s*\n`;
-		publicCmdText += `├───────────────────────────┤\n`;
-		publicCmdText += uncategorized.map(cmd => {
-			const primary = cmd.cmd[0];
-			const others = cmd.cmd.slice(1);
-			const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
-			return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
-		}).join("\n") + "\n";
-		publicCmdText += `╰───────────────────────────╯\n`;
+		publicCmdText += `📁 *OTHER COMMANDS*\n${uncategorized.join(" • ")}\n\n`;
 	}
+
+	const adminCmdNames = adminCommands.map(c => `\`${prefix}${c.cmd[0]}\``).join(" • ");
+	const ownerCmdNames = ownerCommands.map(c => `\`${prefix}${c.cmd[0]}\``).join(" • ");
 
 	const totalCommands = allUserCommands.length + adminCommands.length + ownerCommands.length;
 
-	const help = `
-┏───────────────────┓
-    ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
-┗───────────────────┛
+	const menuText =
+`🤖 *DOWNLOADBUDDY BOT* 🤖
 ${readMore}
-╭───────────────────╮
-   📊  *ʙᴏᴛ sᴛᴀᴛs*
-├───────────────────┤
-  ◦ 👥 *Users:* \`${totalUsers}\`
-  ◦ 📍 *Prefix:* \`${prefix}\`
-  ◦ ⚙️ *Commands:* \`${totalCommands}\`
-╰───────────────────╯
+📌 *Prefix:* \`${prefix}\` | 👥 *Users:* \`${totalUsers}\` | ⚡ *Commands:* \`${totalCommands}\`
 
-╭───────────────────╮
-   ⚠️  *ɢʀᴏᴜᴘ ɴᴏᴛɪᴄᴇ*
-├───────────────────┤
-  ◦ _If *Admin-Only Mode* is enabled in a group, the bot will respond to Group Admins only. Commands from non-admin members will be ignored._
-╰───────────────────╯
+💡 *Quick DL:* Reply to any link/name with \`${prefix}dl\` or \`${prefix}song\`
 
-╭───────────────────╮
-   ✨  *ᴜsᴇʀ ᴄᴏᴍᴍᴀɴᴅs*
-╰───────────────────╯
-${publicCmdText}
+${publicCmdText}` +
+(isGroup && adminCmdNames ? `🛠️ *ADMIN COMMANDS*\n${adminCmdNames}\n\n` : "") +
+(isGroup && ownerCmdNames ? `👑 *OWNER COMMANDS*\n${ownerCmdNames}\n\n` : "") +
+`💬 *Developer Info:* \`${prefix}dev\`
+✨ *Support:* buymeacoffee.com/soumyachk101`;
 
-╭───────────────────╮
-   🛠️  *ᴀᴅɱɪɴ ᴄᴏɱɱᴀɴᴅs*
-├───────────────────┤
-${adminCmd.map((cmd) => {
-	const primary = cmd.cmd[0];
-	const others = cmd.cmd.slice(1);
-	const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
-	return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
-}).join("\n")}
-╰───────────────────╯
-
-╭───────────────────╮
-   👑  *ᴏᴡɴᴇʀ ᴄᴏɱɱᴀɴᴅs*
-├───────────────────┤
-${ownerCmd.map((cmd) => {
-	const primary = cmd.cmd[0];
-	const others = cmd.cmd.slice(1);
-	const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
-	return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_`;
-}).join("\n")}
-╰───────────────────╯
-
-  ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
-  *https://buymeacoffee.com/soumyachk101*`;
-
-	const helpInDm = `
-┏───────────────────┓
-    ✨ *DᴏᴡɴʟᴏᴀᴅBᴜᴅᴅʏ* ✨
-┗───────────────────┛
-
-╭───────────────────╮
-   📊  *ʙᴏᴛ sᴛᴀᴛs*
-├───────────────────┤
-  ◦ 👥 *Users:* \`${totalUsers}\`
-  ◦ 📍 *Prefix:* \`${prefix}\`
-  ◦ ⚙️ *Commands:* \`${totalCommands}\`
-╰───────────────────╯
-
-╭───────────────────╮
-   📱  *ᴅɱ ᴄᴏɱɱᴀɴᴅs*
-╰───────────────────╯
-${publicCmdText}
-
-  ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️
-  *https://buymeacoffee.com/soumyachk101*`;
-
-	await sendMessageWTyping(from, {
-		text: isGroup ? help : helpInDm,
-	});
+	await sendMessageWTyping(from, { text: menuText });
 };
 
 export default () => ({
 	cmd: ["help", "menu"],
-	desc: "Help menu",
+	desc: "Display compact help menu",
 	usage: "help",
 	handler,
 });

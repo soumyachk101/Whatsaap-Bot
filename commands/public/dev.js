@@ -2,16 +2,16 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
 	try {
 		const response =
-			`*👨💻 Developer — Soumya Chakraborty*\n\n` +
+			`*👨‍💻 Developer — Soumya Chakraborty*\n\n` +
 			`╭───────────────────────────\n` +
 			`│ *🔗 GitHub*\n` +
 			`│ github.com/soumyachk101\n` +
 			`│\n` +
+			`│ *💬 WhatsApp*\n` +
+			`│ https://wa.me/qr/PAVVG4QPZUJXF1\n` +
+			`│\n` +
 			`│ *☕ Support My Work*\n` +
 			`│ buymeacoffee.com/soumyachk101\n` +
-			`│\n` +
-			`│ *🌐 Portfolio*\n` +
-			`│ soumya.pro\n` +
 			`╰───────────────────────────`;
 
 		return sendMessageWTyping(from, { text: response }, { quoted: msg });

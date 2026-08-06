@@ -9,11 +9,8 @@
     "lib": "lib"
   },
   "engines": {
-    "node": "22.x",
-    "python": "3.9.x",
-    "pnpm": ">=9.0.0"
+    "node": ">=18.0.0"
   },
-  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "build": "npm install --prefix dashboard && npm run build --prefix dashboard",
     "start": "node --no-deprecation --max-old-space-size=512 index.js",

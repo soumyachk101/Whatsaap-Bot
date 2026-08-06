@@ -1,15 +1,19 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import Database from "better-sqlite3";
+import { MongoClient } from "mongodb";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DATABASE_PATH || join(__dirname, "database.db");
 
-const db = new Database(dbPath);
-db.pragma("journal_mode = WAL");
+const sqliteDb = new Database(dbPath);
+sqliteDb.pragma("journal_mode = WAL");
 
-// Initialize tables
-db.exec(`
+// Initialize SQLite tables as fallback
+sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS AuthState (
         id TEXT PRIMARY KEY,
         value TEXT
@@ -37,15 +41,41 @@ db.exec(`
     );
 `);
 
+let mongoDbInstance = null;
+
+if (process.env.MONGO_URI) {
+	try {
+		const client = new MongoClient(process.env.MONGO_URI, {
+			serverSelectionTimeoutMS: 5000,
+		});
+		await client.connect();
+		mongoDbInstance = client.db();
+		console.log(`✅ CONNECTED TO MONGODB ATLAS SUCCESSFULLY! (DB: ${mongoDbInstance.databaseName})`);
+	} catch (err) {
+		console.error("⚠️ Could not connect to MongoDB Atlas. Falling back to local SQLite:", err.message);
+	}
+} else {
+	console.log("ℹ️ No MONGO_URI provided. Using local SQLite database.");
+}
+
 class Collection {
     constructor(tableName) {
         this.tableName = tableName;
     }
 
-    async findOne(query) {
+    async findOne(query = {}) {
+        if (mongoDbInstance) {
+            try {
+                return await mongoDbInstance.collection(this.tableName).findOne(query);
+            } catch (err) {
+                console.error(`[Mongo findOne error in ${this.tableName}]`, err.message);
+            }
+        }
+
+        // SQLite Fallback
         const id = query._id || query.id;
         if (id && Object.keys(query).length === 1) {
-            const row = db.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`).get(id);
+            const row = sqliteDb.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`).get(id);
             if (!row) return null;
             if (this.tableName === 'AuthTable') return { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]') };
             const data = JSON.parse(row.data);
@@ -130,7 +160,26 @@ class Collection {
     }
 
     find(query = {}, options = {}) {
-        const stmt = db.prepare(`SELECT * FROM ${this.tableName}`);
+        if (mongoDbInstance) {
+            const cursor = mongoDbInstance.collection(this.tableName).find(query, options);
+            return {
+                toArray: async () => await cursor.toArray(),
+                limit: (n) => ({
+                    toArray: async () => await cursor.limit(n).toArray(),
+                }),
+                sort: (sortObj) => ({
+                    toArray: async () => await cursor.sort(sortObj).toArray(),
+                    skip: (s) => ({
+                        limit: (l) => ({
+                            toArray: async () => await cursor.sort(sortObj).skip(s).limit(l).toArray(),
+                        }),
+                    }),
+                }),
+            };
+        }
+
+        // SQLite Fallback
+        const stmt = sqliteDb.prepare(`SELECT * FROM ${this.tableName}`);
         const rows = stmt.all();
 
         let results = rows.map(row => {
@@ -172,7 +221,16 @@ class Collection {
     }
 
     async countDocuments(query = {}) {
-        const rows = db.prepare(`SELECT * FROM ${this.tableName}`).all();
+        if (mongoDbInstance) {
+            try {
+                return await mongoDbInstance.collection(this.tableName).countDocuments(query);
+            } catch (err) {
+                console.error(`[Mongo countDocuments error in ${this.tableName}]`, err.message);
+            }
+        }
+
+        // SQLite Fallback
+        const rows = sqliteDb.prepare(`SELECT * FROM ${this.tableName}`).all();
         if (Object.keys(query).length === 0) return rows.length;
         const mapped = rows.map(row => {
             if (this.tableName === 'AuthTable') return { _id: row.id, ...row };
@@ -210,6 +268,15 @@ class Collection {
     }
 
     async updateOne(query, update, options = {}) {
+        if (mongoDbInstance) {
+            try {
+                return await mongoDbInstance.collection(this.tableName).updateOne(query, update, options);
+            } catch (err) {
+                console.error(`[Mongo updateOne error in ${this.tableName}]`, err.message);
+            }
+        }
+
+        // SQLite Fallback
         const id = query._id || query.id;
         if (!id) return { matchedCount: 0 };
 
@@ -318,45 +385,63 @@ class Collection {
             if (keys.length > 0) {
                 const setClause = keys.map(k => `${k} = ?`).join(', ');
                 const values = keys.map(k => k === 'disabledGlobally' ? JSON.stringify(fields[k]) : fields[k]);
-                let res = db.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
+                let res = sqliteDb.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
                 changes = res.changes;
                 if (changes === 0 && options.upsert) {
                     const placeholders = keys.map(() => '?').join(', ');
-                    res = db.prepare(`INSERT INTO AuthTable (id, ${keys.join(', ')}) VALUES (?, ${placeholders})`).run(id, ...values);
+                    res = sqliteDb.prepare(`INSERT INTO AuthTable (id, ${keys.join(', ')}) VALUES (?, ${placeholders})`).run(id, ...values);
                     changes = res.changes;
                 }
             }
             return { matchedCount: changes };
         } else {
-            let res = db.prepare(`UPDATE ${this.tableName} SET data = ? WHERE id = ?`)
+            let res = sqliteDb.prepare(`UPDATE ${this.tableName} SET data = ? WHERE id = ?`)
                 .run(JSON.stringify(data), id);
             if (res.changes === 0 && options.upsert) {
-                res = db.prepare(`INSERT INTO ${this.tableName} (id, data) VALUES (?, ?)`).run(id, JSON.stringify(data));
+                res = sqliteDb.prepare(`INSERT INTO ${this.tableName} (id, data) VALUES (?, ?)`).run(id, JSON.stringify(data));
             }
             return { matchedCount: res.changes };
         }
     }
 
     async insertOne(doc) {
+        if (mongoDbInstance) {
+            try {
+                return await mongoDbInstance.collection(this.tableName).insertOne(doc);
+            } catch (err) {
+                console.error(`[Mongo insertOne error in ${this.tableName}]`, err.message);
+            }
+        }
+
+        // SQLite Fallback
         const { _id, ...data } = doc;
         if (this.tableName === 'AuthTable') {
-             db.prepare("INSERT OR REPLACE INTO AuthTable (id, youtube_session, disabledGlobally) VALUES (?, ?, ?)")
+             sqliteDb.prepare("INSERT OR REPLACE INTO AuthTable (id, youtube_session, disabledGlobally) VALUES (?, ?, ?)")
                 .run(_id, data.youtube_session || "", JSON.stringify(data.disabledGlobally || []));
         } else {
-            db.prepare(`INSERT OR REPLACE INTO ${this.tableName} (id, data) VALUES (?, ?)`)
+            sqliteDb.prepare(`INSERT OR REPLACE INTO ${this.tableName} (id, data) VALUES (?, ?)`)
                 .run(_id, JSON.stringify(data));
         }
     }
 
     async deleteMany(query = {}) {
+        if (mongoDbInstance) {
+            try {
+                return await mongoDbInstance.collection(this.tableName).deleteMany(query);
+            } catch (err) {
+                console.error(`[Mongo deleteMany error in ${this.tableName}]`, err.message);
+            }
+        }
+
+        // SQLite Fallback
         if (!query || Object.keys(query).length === 0) {
-            const res = db.prepare(`DELETE FROM ${this.tableName}`).run();
+            const res = sqliteDb.prepare(`DELETE FROM ${this.tableName}`).run();
             return { deletedCount: res.changes };
         }
         const items = (await this.find(query).toArray());
         if (items.length === 0) return { deletedCount: 0 };
         let deletedCount = 0;
-        const stmt = db.prepare(`DELETE FROM ${this.tableName} WHERE id = ?`);
+        const stmt = sqliteDb.prepare(`DELETE FROM ${this.tableName} WHERE id = ?`);
         for (const item of items) {
             const id = item._id || item.id;
             if (id) {
@@ -368,9 +453,11 @@ class Collection {
     }
 }
 
-db.connect = () => { console.log("SQLite connected (simulated)"); };
-db.db = () => ({
-    collection: (name) => new Collection(name)
-});
+const db = {
+	connect: () => { console.log(mongoDbInstance ? "MongoDB Atlas active." : "SQLite active."); },
+	db: () => ({
+		collection: (name) => new Collection(name)
+	})
+};
 
 export default db;
