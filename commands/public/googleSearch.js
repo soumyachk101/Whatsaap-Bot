@@ -1,13 +1,16 @@
 import axios from "axios";
-
-const GOOGLE_API_KEY_SEARCH = process.env.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY_SEARCH || "";
-const SEARCH_ENGINE_KEY = process.env.SEARCH_ENGINE_KEY || "";
+import dotenv from "dotenv";
+dotenv.config();
 
 const baseURL = "https://www.googleapis.com/customsearch/v1";
 const maxResults = 5; // Limiting to 5 results for better readability
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, evv } = msgInfoObj;
+
+	// Read env vars at runtime to ensure dotenv has already loaded them
+	const GOOGLE_API_KEY_SEARCH = process.env.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY_SEARCH || "";
+	const SEARCH_ENGINE_KEY = process.env.SEARCH_ENGINE_KEY || "";
 
 	// Check if API keys are missing
 	if (!GOOGLE_API_KEY_SEARCH || !SEARCH_ENGINE_KEY) {

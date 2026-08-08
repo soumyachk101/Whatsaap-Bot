@@ -2,16 +2,22 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 dotenv.config();
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
-let genAI;
-if (GOOGLE_API_KEY) {
-	genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-}
+let _genAI = null;
+
+const getGenAI = () => {
+	if (!_genAI) {
+		const apiKey = process.env.GOOGLE_API_KEY;
+		if (!apiKey) return null;
+		_genAI = new GoogleGenerativeAI(apiKey);
+	}
+	return _genAI;
+};
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, evv } = msgInfoObj;
 
-	if (!GOOGLE_API_KEY) {
+	const genAI = getGenAI();
+	if (!genAI) {
 		return sendMessageWTyping(from, { text: "```Google API Key is Missing in .env```" }, { quoted: msg });
 	}
 
