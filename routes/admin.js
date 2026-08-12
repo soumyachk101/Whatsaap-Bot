@@ -329,6 +329,27 @@ router.post("/api/admin/clear-auth", requireAdmin, async (req, res) => {
 	}
 });
 
+// ── API: Maintenance Mode ───────────────────────────────────────────────────
+router.get("/api/admin/maintenance-mode", requireAdmin, async (req, res) => {
+	try {
+		const botData = await getBotData();
+		res.json({ maintenanceMode: botData?.maintenanceMode || false });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+router.patch("/api/admin/maintenance-mode", requireAdmin, async (req, res) => {
+	const { maintenanceMode } = req.body;
+	if (typeof maintenanceMode !== "boolean") return res.status(400).json({ error: "maintenanceMode must be a boolean" });
+	try {
+		await bot.updateOne({ _id: "bot" }, { $set: { maintenanceMode } });
+		res.json({ ok: true, maintenanceMode });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
 // ── API: Commands ──────────────────────────────────────────────────────────────
 router.get("/api/admin/commands", requireAdmin, async (req, res) => {
 	try {
@@ -379,7 +400,7 @@ router.get("/api/admin/groups", requireAdmin, async (req, res) => {
 
 router.patch("/api/admin/groups/:jid", requireAdmin, async (req, res) => {
 	const jid = decodeURIComponent(req.params.jid);
-	const allowed = ["isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn", "cmdBlocked", "antilink", "nsfw", "adminOnly"];
+	const allowed = ["isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn", "cmdBlocked", "antilink", "nsfw", "adminOnly", "restrictedMode"];
 	const update = {};
 	for (const key of allowed) {
 		if (key in req.body) update[key] = req.body[key];

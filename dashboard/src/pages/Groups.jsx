@@ -76,6 +76,17 @@ function GroupCard({ grp, allCommands, onUpdate, onAddBlock, onRemoveBlock }) {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>Restricted Mode</span>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Only welcome, stats & search allowed</div>
+          </div>
+          <label className="toggle-switch">
+            <input type="checkbox" checked={grp.restrictedMode || false} onChange={(e) => handleToggle('restrictedMode', e.target.checked)} disabled={loading} />
+            <span className="slider" />
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>Anti-Link Protection</span>
           <label className="toggle-switch">
             <input type="checkbox" checked={grp.antilink || false} onChange={(e) => handleToggle('antilink', e.target.checked)} disabled={loading} />

@@ -13,9 +13,13 @@ const createBotData = async () => {
 				_id: "bot",
 				youtube_session: "",
 				disabledGlobally: [],
+				maintenanceMode: false,
 			};
 			await bot.insertOne(newDoc);
 			botCache.set("bot", { data: newDoc, timestamp: Date.now() });
+		} else if (!("maintenanceMode" in res)) {
+			// Migrate existing records
+			await bot.updateOne({ _id: "bot" }, { $set: { maintenanceMode: false } });
 		}
 	} catch (err) {
 		console.log(err);

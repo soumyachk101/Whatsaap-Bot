@@ -282,8 +282,10 @@ const getCommand = async (sock, msg, cache) => {
 		let groupData = isGroup ? await getGroupData(from) : null;
 		
 		if (isGroup && (!groupData || groupData.isBotOn === false)) {
-			const allowedWhenOff = command.startsWith("group") || command.startsWith("dev") || command === "bot" || isOwner;
-			if (!allowedWhenOff) {
+			const allowedWhenOff = ["start", "welcome", "stats", "mystats", "search", "yts",
+				"level", "lvl", "rank", "leaderboard", "lb", "top", "mycount", "mygrpcount",
+				"group", "dev", "bot"];
+			if (!allowedWhenOff.includes(command) && !isOwner) {
 				return;
 			}
 		}
@@ -435,9 +437,26 @@ const getCommand = async (sock, msg, cache) => {
 
 		if (!isRegisteredCmd) return;
 
+		// ── Maintenance mode: only whitelisted commands allowed ──────────
+		const botDataForMaint = await getBotData();
+		const maintenanceMode = botDataForMaint?.maintenanceMode || false;
+		const isGroupRestricted = isGroup && (maintenanceMode || groupData?.restrictedMode);
+		const maintenanceMessage = "🔒 *Command Restriction Active*\n\nOnly welcome, stats, and search commands are available right now. Other commands are temporarily disabled.\n_Check back later!_";
+		if (isGroupRestricted) {
+			const allowed = ["start", "welcome", "stats", "mystats", "search", "yts",
+				"level", "lvl", "rank", "leaderboard", "lb", "top", "mycount", "mygrpcount"];
+			if (!allowed.includes(command)) {
+				return sendMessageWTyping(from, {
+					text: maintenanceMessage,
+				}, { quoted: msg });
+			}
+		}
+
 		if (isGroup) {
 			let resBotOn = groupData ? groupData.isBotOn === true : false;
-			if (resBotOn == false && !(command.startsWith("group") || command.startsWith("dev") || command === "bot")) {
+			const whitelistWhenOff = ["start", "welcome", "stats", "mystats", "search", "yts",
+				"level", "lvl", "rank", "leaderboard", "lb", "top", "mycount", "mygrpcount"];
+			if (resBotOn == false && !(command.startsWith("group") || command.startsWith("dev") || command === "bot" || whitelistWhenOff.includes(command))) {
 				return;
 			}
 			let blockCommandsInDB = (await groupData?.cmdBlocked) || [];

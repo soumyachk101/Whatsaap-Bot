@@ -39,10 +39,11 @@ export const checkNSFW = async (imageBuffer) => {
 		return text.includes("yes");
 	} catch (error) {
 		// If Gemini blocks it due to safety settings, it's likely NSFW
-		if (error.message?.includes("SAFETY") || error.message?.includes("block")) {
+		const msg = (error.message || error.toString() || "").toUpperCase();
+		if (msg.includes("SAFETY") || msg.includes("BLOCK") || msg.includes("HARM")) {
 			return true;
 		}
-		console.error("[NSFW Filter Error]", error.message);
+		console.error("[NSFW Filter Error]", error.message || error);
 		return false;
 	}
 };
