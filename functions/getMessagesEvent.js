@@ -440,7 +440,7 @@ const getCommand = async (sock, msg, cache) => {
 		// ── Maintenance mode: only whitelisted commands allowed ──────────
 		const botDataForMaint = await getBotData();
 		const maintenanceMode = botDataForMaint?.maintenanceMode || false;
-		const isGroupRestricted = isGroup && (maintenanceMode || groupData?.restrictedMode);
+		const isGroupRestricted = isGroup && (maintenanceMode || groupData?.restrictedMode) && !isGroupAdmin && !isOwner;
 		const maintenanceMessage = "🔒 *Command Restriction Active*\n\nOnly welcome, stats, and search commands are available right now. Other commands are temporarily disabled.\n_Check back later!_";
 		if (isGroupRestricted) {
 			const allowed = ["start", "welcome", "stats", "mystats", "search", "yts",

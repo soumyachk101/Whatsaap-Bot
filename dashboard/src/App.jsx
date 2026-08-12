@@ -23,7 +23,7 @@ function AuthGuard({ children }) {
   const { auth } = useAuth()
   const location = useLocation()
   if (auth === null) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-base)' }}>
       <div className="spinner" />
     </div>
   )
