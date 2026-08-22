@@ -1,4 +1,4 @@
-# DownloadBuddy — WhatsApp Bot 🤖
+# DownloadBuddy — WhatsApp Bot 
 
 > A self-hosted, multi-device WhatsApp bot with a **React admin dashboard**,
 > **95+ commands**, **AI chat**, **YouTube / Facebook / Instagram downloaders**,
