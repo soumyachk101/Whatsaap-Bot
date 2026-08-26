@@ -40,9 +40,11 @@ sqliteDb.exec(`
 
 let mongoDbInstance = null;
 
-if (process.env.MONGO_URI) {
+const rawMongoUri = process.env.MONGO_URI ? process.env.MONGO_URI.replace(/^["']|["']$/g, "").trim() : null;
+
+if (rawMongoUri) {
 	try {
-		const client = new MongoClient(process.env.MONGO_URI, {
+		const client = new MongoClient(rawMongoUri, {
 			serverSelectionTimeoutMS: 5000,
 		});
 		await client.connect();
