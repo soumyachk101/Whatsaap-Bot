@@ -2,6 +2,7 @@ import sendToTelegram, { escapeHtml } from "./telegramLogger.js";
 import { fake_quoted } from "./getFakeQuoted.js";
 import { getGroupData } from "../sqlite-DB/groupDataDb.js";
 import { extractPhoneNumber, formatJIDForDisplay } from "./lidUtils.js";
+import { groupMetadataCache } from "./getSocket.js";
 
 const getPhone = (p) =>
 	typeof p === "string"
@@ -16,6 +17,7 @@ const getGroupEvent = async (sock, events, cache) => {
 		groupDataDB = { welcome: "", grpName: "Group", is91Only: false };
 	}
 	cache.del(jid + ":groupMetadata");
+	groupMetadataCache.del(jid);
 
 	if (events.action == "add") {
 		if (groupDataDB.welcome !== "off") {

@@ -21,6 +21,13 @@ const messageCache = new NodeCache({
 	useClones: false,
 });
 
+export const groupMetadataCache = new NodeCache({
+	stdTTL: 600, // 10 minutes cache
+	checkperiod: 60,
+	maxKeys: 500,
+	useClones: false,
+});
+
 // Store interval references at module level to prevent accumulation on reconnect
 let cacheCleanupInterval = null;
 let statsInterval = null;
@@ -33,6 +40,7 @@ if (cacheCleanupInterval) clearInterval(cacheCleanupInterval);
 cacheCleanupInterval = setInterval(() => {
 	const msgStats = messageCache.getStats();
 	const retryStats = msgRetryCounterCache.getStats();
+	const groupStats = groupMetadataCache.getStats();
 
 	if (msgStats.keys > 80) {
 		messageCache.flushAll();
@@ -42,6 +50,11 @@ cacheCleanupInterval = setInterval(() => {
 	if (retryStats.keys > 150) {
 		msgRetryCounterCache.flushAll();
 		console.log("Retry counter cache cleared");
+	}
+
+	if (groupStats.keys > 450) {
+		groupMetadataCache.flushAll();
+		console.log("Group metadata cache cleared");
 	}
 }, 120000); // Every 2 minutes
 
@@ -86,6 +99,9 @@ const socket = async () => {
 		generateHighQualityLinkPreview: true,
 
 		getMessage,
+		cachedGroupMetadata: async (jid) => {
+			return groupMetadataCache.get(jid);
+		},
 		markOnlineOnConnect: true,
 		syncFullHistory: false,
 		shouldSyncHistoryMessage: () => false,

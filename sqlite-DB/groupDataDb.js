@@ -48,7 +48,10 @@ const recordGroupDailyStats = async (groupJid, mediaTypeField, date = new Date()
 			.slice(-180);
 
 		await group.updateOne({ _id: groupJid }, { $set: { dailyStats: recentHistory } });
-		groupCache.delete(groupJid);
+		const cached = groupCache.get(groupJid);
+		if (cached?.data) {
+			cached.data.dailyStats = recentHistory;
+		}
 	} catch (err) {
 		console.error("[daily group stats error]", err.message);
 	}

@@ -12,6 +12,7 @@ import { commandsPublic, commandsMembers, commandsAdmins, commandsOwners, comman
 import { getBotData } from "../sqlite-DB/botDataDb.js";
 import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
+import { groupMetadataCache } from "./getSocket.js";
 
 const parseNumberEnv = (envVal) => {
 	if (!envVal) return [];
@@ -79,6 +80,7 @@ const getCommand = async (sock, msg, cache) => {
 					try {
 						const sendOptions = {
 							...messageOptions,
+							cachedGroupMetadata: isGroupChat ? (jid) => groupMetadataCache.get(jid) : undefined,
 							mediaUploadTimeoutMs: isGroupChat ? 1000 * 60 * 10 : 1000 * 60 * 5,
 						};
 
@@ -179,24 +181,25 @@ const getCommand = async (sock, msg, cache) => {
 
 		let groupMetadata = null;
 		if (isGroup) {
-			groupMetadata = cache.get(from + ":groupMetadata");
-			if (!groupMetadata) {
+			groupMetadata = groupMetadataCache.get(from) || cache.get(from + ":groupMetadata");
+			if (!groupMetadata && isCmd) {
 				try {
 					groupMetadata = await Promise.race([
 						sock.groupMetadata(from),
 						new Promise((_, reject) =>
-							setTimeout(() => reject(new Error("Group metadata fetch timeout")), 2000)
+							setTimeout(() => reject(new Error("Group metadata fetch timeout")), 1500)
 						),
 					]);
-					cache.set(from + ":groupMetadata", groupMetadata, 10 * 60);
+					if (groupMetadata) {
+						groupMetadataCache.set(from, groupMetadata);
+						cache.set(from + ":groupMetadata", groupMetadata, 10 * 60);
+					}
 				} catch (e) {
 					console.error("Group metadata fetch failed:", e.message);
 					groupMetadata = { participants: [], subject: from };
 				}
-			}
-			const groupDbRecord = await getGroupData(from);
-			if (!groupDbRecord || groupDbRecord === -1) {
-				createGroupData(from, groupMetadata).catch(() => {});
+			} else if (!groupMetadata) {
+				groupMetadata = { participants: [], subject: from };
 			}
 		}
 
@@ -278,8 +281,10 @@ const getCommand = async (sock, msg, cache) => {
 
 		const senderNumber = senderJid.includes(":") ? senderJid.split(":")[0] : senderJid.split("@")[0];
 
-		let senderData = await getMemberData(senderJid);
-		let groupData = isGroup ? await getGroupData(from) : null;
+		const [senderData, groupData] = await Promise.all([
+			getMemberData(senderJid),
+			isGroup ? getGroupData(from) : Promise.resolve(null),
+		]);
 		
 		if (isGroup && (!groupData || groupData.isBotOn === false)) {
 			const allowedWhenOff = ["start", "welcome", "stats", "mystats", "search", "yts",
@@ -438,8 +443,8 @@ const getCommand = async (sock, msg, cache) => {
 		if (!isRegisteredCmd) return;
 
 		// ── Maintenance mode: only whitelisted commands allowed ──────────
-		const botDataForMaint = await getBotData();
-		const maintenanceMode = botDataForMaint?.maintenanceMode || false;
+		const botData = await getBotData();
+		const maintenanceMode = botData?.maintenanceMode || false;
 		const isGroupRestricted = isGroup && (maintenanceMode || groupData?.restrictedMode) && !isGroupAdmin && !isOwner;
 		const maintenanceMessage = "🔒 *Command Restriction Active*\n\nOnly welcome, stats, and search commands are available right now. Other commands are temporarily disabled.\n_Check back later!_";
 		if (isGroupRestricted) {
@@ -469,7 +474,6 @@ const getCommand = async (sock, msg, cache) => {
 
 		if (command != "") {
 			sock.sendMessage(from, { react: { text: "👀", key: msg.key } }).catch(err => console.error("[React Error]", err));
-			const botData = await getBotData();
 			const globallyDisabled = botData?.disabledGlobally || [];
 			if (globallyDisabled.includes(command)) {
 				return sendMessageWTyping(from, { text: `🚫 This command is globally disabled.` }, { quoted: msg });
