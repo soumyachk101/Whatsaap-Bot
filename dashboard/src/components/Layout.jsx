@@ -102,7 +102,14 @@ export default function Layout({ children }) {
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-          <div className="sidebar-status-card">
+          <div className="sidebar-status-card" style={{
+ background: connected
+ ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.03) 100%)'
+ : 'rgba(244, 63, 94, 0.04)',
+ border: `1px solid ${connected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.1)'}`,
+ boxShadow: connected ? '0 0 20px -6px rgba(16, 185, 129, 0.15)' : 'none',
+ transition: 'all 0.4s ease'
+ }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div className={connected ? 'pulse-live' : ''} style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: connected ? '#10b981' : '#ef4444', flexShrink: 0 }} />
