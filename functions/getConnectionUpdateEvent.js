@@ -2,9 +2,8 @@ import { DisconnectReason } from "baileys";
 import QRCode from "qrcode";
 import { clearSQLiteAuthState } from "./useSQLiteAuthState.js";
 import sendToTelegram from "./telegramLogger.js";
-import { botStatusMessages } from "./messageFormatter.js";
 
-const getConnectionUpdate = async (startSock, events, sock) => {
+const getConnectionUpdate = async (startSock, events) => {
 	const update = events;
 	const { connection, lastDisconnect, qr } = update;
 
@@ -45,12 +44,6 @@ const getConnectionUpdate = async (startSock, events, sock) => {
 				`📋 <b>Reason:</b> ${reason}\n` +
 				`⏳ Reconnecting in 5 seconds...`
 			);
-
-			// Broadcast offline status to all groups
-			if (sock) {
-				broadcastStatus(sock, botStatusMessages.reconnecting());
-			}
-
 			setTimeout(() => {
 				startSock("reconnect");
 			}, 5000);
@@ -65,11 +58,6 @@ const getConnectionUpdate = async (startSock, events, sock) => {
 			`━━━━━━━━━━━━━━\n` +
 			`📱 Successfully connected to WhatsApp.`
 		);
-
-		// Broadcast online status to all groups
-		if (sock) {
-			broadcastStatus(sock, botStatusMessages.connected());
-		}
 	}
 
 	if (qr) {
@@ -78,22 +66,6 @@ const getConnectionUpdate = async (startSock, events, sock) => {
 			if (err) console.error("Failed to render QR in terminal:", err.message);
 			else console.log(str);
 		});
-	}
-};
-
-/**
- * Broadcast a status message to all groups the bot is in.
- * Non-blocking — failures are swallowed so the connect flow never stalls.
- */
-const broadcastStatus = async (sock, statusText) => {
-	try {
-		const groups = await sock.groupFetchAllParticipating();
-		for (const gid of Object.keys(groups)) {
-			sock.sendMessage(gid, { text: statusText }).catch(() => {});
-			await new Promise((r) => setTimeout(r, 200)); // rate-limit safety
-		}
-	} catch (e) {
-		console.error("[broadcastStatus] Failed:", e.message);
 	}
 };
 
