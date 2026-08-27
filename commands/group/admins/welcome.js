@@ -1,33 +1,37 @@
-import { getGroupData, group } from "../../../sqlite-DB/groupDataDb.js";
+import { getGroupData, group } from "../../sqlite-DB/groupDataDb.js";
+import { randomWelcome } from "../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping } = msgInfoObj;
-	const evv = msgInfoObj.evv;
+	const { sendMessageWTyping, evv } = msgInfoObj;
 	try {
 		const groupData = await getGroupData(from);
 		let welMess = groupData?.welcome || "";
 
 		if (args[0] == "reset") {
 			await group.updateOne({ _id: from }, { $set: { welcome: "" } });
-			sendMessageWTyping(from, { text: "Welcome Message reset to default." }, { quoted: msg });
+			await sendMessageWTyping(from, { text: "✅ *Welcome Message reset to default.*" }, { quoted: msg });
 		} else if (args[0] == "off" || args[0] == "disable") {
 			await group.updateOne({ _id: from }, { $set: { welcome: "off" } });
-			sendMessageWTyping(from, { text: "Welcome Message disabled." }, { quoted: msg });
+			await sendMessageWTyping(from, { text: "😴 *Welcome Message disabled.*" }, { quoted: msg });
+		} else if (args[0] == "preview") {
+			const previewText = welMess && welMess !== "off"
+				? welMess.replace(/@user|@member/g, "@PreviewUser")
+				: randomWelcome("PreviewUser");
+			await sendMessageWTyping(from, {
+				text: `📋 *Preview:*\n\n${previewText}`,
+			}, { quoted: msg });
 		} else if (!args[0]) {
-			sendMessageWTyping(
-				from,
-				{
-					text: welMess && welMess !== "off"
-						? `Custom Welcome Message: ${welMess}`
-						: welMess === "off"
-						? "Welcome Message is currently disabled. Use welcome <message> or welcome reset to enable."
-						: "Default Welcome Message is active. Use welcome <message> to set a custom message or welcome off to disable.",
-				},
-				{ quoted: msg }
-			);
+			const status = welMess === "off"
+				? "🚫 Disabled"
+				: welMess && welMess.trim() !== ""
+					? `✅ *Custom:*\n${welMess}`
+					: "📝 Using default random templates";
+			await sendMessageWTyping(from, {
+				text: `🎉 *Welcome Message Settings*\n\n${status}\n\n_Use #welcome <message> to set custom text_\n_Use #welcome preview to preview_\n_Use #welcome reset to default_\n_Use #welcome off to disable_`,
+			}, { quoted: msg });
 		} else {
 			await group.updateOne({ _id: from }, { $set: { welcome: evv } });
-			sendMessageWTyping(from, { text: `Welcome Message Set: ${evv}` }, { quoted: msg });
+			await sendMessageWTyping(from, { text: `✅ *Welcome Message Set!*\n\n${evv}` }, { quoted: msg });
 		}
 	} catch (err) {
 		console.error("Welcome command error:", err);
@@ -38,6 +42,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 export default () => ({
 	cmd: ["welcome"],
 	desc: "Set welcome message",
-	usage: "welcome <message> | reset | off",
+	usage: "welcome <message> | reset | off | preview",
 	handler,
 });

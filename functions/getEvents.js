@@ -29,7 +29,7 @@ const events = async (sock, startSock, cache) => {
 			}
 
 			if (event["connection.update"]) {
-				await getConnectionUpdate(startSock, event["connection.update"]);
+				await getConnectionUpdate(startSock, event["connection.update"], sock);
 			}
 
 			if (event["group-participants.update"]) {

@@ -3,6 +3,7 @@ import { fake_quoted } from "./getFakeQuoted.js";
 import { getGroupData } from "../sqlite-DB/groupDataDb.js";
 import { extractPhoneNumber, formatJIDForDisplay } from "./lidUtils.js";
 import { groupMetadataCache } from "./getSocket.js";
+import { randomWelcome, sendWithTyping, successMsg } from "./messageFormatter.js";
 
 const getPhone = (p) =>
 	typeof p === "string"
@@ -25,27 +26,37 @@ const getGroupEvent = async (sock, events, cache) => {
 				const memberJid = typeof member === "string" ? member : (member?.id || member?.jid || member?.phoneNumber || "");
 				const phoneNumber = getPhone(member);
 				const mentionTag = `@${phoneNumber}`;
+				const displayName = member?.notify || member?.name || phoneNumber;
 
-				let welcomeMsg = "";
+				// 1 Reaction on join message
+				sock.sendMessage(jid, { react: { text: "👋", key: events.id } }).catch(() => {});
+
+				// 2 Pick welcome text
+				let welcomeText = "";
 				if (groupDataDB.welcome && groupDataDB.welcome.trim() !== "") {
 					let customText = groupDataDB.welcome;
 					if (customText.includes("@user") || customText.includes("@member")) {
-						welcomeMsg = customText.replace(/@user|@member/g, mentionTag);
+						welcomeText = customText.replace(/@user|@member/g, mentionTag);
 					} else {
-						welcomeMsg = `Welcome ${mentionTag}!\n\n${customText}`;
+						welcomeText = `Welcome ${mentionTag}!\n\n${customText}`;
 					}
 				} else {
-					welcomeMsg = `Welcome ${mentionTag} to *${groupDataDB.grpName || "the group"}*! 🎉\nWe hope you have a great time here!`;
+					welcomeText = randomWelcome(displayName);
 				}
 
-				sock.sendMessage(
+				// 3 Staggered send: typing → message
+				sendWithTyping(
+					sock,
 					jid,
 					{
-						text: welcomeMsg,
+						text: welcomeText,
 						mentions: [memberJid || member],
 					},
-					{ quoted: fake_quoted(events, "Welcome to " + (groupDataDB.grpName || "Group")) }
-				);
+					{ typingMs: 500, quoted: fake_quoted(events, "Welcome to " + (groupDataDB.grpName || "Group")) }
+				).catch(() => {});
+
+				// 4 Success reaction
+				sock.sendMessage(jid, { react: { text: "🎉", key: events.id } }).catch(() => {});
 			});
 		}
 		//91Only Working

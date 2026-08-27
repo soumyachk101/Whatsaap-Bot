@@ -1,3 +1,12 @@
+import {
+	botStatusMessages,
+	progressBar,
+	statCard,
+	sectionHeader,
+	sendWithTyping,
+	box,
+} from "../../functions/messageFormatter.js";
+
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, startTime, updateName, senderJid } = msgInfoObj;
 	try {
@@ -14,40 +23,46 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const memoryUsage = process.memoryUsage();
 		const usedMB = (memoryUsage.heapUsed / 1024 / 1024).toFixed(1);
 		const totalMB = (memoryUsage.rss / 1024 / 1024).toFixed(1);
+		const memPct = Math.min(100, Math.round((memoryUsage.heapUsed / memoryUsage.rss) * 100));
 
 		const friendlyPlatform = process.env.PLATFORM_NAME || "MacOS";
 		const arch = process.env.PLATFORM_ARCH || "ARM64";
 		const platform = `${friendlyPlatform} (${arch})`;
 		const cpu = process.env.CPU_NAME || "Apple M5";
-		const userName = updateName || senderJid.split("@")[0];
 
-		const formattedLatency = responseTime >= 1000 
-			? `${responseTimeInSeconds.toFixed(2)}s` 
+		const formattedLatency = responseTime >= 1000
+			? `${responseTimeInSeconds.toFixed(2)}s`
 			: `${Math.round(responseTime)}ms`;
 
+		const statusBadge = responseTime < 500 ? "🟢" : responseTime < 2000 ? "🟡" : "🔴";
+		const statusLabel = responseTime < 500 ? "EXCELLENT" : responseTime < 2000 ? "GOOD" : "SLOW";
+
 		const response =
-`╭━━━━━━━━━━━━━━━━━━━━━━╮
-┃  🎾 *ENGINE STATUS*
-┃  DownloadBuddy System
-╰━━━━━━━━━━━━━━━━━━━━━━╯
+`🎾 *ENGINE STATUS*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-👤 *Greetings, @${senderJid.split('@')[0]}!*
+${sectionHeader("👤", "Greetings")} ${updateName || "@" + senderJid.split("@")[0]}
 
-📉 *PERFORMANCE METRICS*
-╭────────────────────────
-│ 🟢 *Status:* \`ONLINE & READY\`
-│ 📡 *Latency:* \`${formattedLatency}\`
-│ ⏳ *Uptime:* \`${simpleUptime}\`
-│ 💾 *Memory:* \`${usedMB}MB / ${totalMB}MB\`
-│ 🛠️ *CPU Core:* \`${cpu}\`
-│ 🖥️ *Platform:* \`${platform}\`
-╰────────────────────────
+${sectionHeader("📡", "Performance")}
+${statCard([
+	{ label: "Status", value: `${statusBadge} ${statusLabel}` },
+	{ label: "Latency", value: formattedLatency },
+	{ label: "Uptime", value: simpleUptime },
+])}
 
-╭──────────────────────╮
-│ 📌 \`#help\` to view all commands
-╰──────────────────────╯`;
+${sectionHeader("💾", "System")}
+${statCard([
+	{ label: "Heap", value: `${usedMB} MB` },
+	{ label: "RSS", value: `${totalMB} MB` },
+	{ label: "CPU", value: cpu },
+	{ label: "OS", value: platform },
+])}
 
-		return sendMessageWTyping(from, { text: response, mentions: [senderJid] }, { quoted: msg });
+${progressBar(memPct)}
+
+💡 Type #help to explore commands`;
+
+		return sendMessageWTyping(from, { text: response }, { quoted: msg });
 	} catch (err) {
 		console.error("Alive command error:", err);
 		return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
@@ -56,7 +71,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 export default () => ({
 	cmd: ["a", "alive", "ping"],
-	desc: "Check if bot is alive",
+	desc: "Check bot status & performance",
 	usage: "alive | ping | a",
 	handler,
 });

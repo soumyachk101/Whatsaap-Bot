@@ -1,7 +1,5 @@
 import { cmdToText } from "../../functions/getAddCommands.js";
-
-const more = String.fromCharCode(8206);
-const readMore = more.repeat(4001);
+import { box, brandedFooter } from "../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping } = msgInfoObj;
@@ -12,21 +10,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const primary = cmd.cmd[0];
 			const others = cmd.cmd.slice(1);
 			const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
-			return `  ◦ *${prefix}${primary}*${aliasText}\n      └─ _${cmd.desc}_\n      └─ _Usage: ${prefix}${cmd.usage}_`;
+			return `◦ *${prefix}${primary}*${aliasText}\n └─ _${cmd.desc}_\n └─ _Usage: ${prefix}${cmd.usage}_`;
 		}).join("\n\n");
 
-		const owner = `
-┏──────────────────┓
-   👑 *Oᴡɴᴇʀ Cᴏᴍᴍᴀɴᴅs* 👑
-┗──────────────────┛
-${readMore}
-╭── 「 ᴏᴡɴᴇʀ ʟɪsᴛ 」 ──
-${formattedCmds}
-╰───────────────
+		const owner = box(
+			[formattedCmds, "", "♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️"],
+			"OWNER COMMANDS"
+		);
 
-  ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️`;
-
-		sendMessageWTyping(from, { text: owner }, { quoted: msg });
+		sendMessageWTyping(from, { text: owner + brandedFooter() }, { quoted: msg });
 	} catch (err) {
 		console.error("Owner help error:", err);
 		sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });

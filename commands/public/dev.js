@@ -1,26 +1,18 @@
+import { devCard } from "../../functions/messageFormatter.js";
+
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
 	try {
-		const response =
-`╭━━━━━━━━━━━━━━━━━━━━━━╮
-┃   *DEVELOPER PROFILE*
-┃   *Soumya Chakraborty*
-╰━━━━━━━━━━━━━━━━━━━━━━╯
-
-*Full-Stack Developer & Lead Engineer*
-
-╭────── *CONTACT & LINKS* ──────
-│  *GitHub:*
-│  https://github.com/soumyachk101
-│
-│  *Direct WhatsApp:*
-│  https://wa.me/qr/PAVVG4QPZUJXF1
-│
-│  *Support My Work:*
-│  https://buymeacoffee.com/soumyachk101
-╰────────────────────────────────
-
-*DownloadBuddy Bot Engine v2.0*`;
+		const response = devCard(
+			"Soumya Chakraborty",
+			"@soumyachk101",
+			"https://github.com/soumyachk101",
+			[
+				"Support → https://buymeacoffee.com/soumyachk101",
+				"",
+				"*DownloadBuddy Bot Engine*",
+			]
+		);
 
 		return sendMessageWTyping(from, { text: response }, { quoted: msg });
 	} catch (err) {

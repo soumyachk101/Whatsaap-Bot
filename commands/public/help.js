@@ -1,7 +1,10 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import { cmdToText } from "../../functions/getAddCommands.js";
+import {
+	box,
+	brandedFooter,
+	sectionHeader,
+	statCard,
+} from "../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { isGroup, sendMessageWTyping, updateName, senderJid } = msgInfoObj;
@@ -22,13 +25,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const usage = found.usage ? `${prefix}${found.usage}` : `${prefix}${cmdName}`;
 
 			const info =
-`╭─── *COMMAND INFO* ───╮
-│
-│  📌 *Command:* \`${prefix}${cmdName}\`
-│  📝 *Description:* ${desc}
-│  💡 *Usage:* \`${usage}\`${aliases ? `\n│  🏷️ *Aliases:* ${aliases}` : ""}
-│
-╰──────────────────────╯`;
+`📌 *${prefix}${cmdName}*
+${sectionHeader("📝", "Description")} ${desc}
+${sectionHeader("💡", "Usage")} \`${usage}\`
+${aliases ? `${sectionHeader("🏷️", "Aliases")} ${aliases}` : ""}`;
 
 			return await sendMessageWTyping(from, { text: info }, { quoted: msg });
 		} else {
@@ -50,10 +50,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			seen.add(primary);
 			const shortAliases = c.cmd.slice(1, 3).map(a => `${prefix}${a}`).join(" ");
 			const aliasStr = shortAliases ? ` _(${shortAliases})_` : "";
-			
-			lines.push(`  ▸ \`${prefix}${primary}\`${aliasStr}`);
+
+			lines.push(`▸ \`${prefix}${primary}\`${aliasStr}`);
 			if (c.desc) {
-				lines.push(`    └ _${c.desc}_`);
+				lines.push(` └ _${c.desc}_`);
 			}
 		}
 		return lines.join("\n");
@@ -85,33 +85,44 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		buckets[categorize(c)].push(c);
 	}
 
-	const sectionHeaders = {
-		downloader: "📥  *DOWNLOADERS & MEDIA*",
-		ai:         "🤖  *AI & CHATBOT*",
-		sticker:    "🎨  *STICKER & CREATIVE*",
-		search:     "🔍  *SEARCH & INFO*",
-		utility:    "🛠️  *UTILITIES & TOOLS*",
-		fun:        "🎮  *FUN & SOCIAL*",
-		system:     "⚙️  *SYSTEM & BOT INFO*",
-		other:      "📁  *OTHER COMMANDS*",
+	const sectionIcons = {
+		downloader: "📥",
+		ai: "🤖",
+		sticker: "🎨",
+		search: "🔍",
+		utility: "🛠️",
+		fun: "🎮",
+		system: "⚙️",
+		other: "📁",
+	};
+
+	const sectionTitles = {
+		downloader: "DOWNLOADERS & MEDIA",
+		ai: "AI & CHATBOT",
+		sticker: "STICKER & CREATIVE",
+		search: "SEARCH & INFO",
+		utility: "UTILITIES & TOOLS",
+		fun: "FUN & SOCIAL",
+		system: "SYSTEM & BOT INFO",
+		other: "OTHER COMMANDS",
 	};
 
 	let sections = [];
-	for (const [key, header] of Object.entries(sectionHeaders)) {
+	for (const key of Object.keys(buckets)) {
 		const cmds = buckets[key];
 		if (cmds.length === 0) continue;
 		const list = formatCmdList(cmds);
 		if (list.trim()) {
-			sections.push(`${header}\n${list}`);
+			sections.push(`${sectionIcons[key]} *${sectionTitles[key]}*\n${list}`);
 		}
 	}
 
 	// Admin commands (show only in groups)
 	if (isGroup && adminCommands.length > 0) {
-		seen.clear(); // reset for admin section
+		seen.clear();
 		const adminList = formatCmdList(adminCommands);
 		if (adminList.trim()) {
-			sections.push(`🔐  *GROUP ADMIN*\n${adminList}`);
+			sections.push(`🔐 *GROUP ADMIN*\n${adminList}`);
 		}
 	}
 
@@ -120,26 +131,26 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		seen.clear();
 		const ownerList = formatCmdList(ownerCommands);
 		if (ownerList.trim()) {
-			sections.push(`👑  *BOT OWNER*\n${ownerList}`);
+			sections.push(`👑 *BOT OWNER*\n${ownerList}`);
 		}
 	}
 
 	const totalCount = allUserCmds.length + adminCommands.length + ownerCommands.length;
 
 	const menu =
-`╭━━━━━━━━━━━━━━━━━━━━━━╮
-┃  ✨ *DOWNLOADBUDDY*  ✨
-┃  WhatsApp Bot Menu
-╰━━━━━━━━━━━━━━━━━━━━━━╯
+`╭━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+┃ ✨ *DOWNLOADBUDDY* ✨
+┃ WhatsApp Bot Menu
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯
 
-📊 *Prefix:* \`${prefix}\`  ⚡ *Commands:* \`${totalCount}\`
+📊 *Prefix:* \`${prefix}\` ⚡ *Commands:* \`${totalCount}\`
 
 ${sections.join("\n\n")}
 
-╭──────────────────────╮
+╭──────────────────────────────╮
 │ 💡 \`${prefix}help <cmd>\` for details
 │ 📞 \`${prefix}dev\` for contact
-╰──────────────────────╯`;
+╰──────────────────────────────╯${brandedFooter()}`;
 
 	await sendMessageWTyping(from, { text: menu }, { quoted: msg });
 };

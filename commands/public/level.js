@@ -1,6 +1,6 @@
 import { member } from "../../sqlite-DB/membersDataDb.js";
+import { progressBar, sendWithTyping, brandedFooter, sectionHeader } from "../../functions/messageFormatter.js";
 
-// XP thresholds for each level: level n requires n*n*100 XP (RuneScape-ish curve)
 const xpForLevel = (level) => level * level * 100;
 
 const computeLevel = (xp) => {
@@ -9,12 +9,20 @@ const computeLevel = (xp) => {
 	return level;
 };
 
+const rankTitle = (lvl) =>
+	lvl >= 50 ? "👑 Legend" :
+	lvl >= 25 ? "💎 Elite" :
+	lvl >= 15 ? "🔥 Veteran" :
+	lvl >= 10 ? "⚡ Active" :
+	lvl >= 5 ? "🌟 Regular" :
+	lvl >= 2 ? "🌱 Newbie" : "🐣 Rookie";
+
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, prefix, command, senderJid, updateName } = msgInfoObj;
 
 	const subcmd = (args[0] || "view").toLowerCase();
 
-	// ── ─lb / leaderboard ────────────────────────────────────────────
+	// ── /lb / leaderboard ────────────────────────────────────────────
 	if (["lb", "leaderboard", "top", "rank"].includes(subcmd)) {
 		try {
 			const all = await member.find({}).toArray();
@@ -36,16 +44,18 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				const medal = medals[i] || `\`${i + 1}.\``;
 				const lvl = computeLevel(m.xp || 0);
 				const name = (m.username || m._id?.split("@")[0] || "Unknown").slice(0, 20);
-				return `${medal} *${name}* — Lvl ${lvl} • \`${m.xp || 0} XP\``;
+				const bar = progressBar(Math.min(100, Math.round(((m.xp || 0) / xpForLevel(lvl + 1)) * 100)), 6);
+				return `${medal} *${name}*\n └ Lvl ${lvl} ${bar}`;
 			});
 
 			const text =
-				`🏆 *Top 10 Leaderboard*\n` +
-				`━━━━━━━━━━━━━━\n` +
-				lines.join("\n") +
-				`\n━━━━━━━━━━━━━━\n` +
-				`_Earn XP by sending messages!_\n` +
-				`_Use \`${prefix}level\` to view your stats._`;
+`🏆 *TOP 10 LEADERBOARD*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${lines.join("\n\n")}
+
+_Earn XP by sending messages!_
+_View your stats: \`${prefix}level\`_${brandedFooter()}`;
 
 			return sendMessageWTyping(from, { text }, { quoted: msg });
 		} catch (err) {
@@ -68,30 +78,24 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const xpForNext = xpForLevel(level + 1) - xpForLevel(level);
 		const progressPct = Math.min(100, Math.round((xpThisLevel / xpForNext) * 100));
 
-		// Progress bar (10 segments)
-		const filled = Math.round(progressPct / 10);
-		const bar = "▓".repeat(filled) + "░".repeat(10 - filled);
-
-		// Title based on level
-		const title =
-			level >= 50 ? "👑 Legend" :
-			level >= 25 ? "💎 Elite" :
-			level >= 15 ? "🔥 Veteran" :
-			level >= 10 ? "⚡ Active" :
-			level >= 5 ? "🌟 Regular" :
-			level >= 2 ? "🌱 Newbie" : "🐣 Rookie";
+		const title = rankTitle(level);
 
 		const text =
-			`📊 *Your Level*\n` +
-			`━━━━━━━━━━━━━━\n` +
-			`👤 *${updateName || "User"}*\n` +
-			`🎖️ *Title:* ${title}\n` +
-			`📈 *Level:* ${level}\n` +
-			`✨ *XP:* \`${xpThisLevel} / ${xpForNext}\` (Total: ${xp})\n` +
-			`💬 *Messages:* ${totalmsg}\n\n` +
-			`${bar} \`${progressPct}%\`\n\n` +
-			`_Keep chatting to level up!_\n` +
-			`_View top 10: \`${prefix}level lb\`_`;
+`🎖️ *YOUR LEVEL*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${sectionHeader("👤", "Profile")} *${updateName || "User"}*
+${sectionHeader("🏅", "Rank")} ${title}
+${sectionHeader("📈", "Level")} ${level}
+
+${sectionHeader("✨", "XP Progress")}
+${progressBar(progressPct)}
+\`${xpThisLevel} / ${xpForNext}\` (Total: ${xp})
+
+${sectionHeader("💬", "Messages")} ${totalmsg}
+
+_Keep chatting to level up!_
+_View top 10: \`${prefix}level lb\`_${brandedFooter()}`;
 
 		return sendMessageWTyping(from, { text }, { quoted: msg });
 	} catch (err) {

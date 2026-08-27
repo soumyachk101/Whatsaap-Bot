@@ -2,8 +2,9 @@ import { DisconnectReason } from "baileys";
 import QRCode from "qrcode";
 import { clearSQLiteAuthState } from "./useSQLiteAuthState.js";
 import sendToTelegram from "./telegramLogger.js";
+import { botStatusMessages } from "./messageFormatter.js";
 
-const getConnectionUpdate = async (startSock, events) => {
+const getConnectionUpdate = async (startSock, events, sock) => {
 	const update = events;
 	const { connection, lastDisconnect, qr } = update;
 
@@ -17,9 +18,7 @@ const getConnectionUpdate = async (startSock, events) => {
 		console.log("Connection closed. Reason:", statusCode);
 		console.log("Error details:", errorMessage);
 
-		// "conflict" means another session replaced this one — always reconnect
 		const isConflict = errorMessage.toLowerCase().includes("conflict");
-		// True logout = 401 with NO conflict (user explicitly logged out from phone)
 		const isTrueLogout = statusCode === DisconnectReason.loggedOut && !isConflict;
 
 		if (isTrueLogout) {
@@ -46,6 +45,12 @@ const getConnectionUpdate = async (startSock, events) => {
 				`📋 <b>Reason:</b> ${reason}\n` +
 				`⏳ Reconnecting in 5 seconds...`
 			);
+
+			// Broadcast offline status to all groups
+			if (sock) {
+				broadcastStatus(sock, botStatusMessages.reconnecting());
+			}
+
 			setTimeout(() => {
 				startSock("reconnect");
 			}, 5000);
@@ -60,6 +65,11 @@ const getConnectionUpdate = async (startSock, events) => {
 			`━━━━━━━━━━━━━━\n` +
 			`📱 Successfully connected to WhatsApp.`
 		);
+
+		// Broadcast online status to all groups
+		if (sock) {
+			broadcastStatus(sock, botStatusMessages.connected());
+		}
 	}
 
 	if (qr) {
@@ -68,6 +78,22 @@ const getConnectionUpdate = async (startSock, events) => {
 			if (err) console.error("Failed to render QR in terminal:", err.message);
 			else console.log(str);
 		});
+	}
+};
+
+/**
+ * Broadcast a status message to all groups the bot is in.
+ * Non-blocking — failures are swallowed so the connect flow never stalls.
+ */
+const broadcastStatus = async (sock, statusText) => {
+	try {
+		const groups = await sock.groupFetchAllParticipating();
+		for (const gid of Object.keys(groups)) {
+			sock.sendMessage(gid, { text: statusText }).catch(() => {});
+			await new Promise((r) => setTimeout(r, 200)); // rate-limit safety
+		}
+	} catch (e) {
+		console.error("[broadcastStatus] Failed:", e.message);
 	}
 };
 

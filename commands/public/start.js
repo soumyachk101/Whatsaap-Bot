@@ -1,32 +1,43 @@
+import {
+	box,
+	brandedFooter,
+	sectionHeader,
+	sendWithTyping,
+} from "../../functions/messageFormatter.js";
+
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, updateName, prefix } = msgInfoObj;
 	try {
-		const welcomeText = (
-			`╭━━━━━━━━━━━━━━━━━━━╮\n` +
-			`  ⚡ *EVERYTHING DOWNLOADER* ⚡\n` +
-			`╰━━━━━━━━━━━━━━━━━━━╯\n\n` +
-			`👋 *Hey ${updateName || "User"}!*\n` +
-			`_Your one-stop media downloader_ 🎬\n\n` +
-			`━━━━━━━━━━━━━━━━━━━━━\n` +
-			`🌟 *WHAT I CAN DO*\n` +
-			`━━━━━━━━━━━━━━━━━━━━━\n` +
-			`🎬  HD Video downloads\n` +
-			`🎵  MP3 / Audio extraction\n` +
-			`🔍  YouTube search engine\n` +
-			`🤖  AI fun modes (Roast • Rap • Shayari)\n` +
-			`🌐  Instant translation\n` +
-			`⏰  Smart reminders\n\n` +
-			`━━━━━━━━━━━━━━━━━━━━━\n` +
-			`⚡ *QUICK START*\n` +
-			`━━━━━━━━━━━━━━━━━━━━━\n` +
-			`📌 \`${prefix}mp4 <link>\` → Download Video\n` +
-			`📌 \`${prefix}mp3 <link>\` → Download Audio\n` +
-			`📌 \`${prefix}search <query>\` → Find YT videos\n` +
-			`📌 \`${prefix}roast <name>\` → Savage AI Roast\n\n` +
-			`_Supports: YouTube • Instagram • Facebook • Twitter • TikTok_`
-		);
+		const response =
+`🎬 *DOWNLOADBUDDY*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-		return sendMessageWTyping(from, { text: welcomeText }, { quoted: msg });
+Hey *${updateName || "User"}*! 👋
+Your one-stop WhatsApp media downloader
+
+${sectionHeader("🎬", "Media")}
+ ▸ \`${prefix}mp4 <link>\` — HD Video
+ ▸ \`${prefix}mp3 <link>\` — Audio extract
+ ▸ \`${prefix}attp <text>\` — Sticker text
+
+${sectionHeader("🔍", "Search")}
+ ▸ \`${prefix}search <query>\` — Find YouTube
+ ▸ \`${prefix}yts <query>\` — YT Search
+ ▸ \`${prefix}news\` — Latest headlines
+
+${sectionHeader("🤖", "AI & Chat")}
+ ▸ \`${prefix}chatbot <text>\` — Talk to AI
+ ▸ \`${prefix}gemini <text>\` — Gemini
+ ▸ \`${prefix}imagine <prompt>\` — AI Image
+
+${sectionHeader("🛠️", "Tools")}
+ ▸ \`${prefix}sticker\` — Image → sticker
+ ▸ \`${prefix}qr\` — QR Code gen
+ ▸ \`${prefix}weather <city>\` — Forecast
+
+📲 *Supports:* YouTube · Instagram · Facebook · Twitter · TikTok${brandedFooter()}`;
+
+		return sendMessageWTyping(from, { text: response }, { quoted: msg });
 	} catch (err) {
 		console.error("Start command error:", err);
 		return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
@@ -35,7 +46,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 export default () => ({
 	cmd: ["start"],
-	desc: "Show professional welcome menu",
+	desc: "Show welcome menu",
 	usage: "start",
 	handler,
 });
