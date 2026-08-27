@@ -1,7 +1,7 @@
 import sendToTelegram, { escapeHtml } from "./telegramLogger.js";
 import { fake_quoted } from "./getFakeQuoted.js";
 import { getGroupData } from "../sqlite-DB/groupDataDb.js";
-import { extractPhoneNumber, formatJIDForDisplay } from "./lidUtils.js";
+import { extractPhoneNumber, getPreferredJID } from "./lidUtils.js";
 import { groupMetadataCache } from "./getSocket.js";
 import { randomWelcome, sendWithTyping, successMsg } from "./messageFormatter.js";
 
@@ -22,11 +22,14 @@ const getGroupEvent = async (sock, events, cache) => {
 
 	if (events.action == "add") {
 		if (groupDataDB.welcome !== "off") {
-			events.participants.forEach((member) => {
+			for (const member of events.participants) {
 				const memberJid = typeof member === "string" ? member : (member?.id || member?.jid || member?.phoneNumber || "");
 				const phoneNumber = getPhone(member);
 				const mentionTag = `@${phoneNumber}`;
 				const displayName = member?.notify || member?.name || phoneNumber;
+
+				// Resolve the real LID for proper mention notification
+				const mentionJid = await getPreferredJID(sock, memberJid);
 
 				// 1 Reaction on join message
 				sock.sendMessage(jid, { react: { text: "👋", key: events.id } }).catch(() => {});
@@ -44,20 +47,20 @@ const getGroupEvent = async (sock, events, cache) => {
 					welcomeText = randomWelcome(displayName);
 				}
 
-				// 3 Send welcome (no artificial delay)
+				// 3 Send welcome with proper LID mention
 				sendWithTyping(
 					sock,
 					jid,
 					{
 						text: welcomeText,
-						mentions: [memberJid || member],
+						mentions: [mentionJid],
 					},
 					{ quoted: fake_quoted(events, "Welcome to " + (groupDataDB.grpName || "Group")) }
 				).catch(() => {});
 
 				// 4 Success reaction
 				sock.sendMessage(jid, { react: { text: "🎉", key: events.id } }).catch(() => {});
-			});
+			}
 		}
 		//91Only Working
 		if (groupDataDB.is91Only == true) {

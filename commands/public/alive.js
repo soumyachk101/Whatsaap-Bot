@@ -6,6 +6,7 @@ import {
 	sendWithTyping,
 	box,
 } from "../../functions/messageFormatter.js";
+import { getPreferredJID } from "../../functions/lidUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, startTime, updateName, senderJid } = msgInfoObj;
@@ -37,11 +38,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const statusBadge = responseTime < 500 ? "🟢" : responseTime < 2000 ? "🟡" : "🔴";
 		const statusLabel = responseTime < 500 ? "EXCELLENT" : responseTime < 2000 ? "GOOD" : "SLOW";
 
+		// Resolve real LID so the mention actually notifies the user
+		const mentionJid = await getPreferredJID(sock, senderJid);
+		const displayNumber = senderJid.split("@")[0];
+
 		const response =
 `🎾 *ENGINE STATUS*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${sectionHeader("👤", "Greetings")} ${updateName || "@" + senderJid.split("@")[0]}
+${sectionHeader("👤", "Greetings")} @${displayNumber}
 
 ${sectionHeader("📡", "Performance")}
 ${statCard([
@@ -62,7 +67,7 @@ ${progressBar(memPct)}
 
 💡 Type #help to explore commands`;
 
-		return sendMessageWTyping(from, { text: response }, { quoted: msg });
+		return sendMessageWTyping(from, { text: response, mentions: [mentionJid] }, { quoted: msg });
 	} catch (err) {
 		console.error("Alive command error:", err);
 		return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
