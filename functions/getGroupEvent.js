@@ -44,7 +44,7 @@ const getGroupEvent = async (sock, events, cache) => {
 					welcomeText = randomWelcome(displayName);
 				}
 
-				// 3 Staggered send: typing → message
+				// 3 Send welcome (no artificial delay)
 				sendWithTyping(
 					sock,
 					jid,
@@ -52,7 +52,7 @@ const getGroupEvent = async (sock, events, cache) => {
 						text: welcomeText,
 						mentions: [memberJid || member],
 					},
-					{ typingMs: 500, quoted: fake_quoted(events, "Welcome to " + (groupDataDB.grpName || "Group")) }
+					{ quoted: fake_quoted(events, "Welcome to " + (groupDataDB.grpName || "Group")) }
 				).catch(() => {});
 
 				// 4 Success reaction

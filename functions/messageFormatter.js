@@ -128,9 +128,11 @@ export const sendWithTyping = async (
  sock,
  to,
  messageObj,
- { typingMs = 600, sendOpts = {}, quoted } = {}
+ { typingMs = 0, sendOpts = {}, quoted } = {}
 ) => {
+ if (typingMs > 0) {
  await new Promise((r) => setTimeout(r, typingMs));
+ }
  const opts = { ...sendOpts };
  if (quoted) opts.quoted = quoted;
  return sock.sendMessage(to, messageObj, opts);

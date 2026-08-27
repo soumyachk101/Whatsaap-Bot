@@ -1,7 +1,7 @@
-import { botStatusMessages, sendWithTyping } from "../../functions/messageFormatter.js";
+import { botStatusMessages } from "../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { isGroupAdmin, isOwner, groupMetadata } = msgInfoObj;
+	const { isGroupAdmin, isOwner, sendMessageWTyping, groupMetadata } = msgInfoObj;
 
 	if (!isGroupAdmin && !isOwner) {
 		return sendMessageWTyping(from, { text: "🚫 *Access Denied!*\n_This command is for Admins only._" }, { quoted: msg });
@@ -19,7 +19,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		try {
 			await group.updateOne({ _id: from }, { $set: { isBotOn: true } });
 			const text = botStatusMessages.activated(grpName);
-			await sendWithTyping(sock, from, { text }, { typingMs: 400, quoted: msg });
+			await sock.sendMessage(from, { text }, { quoted: msg });
 			await sock.sendMessage(from, { react: { text: "🟢", key: msg.key } }).catch(() => {});
 		} catch (err) {
 			return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
@@ -28,7 +28,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		try {
 			await group.updateOne({ _id: from }, { $set: { isBotOn: false } });
 			const text = botStatusMessages.deactivated(grpName);
-			await sendWithTyping(sock, from, { text }, { typingMs: 400, quoted: msg });
+			await sock.sendMessage(from, { text }, { quoted: msg });
 			await sock.sendMessage(from, { react: { text: "🔴", key: msg.key } }).catch(() => {});
 		} catch (err) {
 			return sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
