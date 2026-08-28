@@ -6,6 +6,26 @@ const group = db.db().collection("Groups");
 const groupCache = new Map();
 const CACHE_TTL = 30_000;
 
+const defaultGroupDoc = (groupJid, groupMetadata = {}) => ({
+	_id: groupJid,
+	isBotOn: false,
+	isImgOn: false,
+	isChatBotOn: false,
+	is91Only: false,
+	antilink: false,
+	nsfw: false,
+	adminOnly: false,
+	grpName: groupMetadata?.subject || "Group",
+	desc: groupMetadata?.desc ? groupMetadata.desc.toString() : "",
+	cmdBlocked: [],
+	welcome: "",
+	totalMsgCount: 0,
+	memberWarnCount: [],
+	members: [],
+	chatHistory: [],
+	dailyStats: [],
+});
+
 const statsDay = (date = new Date()) => {
 	const timeZone = process.env.STATS_TIMEZONE || "Asia/Kolkata";
 	const parts = new Intl.DateTimeFormat("en", {
@@ -47,10 +67,11 @@ const recordGroupDailyStats = async (groupJid, mediaTypeField, date = new Date()
 			.sort((a, b) => a.date.localeCompare(b.date))
 			.slice(-180);
 
-		await group.updateOne({ _id: groupJid }, { $set: { dailyStats: recentHistory } });
+		await group.updateOne({ _id: groupJid }, { $set: { dailyStats: recentHistory } }, { upsert: true });
 		const cached = groupCache.get(groupJid);
 		if (cached?.data) {
 			cached.data.dailyStats = recentHistory;
+			cached.timestamp = Date.now();
 		}
 	} catch (err) {
 		console.error("[daily group stats error]", err.message);
@@ -58,12 +79,18 @@ const recordGroupDailyStats = async (groupJid, mediaTypeField, date = new Date()
 };
 
 const getGroupData = async (groupJid) => {
+	if (!groupJid) return null;
 	const cached = groupCache.get(groupJid);
 	if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
 		return cached.data;
 	}
 	try {
-		const res = await group.findOne({ _id: groupJid });
+		let res = await group.findOne({ _id: groupJid });
+		if (!res) {
+			const newDoc = defaultGroupDoc(groupJid);
+			await group.insertOne(newDoc);
+			res = newDoc;
+		}
 		if (res) {
 			groupCache.set(groupJid, { data: res, timestamp: Date.now() });
 		}
@@ -74,45 +101,64 @@ const getGroupData = async (groupJid) => {
 	}
 };
 
-const createGroupData = async (groupJid, groupMetadata) => {
+const createGroupData = async (groupJid, groupMetadata = {}) => {
+	if (!groupJid) return;
 	try {
-		const res = await getGroupData(groupJid);
-		if (res == null || res === -1) {
-			const newDoc = {
-				_id: groupJid,
-				isBotOn: false,
-				isImgOn: false,
-				isChatBotOn: false,
-				is91Only: false,
-				antilink: false,
-				nsfw: false,
-				adminOnly: false,
-				grpName: groupMetadata.subject,
-				desc: groupMetadata.desc ? groupMetadata.desc.toString() : "",
-				cmdBlocked: [],
-				welcome: "",
-				totalMsgCount: 0,
-				memberWarnCount: [],
-				members: [],
-				chatHistory: [],
-				dailyStats: [],
-			};
+		const res = await group.findOne({ _id: groupJid });
+		if (res == null) {
+			const newDoc = defaultGroupDoc(groupJid, groupMetadata);
 			await group.insertOne(newDoc);
 			groupCache.set(groupJid, { data: newDoc, timestamp: Date.now() });
+			return newDoc;
 		} else {
-			await group.updateOne(
-				{ _id: groupJid },
-				{
-					$set: {
-						grpName: groupMetadata.subject,
-						desc: groupMetadata.desc ? groupMetadata.desc.toString() : "",
-					},
-				}
-			);
+			const updateFields = {};
+			if (groupMetadata?.subject) updateFields.grpName = groupMetadata.subject;
+			if (groupMetadata?.desc) updateFields.desc = groupMetadata.desc.toString();
+			if (Object.keys(updateFields).length > 0) {
+				await group.updateOne({ _id: groupJid }, { $set: updateFields });
+			}
 			groupCache.delete(groupJid);
+			return await getGroupData(groupJid);
 		}
 	} catch (err) {
 		console.error("[groupDataDb error]", err.message);
+	}
+};
+
+const setGroupWelcome = async (groupJid, welcomeText) => {
+	if (!groupJid) return;
+	try {
+		await getGroupData(groupJid);
+		await group.updateOne(
+			{ _id: groupJid },
+			{ $set: { welcome: welcomeText } },
+			{ upsert: true }
+		);
+		const cached = groupCache.get(groupJid);
+		if (cached?.data) {
+			cached.data.welcome = welcomeText;
+			cached.timestamp = Date.now();
+		} else {
+			groupCache.delete(groupJid);
+		}
+	} catch (err) {
+		console.error("[setGroupWelcome error]", err.message);
+		groupCache.delete(groupJid);
+		throw err;
+	}
+};
+
+const updateGroupData = async (groupJid, update, options = {}) => {
+	if (!groupJid) return;
+	try {
+		await getGroupData(groupJid);
+		const res = await group.updateOne({ _id: groupJid }, update, { upsert: true, ...options });
+		groupCache.delete(groupJid);
+		return res;
+	} catch (err) {
+		console.error("[updateGroupData error]", err.message);
+		groupCache.delete(groupJid);
+		throw err;
 	}
 };
 
@@ -121,4 +167,13 @@ const clearGroupCache = (groupJid) => {
 	else groupCache.clear();
 };
 
-export { getGroupData, createGroupData, recordGroupDailyStats, statsDay, group, clearGroupCache };
+export {
+	getGroupData,
+	createGroupData,
+	setGroupWelcome,
+	updateGroupData,
+	recordGroupDailyStats,
+	statsDay,
+	group,
+	clearGroupCache,
+};

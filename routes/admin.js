@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { group } from "../sqlite-DB/groupDataDb.js";
+import { group, updateGroupData } from "../sqlite-DB/groupDataDb.js";
 import { member } from "../sqlite-DB/membersDataDb.js";
 import { bot, getBotData } from "../sqlite-DB/botDataDb.js";
 import { cmdToText } from "../functions/getAddCommands.js";
@@ -400,14 +400,14 @@ router.get("/api/admin/groups", requireAdmin, async (req, res) => {
 
 router.patch("/api/admin/groups/:jid", requireAdmin, async (req, res) => {
 	const jid = decodeURIComponent(req.params.jid);
-	const allowed = ["isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn", "cmdBlocked", "antilink", "nsfw", "adminOnly", "restrictedMode"];
+	const allowed = ["isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn", "cmdBlocked", "antilink", "nsfw", "adminOnly", "restrictedMode", "welcome"];
 	const update = {};
 	for (const key of allowed) {
 		if (key in req.body) update[key] = req.body[key];
 	}
 	if (!Object.keys(update).length) return res.status(400).json({ error: "No valid fields" });
 	try {
-		await group.updateOne({ _id: jid }, { $set: update });
+		await updateGroupData(jid, { $set: update });
 		res.json({ ok: true });
 	} catch (err) {
 		res.status(500).json({ error: err.message });

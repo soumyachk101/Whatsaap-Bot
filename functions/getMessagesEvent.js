@@ -158,15 +158,27 @@ const getCommand = async (sock, msg, cache) => {
 
 		if (isCmd) {
 			const cleanBody = body.slice(matchedPrefix.length).trim();
-			const parts = cleanBody.split(/ +/);
-			command = parts.shift().toLowerCase();
-			args = parts;
-			evv = parts.join(" ");
+			const firstSpace = cleanBody.search(/\s/);
+			if (firstSpace === -1) {
+				command = cleanBody.toLowerCase();
+				args = [];
+				evv = "";
+			} else {
+				command = cleanBody.slice(0, firstSpace).toLowerCase();
+				evv = cleanBody.slice(firstSpace).trim();
+				args = evv.split(/\s+/).filter(Boolean);
+			}
 		} else {
-			const parts = body.trim().split(/ +/);
-			command = parts[0] ? parts[0].toLowerCase() : "";
-			args = parts.slice(1);
-			evv = body.trim();
+			const firstSpace = body.trim().search(/\s/);
+			if (firstSpace === -1) {
+				command = body.trim().toLowerCase();
+				args = [];
+				evv = body.trim();
+			} else {
+				command = body.trim().slice(0, firstSpace).toLowerCase();
+				evv = body.trim();
+				args = body.trim().slice(firstSpace).trim().split(/\s+/).filter(Boolean);
+			}
 		}
 
 		const isGroup = from.endsWith("@g.us");

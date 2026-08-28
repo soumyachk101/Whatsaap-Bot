@@ -141,38 +141,38 @@ export const sendWithTyping = async (
 /* ── Welcome templates ───────────────────────────────────── */
 
 const WELCOME_TEMPLATES = [
- (name) =>
- `🎉 *Welcome to the family, ${name}!*\n\n` +
- `We're hyped to have you here 🌟\n` +
- `Drop a hello and let the vibes roll 🎬\n` +
- `Type #help to see what this bot can do!`,
+	(mention, group) =>
+		`🎉 *Welcome to the family, ${mention}!*` + (group ? `\nWelcome to *${group}* 🌟` : "\nWe're hyped to have you here 🌟") +
+		`\n\nDrop a hello and let the vibes roll 🎬\n` +
+		`Type *#help* to see what this bot can do!`,
 
- (name) =>
- `👋 *Hey ${name}, welcome aboard!*\n\n` +
- `You've just joined the coolest corner of WhatsApp 😎\n` +
- `Sit back, relax, and enjoy the ride 🚀\n` +
- `Need anything? Just #help`,
+	(mention, group) =>
+		`👋 *Hey ${mention}, welcome aboard!*` + (group ? `\nGlad you joined *${group}* 🚀` : "") +
+		`\n\nYou've just joined the coolest corner of WhatsApp 😎\n` +
+		`Sit back, relax, and enjoy the ride 🚀\n` +
+		`Need anything? Just type *#help*`,
 
- (name) =>
- `🌟 *A new star has arrived!*\n\n` +
- `Welcome ${name} ✨\n` +
- `This group is lit and you're about to make it even better 🔥\n` +
- `Say hi and let's go! 🎉`,
+	(mention, group) =>
+		`🌟 *A new star has arrived!*\n\n` +
+		`Welcome ${mention} ✨` + (group ? ` to *${group}*` : "") +
+		`\nThis group is lit and you're about to make it even better 🔥\n` +
+		`Say hi and let's go! 🎉`,
 
- (name) =>
- `🚀 *Welcome ${name}!*\n\n` +
- `Glad you're here — grab a coffee ☕ and explore!\n` +
- `Use #help to unlock all the magic 🪄\n` +
- `Enjoy your stay 🎊`,
+	(mention, group) =>
+		`🚀 *Welcome ${mention}!*` + (group ? ` to *${group}*` : "") +
+		`\n\nGlad you're here — grab a coffee ☕ and explore!\n` +
+		`Use *#help* to unlock all the magic 🪄\n` +
+		`Enjoy your stay 🎊`,
 ];
 
 /**
- * @param {string} name – display name of the new member
+ * @param {string} name – display name or mention tag of the new member
+ * @param {string} [groupName] – optional group name
  * @returns {string}
  */
-export const randomWelcome = (name) => {
- const idx = Math.floor(Math.random() * WELCOME_TEMPLATES.length);
- return WELCOME_TEMPLATES[idx](name);
+export const randomWelcome = (name, groupName = "") => {
+	const idx = Math.floor(Math.random() * WELCOME_TEMPLATES.length);
+	return WELCOME_TEMPLATES[idx](name, groupName);
 };
 
 /* ── Bot status messages ─────────────────────────────────── */
