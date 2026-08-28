@@ -105,13 +105,18 @@ const getCommand = async (sock, msg, cache) => {
 
 		const from = msg.key.remoteJid;
 		const content = JSON.stringify(msg.message);
-		const type = Object.keys(msg.message)[0];
+
+		let m = msg.message || {};
+		if (m.ephemeralMessage?.message) m = m.ephemeralMessage.message;
+		if (m.viewOnceMessage?.message) m = m.viewOnceMessage.message;
+		if (m.viewOnceMessageV2?.message) m = m.viewOnceMessageV2.message;
+		if (m.documentWithCaptionMessage?.message) m = m.documentWithCaptionMessage.message;
+
+		const type = Object.keys(m)[0];
 
 		if (type === "stickerMessage" && forwardGroup != "") {
 			stickerForward(sock, msg, from);
 		}
-
-		const m = msg.message || {};
 
 		const bodyMap = {
 			conversation: m.conversation,

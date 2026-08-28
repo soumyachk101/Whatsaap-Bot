@@ -1,4 +1,4 @@
-import { botStatusMessages } from "../../functions/messageFormatter.js";
+import { botStatusMessages } from "../../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { isGroupAdmin, isOwner, sendMessageWTyping, groupMetadata } = msgInfoObj;

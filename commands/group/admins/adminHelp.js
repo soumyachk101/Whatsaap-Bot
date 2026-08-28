@@ -1,5 +1,5 @@
-import { cmdToText } from "../../functions/getAddCommands.js";
-import { box, brandedFooter } from "../../functions/messageFormatter.js";
+import { cmdToText } from "../../../functions/getAddCommands.js";
+import { box, brandedFooter } from "../../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { prefix, sendMessageWTyping } = msgInfoObj;

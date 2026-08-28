@@ -93,15 +93,10 @@ const getGroupEvent = async (sock, events, cache) => {
 
 				// Send welcome with mentions array
 				try {
-					await sendWithTyping(
-						sock,
-						jid,
-						{
-							text: welcomeText,
-							mentions: mentionsList,
-						},
-						{ quoted: fake_quoted(events, `Welcome to ${grpName}`) }
-					);
+					await sock.sendMessage(jid, {
+						text: welcomeText,
+						mentions: mentionsList,
+					});
 				} catch (sendErr) {
 					console.error(`[getGroupEvent] Failed to send welcome message to ${jid}:`, sendErr.message);
 				}

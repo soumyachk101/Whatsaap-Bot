@@ -1,6 +1,6 @@
-import { getGroupData, setGroupWelcome } from "../../sqlite-DB/groupDataDb.js";
-import { randomWelcome } from "../../functions/messageFormatter.js";
-import { extractPhoneNumber } from "../../functions/lidUtils.js";
+import { getGroupData, setGroupWelcome } from "../../../sqlite-DB/groupDataDb.js";
+import { randomWelcome } from "../../../functions/messageFormatter.js";
+import { extractPhoneNumber } from "../../../functions/lidUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, evv, groupMetadata, senderJid, prefix } = msgInfoObj;
@@ -10,28 +10,39 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const groupData = await getGroupData(from);
 		let welMess = groupData?.welcome || "";
 		const subCmd = (args[0] || "").toLowerCase();
+		const isSingleArg = args.length === 1;
 		const grpName = groupMetadata?.subject || groupData?.grpName || "Group";
 		const grpDesc = groupMetadata?.desc ? groupMetadata.desc.toString() : (groupData?.desc || "");
 		const senderNumber = extractPhoneNumber(senderJid || "");
 		const senderTag = senderNumber ? `@${senderNumber}` : "@User";
 
-		if (subCmd === "reset" || subCmd === "default") {
+		// Extract quoted message text if present
+		const quotedMsg = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+		const quotedText = (
+			quotedMsg?.conversation ||
+			quotedMsg?.extendedTextMessage?.text ||
+			quotedMsg?.imageMessage?.caption ||
+			quotedMsg?.videoMessage?.caption ||
+			""
+		).trim();
+
+		if (isSingleArg && (subCmd === "reset" || subCmd === "default")) {
 			await setGroupWelcome(from, "");
 			await sendMessageWTyping(from, {
 				text: "✅ *Welcome Message reset to default random templates.*",
 			}, { quoted: msg });
-		} else if (subCmd === "off" || subCmd === "disable") {
+		} else if (isSingleArg && (subCmd === "off" || subCmd === "disable")) {
 			await setGroupWelcome(from, "off");
 			await sendMessageWTyping(from, {
 				text: "😴 *Welcome Message disabled for this group.*",
 			}, { quoted: msg });
-		} else if (subCmd === "on" || subCmd === "enable") {
+		} else if (isSingleArg && (subCmd === "on" || subCmd === "enable")) {
 			const newStatus = welMess === "off" ? "" : welMess;
 			await setGroupWelcome(from, newStatus);
 			await sendMessageWTyping(from, {
 				text: "✅ *Welcome Message enabled!*",
 			}, { quoted: msg });
-		} else if (subCmd === "preview") {
+		} else if (isSingleArg && (subCmd === "preview" || subCmd === "test")) {
 			let previewText = "";
 			if (welMess && welMess !== "off") {
 				let text = welMess;
@@ -59,6 +70,19 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			await sendMessageWTyping(from, {
 				text: `📋 *Welcome Preview:*\n\n${previewText}`,
 				mentions: senderJid ? [senderJid] : [],
+			}, { quoted: msg });
+		} else if (subCmd === "set" && (args.length > 1 || quotedText)) {
+			const messageToSet = args.length > 1 ? evv.slice(args[0].length).trim() : quotedText;
+			await setGroupWelcome(from, messageToSet);
+			await sendMessageWTyping(from, {
+				text: `✅ *Welcome Message Set!*\n\n${messageToSet}\n\n` +
+					`_💡 Tip: Use \`${currentPrefix}welcome preview\` to see how it looks when someone joins._`,
+			}, { quoted: msg });
+		} else if (!args[0] && quotedText) {
+			await setGroupWelcome(from, quotedText);
+			await sendMessageWTyping(from, {
+				text: `✅ *Welcome Message Set!*\n\n${quotedText}\n\n` +
+					`_💡 Tip: Use \`${currentPrefix}welcome preview\` to see how it looks when someone joins._`,
 			}, { quoted: msg });
 		} else if (!args[0]) {
 			const status = welMess === "off"
@@ -96,7 +120,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["welcome"],
+	cmd: ["welcome", "setwelcome"],
 	desc: "Set and manage group welcome message",
 	usage: "welcome <message> | preview | reset | off | on",
 	handler,
