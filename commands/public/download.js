@@ -123,14 +123,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			}
 
 			const mediaInfo = await detectMediaFileType(filePath);
-			const titleText = videoMeta ? videoMeta.title : "Downloaded Media";
 
 			if (mediaInfo.detected === "video") {
 				await sock.sendMessage(
 					from,
 					{
 						video: { url: filePath },
-						caption: `🎬 *${titleText}*\n📊 Size: ${fileSizeMB.toFixed(2)}MB`,
 						mimetype: "video/mp4",
 					},
 					{ quoted: msg }
@@ -140,7 +138,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					from,
 					{
 						image: { url: filePath },
-						caption: `📷 *Downloaded Photo*\n📊 Size: ${fileSizeMB.toFixed(2)}MB`,
 					},
 					{ quoted: msg }
 				);
