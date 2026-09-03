@@ -5,11 +5,67 @@ import stream from "stream";
 import { promisify } from "util";
 import path from "path";
 import { exec, execFile } from "child_process";
+import { lookup } from "dns";
 import snapsave from "snapsave-downloader";
 import memoryManager from "./memoryUtils.js";
 import instanceHealth from "./instanceHealth.js";
 
 const pipeline = promisify(stream.pipeline);
+
+/**
+ * SSRF protection: reject URLs pointing to internal/private network addresses
+ */
+const SSRF_BLOCKED_RANGES = [
+	{ name: "loopback", start: "127.0.0.0", end: "127.255.255.255" },
+	{ name: "private-10", start: "10.0.0.0", end: "10.255.255.255" },
+	{ name: "private-172", start: "172.16.0.0", end: "172.31.255.255" },
+	{ name: "private-192", start: "192.168.0.0", end: "192.168.255.255" },
+	{ name: "link-local", start: "169.254.0.0", end: "169.254.255.255" },
+];
+
+const isPrivateIp = (ip) => {
+	const parts = ip.split(".").map(Number);
+	if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) return false;
+	const ipNum = (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+	const toNum = (r) => {
+		const p = r.start.split(".").map(Number);
+		return (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
+	};
+	const toNumEnd = (r) => {
+		const p = r.end.split(".").map(Number);
+		return (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
+	};
+	return SSRF_BLOCKED_RANGES.some((r) => ipNum >= toNum(r) && ipNum <= toNumEnd(r));
+};
+
+const isPrivateHostname = async (hostname) => {
+	// Direct IP check
+	if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+		return isPrivateIp(hostname);
+	}
+	// DNS resolve + check
+	return new Promise((resolve) => {
+		lookup(hostname, { all: true }, (err, addresses) => {
+			if (err) return resolve(false);
+			if (addresses.some((a) => isPrivateIp(a.address))) return resolve(true);
+			resolve(false);
+		});
+	});
+};
+
+const isSafeUrl = async (url) => {
+	try {
+		const parsed = new URL(url);
+		if (!["http:", "https:"].includes(parsed.protocol)) return false;
+		if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") return false;
+		if (parsed.hostname.startsWith("127.")) return false;
+		if (parsed.hostname === "::1") return false;
+		// Resolve hostname and check for private IPs
+		return !(await isPrivateHostname(parsed.hostname));
+	} catch {
+		return false;
+	}
+};
 
 /**
  * Validate that a URL is a safe HTTP/HTTPS link
@@ -199,6 +255,12 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 
 		const mediaUrl = item.url || item.thumbnail;
 		if (!mediaUrl) continue;
+
+		// SSRF: reject URLs pointing to internal/private hosts
+		if (!(await isSafeUrl(mediaUrl))) {
+			console.warn(`[SnapSave] Skipping SSRF-unsafe URL: ${mediaUrl}`);
+			continue;
+		}
 
 		const isVideo = Boolean(item.url) || (item.filename && item.filename.endsWith(".mp4")) || mediaUrl.includes(".mp4");
 		const ext = isVideo ? ".mp4" : ".jpg";
@@ -525,4 +587,5 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 	throw new CobaltDownloadError(errorCode, `Failed to download: ${url}`);
 };
 
-export default downloadViaCobalt;
+export { isSafeUrl } from "./cobaltHelper.js";
+export { isSafeUrl } from "./cobaltHelper.js";

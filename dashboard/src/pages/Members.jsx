@@ -75,13 +75,30 @@ export default function Members() {
  </div>
  </div>
 
- <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
- {SORTS.map(s => (
- <button key={s.key} className={`btn ${sort === s.key ? 'btn-primary' : 'btn-secondary'}`} onClick={() => handleSort(s.key)} style={{ fontSize: '0.72rem', padding: '0.35rem 0.75rem' }}>
- {s.label} {sort === s.key && (order === 'desc' ? '↓' : '↑')}
- </button>
- ))}
- </div>
+ 	<div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '4px' }}>
+		{SORTS.map(s => {
+			const active = sort === s.key;
+			return (
+				<button
+					key={s.key}
+					type="button"
+					className={`btn ${active ? 'btn-primary' : 'btn-ghost'}`}
+					onClick={() => handleSort(s.key)}
+					style={{
+						fontSize: '0.72rem',
+						padding: '0.35rem 0.85rem',
+						borderRadius: '6px',
+						fontWeight: active ? 700 : 500,
+						background: active ? 'linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
+						color: active ? '#ffffff' : 'var(--text-dim)',
+						borderColor: active ? '#4338ca' : 'transparent',
+					}}
+				>
+					{s.label} {sort === s.key && (order === 'desc' ? '↓' : '↑')}
+				</button>
+			);
+		})}
+	</div>
 
  <div className="table-wrap">
  {loading ? (

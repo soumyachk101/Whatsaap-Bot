@@ -564,36 +564,51 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 
 .slider {
- position: absolute;
- cursor: pointer;
- inset: 0;
- background: rgba(255, 255, 255, 0.08);
- border: 1px solid rgba(255, 255, 255, 0.1);
- transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
- border-radius: 34px;
+	position: absolute;
+	cursor: pointer;
+	inset: 0;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+	border-radius: 34px;
+}
+
+.slider::before {
+	content: '';
+	position: absolute;
+	height: 16px;
+	width: 16px;
+	left: 2px;
+	bottom: 2px;
+	background: #94a3b8;
+	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+	border-radius: 50%;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .slider-thumb {
- position: absolute;
- height: 16px;
- width: 16px;
- left: 2px;
- bottom: 2px;
- background: #71717a;
- transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
- border-radius: 50%;
- box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+	position: absolute;
+	height: 16px;
+	width: 16px;
+	left: 2px;
+	bottom: 2px;
+	background: #94a3b8;
+	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+	border-radius: 50%;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 input:checked + .slider {
- background: var(--indigo);
- border-color: var(--indigo);
+	background: var(--indigo);
+	border-color: #4f46e5;
+	box-shadow: 0 0 14px rgba(99, 102, 241, 0.3);
 }
 
+input:checked + .slider::before,
 input:checked + .slider .slider-thumb {
- transform: translateX(18px);
- background: #fff;
- box-shadow: 0 1px 4px rgba(99, 102, 241, 0.4);
+	transform: translateX(18px);
+	background: #ffffff;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
 }
 
 @keyframes pulse-dot {

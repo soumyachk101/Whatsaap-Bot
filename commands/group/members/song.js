@@ -107,6 +107,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				URL = videoInfo.url;
 				title = videoInfo.title || songQuery;
 				durationText = videoInfo.timestamp ? ` (${videoInfo.timestamp})` : "";
+				// SSRF: validate search-result URL
+				if (!(await isSafeUrl(URL))) {
+					return sendMessageWTyping(from, { text: `❌ Unsafe URL found for: *${songQuery}*. Try another.` }, { quoted: msg });
+				}
 			} catch (searchError) {
 				console.error("Search failed:", searchError);
 				return sendMessageWTyping(from, { text: `❌ No songs found for: *${songQuery}*` }, { quoted: msg });

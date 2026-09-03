@@ -136,6 +136,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return sendMessageWTyping(from, { text: `❌ *No video found for:* \`${inputQuery}\`` }, { quoted: msg });
 		}
 		targetUrl = videoMeta.url;
+
+		// SSRF: validate search-result URLs too
+		if (!(await isSafeUrl(targetUrl))) {
+			return sendMessageWTyping(from, { text: "❌ Unsafe URL. Only public links are supported." }, { quoted: msg });
+		}
 	}
 
 	try {

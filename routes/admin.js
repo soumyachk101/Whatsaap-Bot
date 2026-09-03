@@ -117,10 +117,16 @@ router.get("/api/admin/stats", requireAdmin, async (req, res) => {
 			member.countDocuments(),
 			getBotData(),
 		]);
+		const mem = process.memoryUsage();
 		res.json({
 			uptime: Math.floor(process.uptime()),
 			groupCount,
 			memberCount,
+			memoryUsage: {
+				heapUsed: mem.heapUsed,
+				heapTotal: mem.heapTotal,
+				rss: mem.rss,
+			},
 			botNumber: process.env.BOT_NUMBER?.split(",")[0] || "Unknown",
 			disabledGlobally: botData?.disabledGlobally || [],
 		});

@@ -104,10 +104,10 @@ export default function Home() {
 
  // Derive display values
  const uptime = stats?.uptime ? fmtUptime(stats.uptime) : '—'
- const messages = analytics?.messagesSent ?? stats?.messages ?? 0
+ const messages = analytics?.totalMessages ?? stats?.messages ?? 0
  const commands = stats?.commandsRun ?? 0
- const groups = stats?.groups ?? 0
- const members = stats?.members ?? 0
+ const groups = analytics?.totalGroups ?? stats?.groupCount ?? stats?.groups ?? 0
+ const members = analytics?.totalMembers ?? stats?.memberCount ?? stats?.members ?? 0
  const errors = stats?.errors ?? 0
  const activityData = analytics?.activity ?? Array.from({ length: 20 }, () => Math.random() * 80 + 20)
 

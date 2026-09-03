@@ -67,13 +67,31 @@ export default function Commands() {
  </div>
 
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
- <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
- {FILTERS.map(f => (
- <button key={f} className={`btn ${filter === f ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilter(f)} style={{ fontSize: '0.72rem', padding: '0.35rem 0.75rem', textTransform: 'capitalize' }}>
- {f}
- </button>
- ))}
- </div>
+ 		<div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '4px' }}>
+			{FILTERS.map(f => {
+				const active = filter === f;
+				return (
+					<button
+						key={f}
+						type="button"
+						className={`btn ${active ? 'btn-primary' : 'btn-ghost'}`}
+						onClick={() => setFilter(f)}
+						style={{
+							fontSize: '0.72rem',
+							padding: '0.35rem 0.85rem',
+							borderRadius: '6px',
+							fontWeight: active ? 700 : 500,
+							textTransform: 'capitalize',
+							background: active ? 'linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
+							color: active ? '#ffffff' : 'var(--text-dim)',
+							borderColor: active ? '#4338ca' : 'transparent',
+						}}
+					>
+						{f}
+					</button>
+				);
+			})}
+		</div>
  <div style={{ position: 'relative', width: '260px' }}>
  <Icons.IconSearch size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)', pointerEvents: 'none' }} />
  <input className="input" placeholder="Search commands..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '2.2rem', fontSize: '0.8rem' }} />
