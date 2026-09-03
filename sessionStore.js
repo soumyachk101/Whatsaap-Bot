@@ -1,57 +1,66 @@
 import session from "express-session";
-import db from "./sqlite.js";
+import Database from "better-sqlite3";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
-const Store = session.Store;
-const sessionsCol = db.db().collection("Sessions");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dbPath = process.env.DATABASE_PATH || join(__dirname, "database.db");
+const sqliteDb = new Database(dbPath);
 
-class UniversalSessionStore extends Store {
-	constructor() {
-		super();
-	}
+sqliteDb.exec(`
+	CREATE TABLE IF NOT EXISTS Sessions (
+		sid TEXT PRIMARY KEY,
+		sess TEXT NOT NULL,
+		expire INTEGER NOT NULL
+	);
+`);
 
-	async get(sid, cb) {
+class SQLiteSessionStore extends session.Store {
+	get(sid, cb) {
 		try {
-			const doc = await sessionsCol.findOne({ _id: sid });
-			if (!doc || doc.expire < Date.now()) return cb(null, null);
-			const sessData = typeof doc.sess === "string" ? JSON.parse(doc.sess) : doc.sess;
-			cb(null, sessData);
+			const row = sqliteDb.prepare("SELECT * FROM Sessions WHERE sid = ?").get(sid);
+			if (!row || row.expire < Date.now()) return cb(null, null);
+			const data = JSON.parse(row.sess);
+			cb(null, data);
 		} catch (err) {
-			cb(err);
+			console.warn("Session read warning:", err.message);
+			cb(null, null);
 		}
 	}
 
-	async set(sid, sess, cb) {
+	set(sid, sess, cb) {
 		try {
-			const expire = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
-			await sessionsCol.updateOne(
-				{ _id: sid },
-				{ $set: { sess: JSON.stringify(sess), expire } },
-				{ upsert: true }
+			const expire = sess.cookie?.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
+			sqliteDb.prepare("INSERT OR REPLACE INTO Sessions (sid, sess, expire) VALUES (?, ?, ?)").run(
+				sid,
+				JSON.stringify(sess),
+				expire
 			);
-			cb(null);
+			if (cb) cb(null);
 		} catch (err) {
-			cb(err);
+			console.warn("Session write warning:", err.message);
+			if (cb) cb(null);
 		}
 	}
 
-	async destroy(sid, cb) {
+	destroy(sid, cb) {
 		try {
-			await sessionsCol.deleteMany({ _id: sid });
-			cb(null);
+			sqliteDb.prepare("DELETE FROM Sessions WHERE sid = ?").run(sid);
+			if (cb) cb(null);
 		} catch (err) {
-			cb(err);
+			if (cb) cb(null);
 		}
 	}
 
-	async touch(sid, sess, cb) {
+	touch(sid, sess, cb) {
 		try {
-			const expire = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
-			await sessionsCol.updateOne({ _id: sid }, { $set: { expire } });
-			cb(null);
+			const expire = sess.cookie?.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
+			sqliteDb.prepare("UPDATE Sessions SET expire = ? WHERE sid = ?").run(expire, sid);
+			if (cb) cb(null);
 		} catch (err) {
-			cb(err);
+			if (cb) cb(null);
 		}
 	}
 }
 
-export default UniversalSessionStore;
+export default SQLiteSessionStore;
