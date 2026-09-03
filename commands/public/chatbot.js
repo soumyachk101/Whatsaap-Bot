@@ -236,10 +236,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	let taggedMember, tagMessage, tagMessageSenderJID;
-	if (msg.message.extendedTextMessage) {
+	if (msg.message?.extendedTextMessage?.contextInfo) {
 		tagMessage = msg.message.extendedTextMessage.contextInfo.quotedMessage;
 		tagMessageSenderJID = msg.message.extendedTextMessage.contextInfo.participant;
-		if (msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.length > 0) {
+		if (msg.message.extendedTextMessage.contextInfo.mentionedJid?.length > 0) {
 			taggedMember = msg.message.extendedTextMessage.contextInfo.mentionedJid;
 		}
 	}
@@ -254,11 +254,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				{ quoted: msg }
 			);
 		} else {
-			chat(prompt, from, msg, taggedMember, msgInfoObj, data, tagMessage, tagMessageSenderJID);
+			await chat(prompt, from, msg, taggedMember, msgInfoObj, data, tagMessage, tagMessageSenderJID);
 		}
 	} else {
 		if (msgInfoObj.isOwner) {
-			chat(prompt, from, msg, taggedMember, msgInfoObj, null, tagMessage, tagMessageSenderJID);
+			await chat(prompt, from, msg, taggedMember, msgInfoObj, null, tagMessage, tagMessageSenderJID);
 		} else {
 			return sendMessageWTyping(
 				from,

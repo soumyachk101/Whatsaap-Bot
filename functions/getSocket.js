@@ -22,8 +22,8 @@ const messageCache = new NodeCache({
 });
 
 export const groupMetadataCache = new NodeCache({
-	stdTTL: 600, // 10 minutes cache
-	checkperiod: 60,
+	stdTTL: 3600, // 1 hour cache
+	checkperiod: 120,
 	maxKeys: 500,
 	useClones: false,
 });
@@ -40,21 +40,13 @@ if (cacheCleanupInterval) clearInterval(cacheCleanupInterval);
 cacheCleanupInterval = setInterval(() => {
 	const msgStats = messageCache.getStats();
 	const retryStats = msgRetryCounterCache.getStats();
-	const groupStats = groupMetadataCache.getStats();
 
 	if (msgStats.keys > 80) {
 		messageCache.flushAll();
-		console.log("Message cache cleared");
 	}
 
 	if (retryStats.keys > 150) {
 		msgRetryCounterCache.flushAll();
-		console.log("Retry counter cache cleared");
-	}
-
-	if (groupStats.keys > 450) {
-		groupMetadataCache.flushAll();
-		console.log("Group metadata cache cleared");
 	}
 }, 120000); // Every 2 minutes
 

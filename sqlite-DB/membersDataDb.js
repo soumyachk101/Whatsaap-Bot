@@ -3,38 +3,27 @@ import db from "../sqlite.js";
 const member = db.db().collection("Members");
 
 const createMembersData = async (jid, name) => {
+	if (!jid) return;
 	try {
-		let res = await member.findOne({ _id: jid });
-
-		if (res == null) {
-			await member.insertOne({
-				_id: jid,
-				username: name,
-				isBlock: false,
-				totalmsg: 0,
-				texttotal: 0,
-				imagetotal: 0,
-				videototal: 0,
-				stickertotal: 0,
-				pdftotal: 0,
-				dmLimit: 99999,
-				warning: [],
-				xp: 0,
-			});
-		} else {
-			await member.updateOne(
-				{ _id: jid },
-				{
-					$set: {
-						username: name,
-					},
-				}
-			);
-			// Backfill xp for users created before leveling system existed
-			if (typeof res.xp !== "number") {
-				await member.updateOne({ _id: jid }, { $set: { xp: 0 } });
-			}
-		}
+		await member.updateOne(
+			{ _id: jid },
+			{
+				$set: { username: name },
+				$setOnInsert: {
+					isBlock: false,
+					totalmsg: 0,
+					texttotal: 0,
+					imagetotal: 0,
+					videototal: 0,
+					stickertotal: 0,
+					pdftotal: 0,
+					dmLimit: 99999,
+					warning: [],
+					xp: 0,
+				},
+			},
+			{ upsert: true }
+		);
 	} catch (err) {
 		console.error("[membersDataDb error]", err.message);
 	}

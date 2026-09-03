@@ -69,7 +69,15 @@ class Collection {
 			return await op();
 		} catch (err) {
 			console.error(`[Mongo ${this.tableName} error]`, err.message);
-			mongoDbInstance = null; // Mark as dead — switch to SQLite permanently
+			if (
+				err.name === "MongoNetworkError" ||
+				err.name === "MongoServerSelectionError" ||
+				err.name === "MongoTopologyClosedError" ||
+				err.message?.includes("connection closed")
+			) {
+				console.warn("⚠️ Mongo network error. Switching to SQLite fallback.");
+				mongoDbInstance = null;
+			}
 			return null;
 		}
 	}
@@ -186,8 +194,15 @@ class Collection {
 		if (mongoResult) return mongoResult;
 
 		// SQLite Fallback
-		const stmt = sqliteDb.prepare(`SELECT * FROM ${this.tableName}`);
-		const rows = stmt.all();
+		let rows;
+		if (query._id && query._id.$in && Array.isArray(query._id.$in) && query._id.$in.length > 0) {
+			const placeholders = query._id.$in.map(() => "?").join(",");
+			const stmt = sqliteDb.prepare(`SELECT * FROM ${this.tableName} WHERE id IN (${placeholders})`);
+			rows = stmt.all(...query._id.$in);
+		} else {
+			const stmt = sqliteDb.prepare(`SELECT * FROM ${this.tableName}`);
+			rows = stmt.all();
+		}
 
 		let results = rows.map(row => {
 			if (this.tableName === 'AuthTable') return { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]') };
@@ -234,7 +249,15 @@ class Collection {
 			return op();
 		} catch (err) {
 			console.error(`[Mongo ${this.tableName} sync error]`, err.message);
-			mongoDbInstance = null;
+			if (
+				err.name === "MongoNetworkError" ||
+				err.name === "MongoServerSelectionError" ||
+				err.name === "MongoTopologyClosedError" ||
+				err.message?.includes("connection closed")
+			) {
+				console.warn("⚠️ Mongo network error (sync). Switching to SQLite fallback.");
+				mongoDbInstance = null;
+			}
 			return null;
 		}
 	}

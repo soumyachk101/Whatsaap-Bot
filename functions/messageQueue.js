@@ -63,23 +63,16 @@ class MessageQueue {
 			return;
 		}
 
-		while (queue.length > 0) {
-			const batchSize = this.batchSize;
-			const batch = [];
-
-			for (let i = 0; i < batchSize && queue.length > 0; i++) {
+		try {
+			while (queue.length > 0) {
 				while (this.activeSends >= this.maxConcurrent) {
 					await new Promise((resolve) => setTimeout(resolve, 10));
 				}
 
 				const message = queue.shift();
-				if (message) {
-					batch.push(message);
-					this.activeSends++;
-				}
-			}
+				if (!message) break;
 
-			const batchPromises = batch.map(async (message) => {
+				this.activeSends++;
 				try {
 					const result = await message.sendFunction();
 					message.resolve(result);
@@ -89,12 +82,14 @@ class MessageQueue {
 				} finally {
 					this.activeSends--;
 				}
-			});
-
-			await Promise.all(batchPromises);
+			}
+		} finally {
+			this.processing.set(chatId, false);
+			// Re-trigger if any message arrived while loop was concluding
+			if (queue.length > 0) {
+				this.processQueue(chatId);
+			}
 		}
-
-		this.processing.set(chatId, false);
 	}
 
 	getStats() {

@@ -13,6 +13,7 @@ import { getBotData } from "../sqlite-DB/botDataDb.js";
 import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
 import { groupMetadataCache } from "./getSocket.js";
+import { extractPhoneNumber, isLID } from "./lidUtils.js";
 
 const parseNumberEnv = (envVal) => {
 	if (!envVal) return [];
@@ -107,12 +108,28 @@ const getCommand = async (sock, msg, cache) => {
 		const content = JSON.stringify(msg.message);
 
 		let m = msg.message || {};
-		if (m.ephemeralMessage?.message) m = m.ephemeralMessage.message;
-		if (m.viewOnceMessage?.message) m = m.viewOnceMessage.message;
-		if (m.viewOnceMessageV2?.message) m = m.viewOnceMessageV2.message;
-		if (m.documentWithCaptionMessage?.message) m = m.documentWithCaptionMessage.message;
+		while (
+			m?.ephemeralMessage?.message ||
+			m?.viewOnceMessage?.message ||
+			m?.viewOnceMessageV2?.message ||
+			m?.viewOnceMessageV2Extension?.message ||
+			m?.documentWithCaptionMessage?.message ||
+			m?.editedMessage?.message?.protocolMessage?.editedMessage
+		) {
+			m =
+				m?.ephemeralMessage?.message ||
+				m?.viewOnceMessage?.message ||
+				m?.viewOnceMessageV2?.message ||
+				m?.viewOnceMessageV2Extension?.message ||
+				m?.documentWithCaptionMessage?.message ||
+				m?.editedMessage?.message?.protocolMessage?.editedMessage;
+		}
 
-		const type = Object.keys(m)[0];
+		// Skip protocol messages and reactions
+		if (m.protocolMessage || m.reactionMessage) return;
+
+		const ignoredKeys = new Set(["messageContextInfo", "senderKeyDistributionMessage"]);
+		const type = Object.keys(m).find((k) => !ignoredKeys.has(k)) || Object.keys(m)[0];
 
 		if (type === "stickerMessage" && forwardGroup != "") {
 			stickerForward(sock, msg, from);
@@ -123,9 +140,10 @@ const getCommand = async (sock, msg, cache) => {
 			imageMessage: m.imageMessage?.caption,
 			videoMessage: m.videoMessage?.caption,
 			extendedTextMessage: m.extendedTextMessage?.text,
-			buttonsResponseMessage: m.buttonsResponseMessage?.selectedDisplayText,
-			templateButtonReplyMessage: m.templateButtonReplyMessage?.selectedDisplayText,
-			listResponseMessage: m.listResponseMessage?.title,
+			buttonsResponseMessage: m.buttonsResponseMessage?.selectedDisplayText || m.buttonsResponseMessage?.selectedButtonId,
+			templateButtonReplyMessage: m.templateButtonReplyMessage?.selectedDisplayText || m.templateButtonReplyMessage?.selectedId,
+			listResponseMessage: m.listResponseMessage?.title || m.listResponseMessage?.singleSelectReply?.selectedRowId,
+			documentMessage: m.documentMessage?.caption,
 		};
 
 		let body = bodyMap[type] ?? "";
@@ -146,12 +164,12 @@ const getCommand = async (sock, msg, cache) => {
 		if (!types.includes(type)) return;
 
 		if (type == "buttonsResponseMessage") {
-			if (msg.message.buttonsResponseMessage.selectedButtonId == "downloadworld")
+			if (msg.message.buttonsResponseMessage?.selectedButtonId == "downloadworld")
 				body = body.startsWith(configuredPrefix) ? body : configuredPrefix + body;
 		} else if (type == "templateButtonReplyMessage") {
 			body = body.startsWith(configuredPrefix) ? body : configuredPrefix + body;
 		} else if (type == "listResponseMessage") {
-			if (msg.message.listResponseMessage.singleSelectReply.selectedRowId == "downloadworld")
+			if (msg.message.listResponseMessage?.singleSelectReply?.selectedRowId == "downloadworld")
 				body = body.startsWith(configuredPrefix) ? body : configuredPrefix + body;
 		}
 
@@ -187,18 +205,9 @@ const getCommand = async (sock, msg, cache) => {
 		}
 
 		const isGroup = from.endsWith("@g.us");
-		const botJid = sock.user.id.includes(":") ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : sock.user.id;
-		const senderJid = msg.key.fromMe ? botJid : (isGroup ? msg.key.participant : msg.key.remoteJid);
-		const botIdentityJids = [...new Set([...botNumber, botJid])];
-		const isOwner = myNumber.includes(senderJid) || botIdentityJids.includes(senderJid) || msg.key.fromMe;
-		if (!senderJid || !senderJid.includes("@")) return;
-
-		const updateId = senderJid;
-		const updateName = msg.key.fromMe ? sock.user.name : msg.pushName;
-
 		let groupMetadata = null;
 		if (isGroup) {
-			groupMetadata = groupMetadataCache.get(from) || cache.get(from + ":groupMetadata");
+			groupMetadata = groupMetadataCache.get(from) || (typeof cache?.get === "function" ? cache.get(from + ":groupMetadata") : null);
 			if (!groupMetadata && isCmd) {
 				try {
 					groupMetadata = await Promise.race([
@@ -209,7 +218,9 @@ const getCommand = async (sock, msg, cache) => {
 					]);
 					if (groupMetadata) {
 						groupMetadataCache.set(from, groupMetadata);
-						cache.set(from + ":groupMetadata", groupMetadata, 10 * 60);
+						if (typeof cache?.set === "function") {
+							cache.set(from + ":groupMetadata", groupMetadata, 60 * 60);
+						}
 					}
 				} catch (e) {
 					console.error("Group metadata fetch failed:", e.message);
@@ -219,6 +230,35 @@ const getCommand = async (sock, msg, cache) => {
 				groupMetadata = { participants: [], subject: from };
 			}
 		}
+
+		const botRawId = sock.user?.id || "";
+		const botJid = botRawId.includes(":") ? botRawId.split(":")[0] + "@s.whatsapp.net" : (botRawId ? (botRawId.includes("@") ? botRawId : botRawId + "@s.whatsapp.net") : "");
+		const botLid = sock.user?.lid || "";
+		const senderJid = msg.key.fromMe ? botJid : (isGroup ? (msg.key.participant || msg.participant) : msg.key.remoteJid);
+		if (!senderJid || !senderJid.includes("@")) return;
+
+		let senderPnJid = senderJid;
+		if (isGroup && groupMetadata?.participants) {
+			const p = groupMetadata.participants.find(
+				(item) => item.id === senderJid || item.lid === senderJid
+			);
+			if (p && p.id) {
+				senderPnJid = p.id;
+			}
+		}
+
+		const senderPhone = extractPhoneNumber(senderPnJid || senderJid);
+		const senderNumber = senderPhone || (senderJid.includes(":") ? senderJid.split(":")[0] : senderJid.split("@")[0]);
+
+		const botIdentityJids = [...new Set([...botNumber, botJid, botLid].filter(Boolean))];
+
+		const isOwner =
+			msg.key.fromMe ||
+			myNumber.some((n) => n === senderJid || n === senderPnJid || (senderPhone && n.includes(senderPhone))) ||
+			botIdentityJids.some((b) => b === senderJid || b === senderPnJid || (senderPhone && b.includes(senderPhone)));
+
+		const updateId = senderPnJid || senderJid;
+		const updateName = msg.key.fromMe ? sock.user?.name : msg.pushName;
 
 		// Asynchronous non-blocking background database stats tracking
 		(async () => {
@@ -296,24 +336,25 @@ const getCommand = async (sock, msg, cache) => {
 			}
 		}
 
-		const senderNumber = senderJid.includes(":") ? senderJid.split(":")[0] : senderJid.split("@")[0];
-
 		const [senderData, groupData] = await Promise.all([
 			getMemberData(senderJid),
 			isGroup ? getGroupData(from) : Promise.resolve(null),
 		]);
+
+		const allowedWhenOff = [
+			"start", "welcome", "stats", "mystats", "search", "yts",
+			"level", "lvl", "rank", "leaderboard", "lb", "top", "mycount", "mygrpcount",
+			"group", "dev", "bot", "help", "menu", "alive", "a", "ping", "status"
+		];
 		
 		if (isGroup && (!groupData || groupData.isBotOn === false)) {
-			const allowedWhenOff = ["start", "welcome", "stats", "mystats", "search", "yts",
-				"level", "lvl", "rank", "leaderboard", "lb", "top", "mycount", "mygrpcount",
-				"group", "dev", "bot"];
 			if (!allowedWhenOff.includes(command) && !isOwner) {
 				return;
 			}
 		}
 
 		const groupAdmins = isGroup ? getGroupAdmins(groupMetadata.participants) : [];
-		const isGroupAdmin = isGroup ? (groupAdmins?.includes(senderJid) || false) : false;
+		const isGroupAdmin = isGroup ? (groupAdmins.includes(senderJid) || (senderPnJid && groupAdmins.includes(senderPnJid)) || false) : false;
 
 		if (isGroup && groupData?.adminOnly && !isGroupAdmin && !isOwner && !moderatos.includes(senderNumber)) {
 			return;
@@ -369,15 +410,15 @@ const getCommand = async (sock, msg, cache) => {
 			let isTaggedBot = false;
 			let tagMessage = null;
 			if (type == "extendedTextMessage") {
-				let tagMessageSenderJID = msg.message?.extendedTextMessage?.contextInfo?.participant;
-				isTaggedBot = botNumber.includes(tagMessageSenderJID);
+				const tagMessageSenderJID = msg.message?.extendedTextMessage?.contextInfo?.participant || "";
+				isTaggedBot = botIdentityJids.some(b => b === tagMessageSenderJID || (tagMessageSenderJID && b.includes(extractPhoneNumber(tagMessageSenderJID))));
 				tagMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 			}
+			const quotedText = tagMessage?.conversation || tagMessage?.extendedTextMessage?.text || "";
+			const isReplyToDownloadBuddy = isTaggedBot && quotedText.includes("DownloadBuddy");
 			if (
 				["downloadbuddy", "db"].includes(command) ||
-				(isTaggedBot &&
-					Object.keys(tagMessage)[0] == "conversation" &&
-					tagMessage?.conversation.startsWith("_*DownloadBuddy:*_"))
+				isReplyToDownloadBuddy
 			) {
 				commandsPublic["downloadbuddy"](sock, msg, from, args, {
 					sendMessageWTyping,
@@ -476,9 +517,7 @@ const getCommand = async (sock, msg, cache) => {
 
 		if (isGroup) {
 			let resBotOn = groupData ? groupData.isBotOn === true : false;
-			const whitelistWhenOff = ["start", "welcome", "stats", "mystats", "search", "yts",
-				"level", "lvl", "rank", "leaderboard", "lb", "top", "mycount", "mygrpcount"];
-			if (resBotOn == false && !(command.startsWith("group") || command.startsWith("dev") || command === "bot" || whitelistWhenOff.includes(command))) {
+			if (resBotOn == false && !isOwner && !(command.startsWith("group") || command.startsWith("dev") || command === "bot" || allowedWhenOff.includes(command))) {
 				return;
 			}
 			let blockCommandsInDB = (await groupData?.cmdBlocked) || [];

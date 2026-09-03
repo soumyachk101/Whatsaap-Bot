@@ -48,13 +48,30 @@ const emptyDailyStats = (date) => ({
 	pdftotal: 0,
 });
 
+const pendingStatsWrites = new Map();
+
+const flushDailyStats = async (groupJid) => {
+	const pending = pendingStatsWrites.get(groupJid);
+	if (!pending) return;
+	pendingStatsWrites.delete(groupJid);
+	try {
+		await group.updateOne(
+			{ _id: groupJid },
+			{ $set: { dailyStats: pending.history } },
+			{ upsert: true }
+		);
+	} catch (err) {
+		console.error("[daily group stats flush error]", err.message);
+	}
+};
+
 const recordGroupDailyStats = async (groupJid, mediaTypeField, date = new Date()) => {
 	try {
 		const current = await getGroupData(groupJid);
 		if (!current || current === -1) return;
 
 		const day = statsDay(date);
-		const history = Array.isArray(current.dailyStats) ? [...current.dailyStats] : [];
+		const history = Array.isArray(current.dailyStats) ? current.dailyStats : [];
 		let daily = history.find((entry) => entry.date === day);
 		if (!daily) {
 			daily = emptyDailyStats(day);
@@ -67,12 +84,19 @@ const recordGroupDailyStats = async (groupJid, mediaTypeField, date = new Date()
 			.sort((a, b) => a.date.localeCompare(b.date))
 			.slice(-180);
 
-		await group.updateOne({ _id: groupJid }, { $set: { dailyStats: recentHistory } }, { upsert: true });
+		current.dailyStats = recentHistory;
 		const cached = groupCache.get(groupJid);
 		if (cached?.data) {
 			cached.data.dailyStats = recentHistory;
 			cached.timestamp = Date.now();
 		}
+
+		if (pendingStatsWrites.has(groupJid)) {
+			clearTimeout(pendingStatsWrites.get(groupJid).timer);
+		}
+		const timer = setTimeout(() => flushDailyStats(groupJid), 5000);
+		if (timer.unref) timer.unref();
+		pendingStatsWrites.set(groupJid, { history: recentHistory, timer });
 	} catch (err) {
 		console.error("[daily group stats error]", err.message);
 	}
@@ -88,8 +112,12 @@ const getGroupData = async (groupJid) => {
 		let res = await group.findOne({ _id: groupJid });
 		if (!res) {
 			const newDoc = defaultGroupDoc(groupJid);
-			await group.insertOne(newDoc);
-			res = newDoc;
+			try {
+				await group.insertOne(newDoc);
+				res = newDoc;
+			} catch (insertErr) {
+				res = await group.findOne({ _id: groupJid }) || newDoc;
+			}
 		}
 		if (res) {
 			groupCache.set(groupJid, { data: res, timestamp: Date.now() });
@@ -107,7 +135,11 @@ const createGroupData = async (groupJid, groupMetadata = {}) => {
 		const res = await group.findOne({ _id: groupJid });
 		if (res == null) {
 			const newDoc = defaultGroupDoc(groupJid, groupMetadata);
-			await group.insertOne(newDoc);
+			try {
+				await group.insertOne(newDoc);
+			} catch (insertErr) {
+				// Concurrent insert occurred
+			}
 			groupCache.set(groupJid, { data: newDoc, timestamp: Date.now() });
 			return newDoc;
 		} else {
