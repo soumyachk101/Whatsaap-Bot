@@ -177,7 +177,24 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				}
 				memoryManager.markFileSent(filePath);
 			} catch (sendErr) {
-				console.error("[Universal DL] Send error:", sendErr);
+				console.error("[Universal DL] Send error with URL, trying buffer fallback:", sendErr.message);
+				try {
+					const buf = fs.readFileSync(filePath);
+					if (mediaInfo.detected === "video") {
+						await sock.sendMessage(from, { video: buf, mimetype: "video/mp4" }, { quoted: msg });
+					} else if (mediaInfo.detected === "audio") {
+						const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
+						await sock.sendMessage(from, { audio: buf, mimetype: mime, ptt: false }, { quoted: msg });
+					} else if (mediaInfo.detected === "image") {
+						await sock.sendMessage(from, { image: buf }, { quoted: msg });
+					} else {
+						await sock.sendMessage(from, { document: buf, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
+					}
+					memoryManager.markFileSent(filePath);
+				} catch (bufErr) {
+					console.error("[Universal DL] Buffer send fallback error:", bufErr.message);
+					await sendMessageWTyping(from, { text: "❌ Failed to upload media file. Please try again." }, { quoted: msg });
+				}
 			}
 			await new Promise((res) => setTimeout(res, 500));
 		}
@@ -188,7 +205,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			: `❌ Download failed. Please try again later.`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
-		await new Promise((res) => setTimeout(res, 2000));
+		// Wait 8s to ensure Baileys finishes streaming file to WhatsApp servers before unlinking
+		await new Promise((res) => setTimeout(res, 8000));
 		for (const p of downloadedPaths) {
 			if (fs.existsSync(p)) memoryManager.safeUnlink(p);
 		}

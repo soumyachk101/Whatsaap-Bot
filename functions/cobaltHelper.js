@@ -9,7 +9,9 @@ import { lookup } from "dns";
 import snapsave from "snapsave-downloader";
 import memoryManager from "./memoryUtils.js";
 import instanceHealth from "./instanceHealth.js";
+import ffmpegStatic from "ffmpeg-static";
 
+const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStatic || "ffmpeg";
 const pipeline = promisify(stream.pipeline);
 
 /**
@@ -207,7 +209,9 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 	for (let attempt = 1; attempt <= 2; attempt++) {
 		try {
 			await new Promise((resolve, reject) => {
-				const child = execFile("yt-dlp", ytdlpArgs, { timeout: 90000, env, signal }, (err) => {
+				const opts = { timeout: 90000, env };
+				if (signal) opts.signal = signal;
+				const child = execFile("yt-dlp", ytdlpArgs, opts, (err) => {
 					if (err) return reject(err);
 					resolve();
 				});

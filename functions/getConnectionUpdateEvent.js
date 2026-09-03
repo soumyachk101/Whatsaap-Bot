@@ -18,7 +18,17 @@ const getConnectionUpdate = async (sock, startSock, events) => {
 		console.log("Connection closed. Reason:", statusCode);
 		console.log("Error details:", errorMessage);
 
-		const isConflict = errorMessage.toLowerCase().includes("conflict");
+		// Clean up this socket instance
+		try {
+			sock.ev?.removeAllListeners();
+			if (sock.ws) {
+				sock.ws.close();
+				sock.ws.terminate?.();
+			}
+			sock.end?.();
+		} catch (e) {}
+
+		const isConflict = errorMessage.toLowerCase().includes("conflict") || statusCode === 440;
 		const isTrueLogout = statusCode === DisconnectReason.loggedOut && !isConflict;
 
 		if (isTrueLogout) {
@@ -33,11 +43,13 @@ const getConnectionUpdate = async (sock, startSock, events) => {
 			setTimeout(() => {
 				startSock("logged-out-reauth");
 			}, 5000);
+		} else if (isConflict) {
+			console.log("⚠️ Session conflict detected (another device or deploy connected). Waiting 15s before reconnecting...");
+			setTimeout(() => {
+				startSock("reconnect-after-conflict");
+			}, 15000);
 		} else {
-			const reason = isConflict
-				? "Session conflict (another device connected)"
-				: `Status ${statusCode}`;
-
+			const reason = `Status ${statusCode}`;
 			console.log(`🔄 Reconnecting... Reason: ${reason}`);
 			sendToTelegram(
 				`🔄 <b>Bot Disconnected</b>\n` +

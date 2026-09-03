@@ -114,15 +114,31 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			throw new Error(`Audio file too large: ${fileSizeMB.toFixed(2)}MB (max 50MB)`);
 		}
 
-		await sendMessageWTyping(
-			from,
-			{
-				audio: { url: fileDown },
-				mimetype: "audio/mp4",
-				ptt: false,
-			},
-			{ quoted: msg }
-		);
+		try {
+			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
+			await sendMessageWTyping(
+				from,
+				{
+					audio: { url: fileDown },
+					mimetype: mime,
+					ptt: false,
+				},
+				{ quoted: msg }
+			);
+		} catch (sendErr) {
+			console.error("[Song] Send with URL failed, trying buffer fallback:", sendErr.message);
+			const buf = fs.readFileSync(fileDown);
+			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
+			await sendMessageWTyping(
+				from,
+				{
+					audio: buf,
+					mimetype: mime,
+					ptt: false,
+				},
+				{ quoted: msg }
+			);
+		}
 	} catch (err) {
 		console.error("Song download error:", err);
 		const userMsg = err instanceof CobaltDownloadError
@@ -131,7 +147,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
 		if (fileDown) {
-			await new Promise(resolve => setTimeout(resolve, 3000));
+			await new Promise(resolve => setTimeout(resolve, 8000));
 			if (fs.existsSync(fileDown)) memoryManager.safeUnlink(fileDown);
 		}
 		downloadQueue.release();

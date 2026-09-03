@@ -12,6 +12,7 @@ const cache = new NodeCache({
 import socket from "./functions/getSocket.js";
 import events from "./functions/getEvents.js";
 
+let activeSock = null;
 let connectionAttempts = 0;
 const MAX_CONNECTION_ATTEMPTS = 15;
 let lastConnectionTime = 0;
@@ -44,8 +45,25 @@ const startSock = async (reason = "initial") => {
 		lastConnectionTime = now;
 		console.log(`🔄 Starting socket connection (attempt ${connectionAttempts}): ${reason}`);
 
+		// Clean up existing socket before creating a new one to prevent 440 conflict
+		if (activeSock) {
+			console.log("🧹 Closing previous active socket before creating new connection...");
+			try {
+				activeSock.ev?.removeAllListeners();
+				if (activeSock.ws) {
+					activeSock.ws.close();
+					activeSock.ws.terminate?.();
+				}
+				activeSock.end?.(new Error("Superseded by new socket connection"));
+			} catch (e) {
+				console.warn("Socket cleanup warning:", e.message);
+			}
+			activeSock = null;
+		}
+
 		const sock = await socket();
 		if (sock) {
+			activeSock = sock;
 			if (_onNewSock) _onNewSock(sock);
 
 			events(sock, startSock, cache);
