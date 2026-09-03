@@ -2,13 +2,22 @@ import fs from "fs";
 import yts from "yt-search";
 import { fileTypeFromFile } from "file-type";
 import memoryManager from "../../functions/memoryUtils.js";
-import { downloadViaCobalt } from "../../functions/cobaltHelper.js";
+import { downloadViaCobalt, CobaltDownloadError } from "../../functions/cobaltHelper.js";
 import { isValidVideoFile } from "../../functions/fileUtils.js";
 
 const extractUrl = (text) => {
 	if (!text) return null;
 	const match = text.match(/https?:\/\/[^\s]+/i);
 	return match ? match[0] : null;
+};
+
+const isValidHttpUrl = (url) => {
+	try {
+		const u = new URL(url);
+		return ["http:", "https:"].includes(u.protocol) && u.hostname.length > 2;
+	} catch {
+		return false;
+	}
 };
 
 const findVideoURL = async (query) => {
@@ -90,7 +99,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let targetUrl = extractUrl(inputQuery);
 	let videoMeta = null;
 
-	if (!targetUrl) {
+	if (!targetUrl || !isValidHttpUrl(targetUrl)) {
 		// Not a direct URL -> Search YouTube
 		await sendMessageWTyping(from, { text: `🔍 *Searching for:* \`${inputQuery}\`...` }, { quoted: msg });
 		videoMeta = await findVideoURL(inputQuery);
@@ -100,12 +109,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		targetUrl = videoMeta.url;
 	}
 
+	if (!isValidHttpUrl(targetUrl)) {
+		return sendMessageWTyping(from, { text: `❌ *Invalid URL.* Please provide a valid link.` }, { quoted: msg });
+	}
+
 	let downloadedPaths = [];
 	try {
+		await sendMessageWTyping(from, { text: `⏳ Downloading... Best source se fetch kar raha hoon.` }, { quoted: msg });
+
 		downloadedPaths = await downloadViaCobalt(targetUrl, null, false);
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Could not download media from link.");
 		}
+
+		await sendMessageWTyping(from, { text: `✅ Downloaded! Sending ${downloadedPaths.length} file(s)...` }, { quoted: msg });
 
 		for (const filePath of downloadedPaths) {
 			if (!fs.existsSync(filePath)) continue;
@@ -166,13 +183,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	} catch (err) {
 		console.error("[Universal DL] Download Error:", err);
-		return sendMessageWTyping(
-			from,
-			{ text: `❌ *Download failed!* Couldn't fetch media right now: ${err.message}` },
-			{ quoted: msg }
-		);
+		const userMsg = err.code
+			? `❌ Download failed (${err.code}): ${err.message}`
+			: `❌ *Download failed!* Couldn't fetch media right now.`;
+		return sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
 		if (downloadedPaths && downloadedPaths.length > 0) {
+			// Delay cleanup slightly to let Baileys finish reading
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 			downloadedPaths.forEach((p) => {
 				if (fs.existsSync(p)) memoryManager.safeUnlink(p);
 			});

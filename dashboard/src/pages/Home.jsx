@@ -45,8 +45,8 @@ function ActivityItem({ text, time, color = '#818cf8' }) {
 export default function Home() {
  const toast = useToast()
  const wsStatus = useWebSocket()
- const [stats, setStats] = useState<any>(null)
- const [analytics, setAnalytics] = useState<any>(null)
+ const [stats, setStats] = useState(null)
+ const [analytics, setAnalytics] = useState(null)
  const [loading, setLoading] = useState(true)
  const [maintenanceMode, setMaintenanceModeState] = useState(false)
  const [maintenanceLoading, setMaintenanceLoading] = useState(false)

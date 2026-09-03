@@ -9,7 +9,7 @@ export default function Settings() {
  const toast = useToast()
  const [loading, setLoading] = useState(true)
  const [saving, setSaving] = useState(false)
- const [stats, setStats] = useState<any>(null)
+ const [stats, setStats] = useState(null)
 
  const [botName, setBotName] = useState('WhatsApp Bot')
  const [prefix, setPrefix] = useState('.')
