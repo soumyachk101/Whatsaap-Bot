@@ -66,8 +66,8 @@ app.set("view engine", "ejs");
 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.get("/", (_req, res) => {
-	res.redirect("/admin/");
+app.get(["/", "/login"], (_req, res) => {
+	res.redirect("/admin/login");
 });
 
 app.get("/qr", (_req, res) => {
@@ -78,8 +78,7 @@ app.use("/", adminRouter);
 
 // SPA catch-all: any /admin/* path that wasn't handled above → serve React index.html
 const reactIndex = path.join(__dirname, "public", "app", "index.html");
-app.get("/admin", (_req, res) => res.sendFile(reactIndex));
-app.get("/admin/*", (req, res, next) => {
+app.get(["/admin", "/admin/*"], (req, res, next) => {
 	if (req.path.startsWith("/api/")) return next();
 	res.sendFile(reactIndex);
 });

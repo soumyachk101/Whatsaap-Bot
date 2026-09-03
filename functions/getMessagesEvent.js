@@ -138,6 +138,16 @@ const getCommand = async (sock, msg, cache) => {
 			stickerForward(sock, msg, from);
 		}
 
+		let interactiveText = "";
+		if (m.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
+			try {
+				const params = JSON.parse(m.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
+				interactiveText = params.id || params.text || "";
+			} catch {}
+		} else if (m.interactiveResponseMessage?.body?.text) {
+			interactiveText = m.interactiveResponseMessage.body.text;
+		}
+
 		const bodyMap = {
 			conversation: m.conversation,
 			imageMessage: m.imageMessage?.caption,
@@ -147,6 +157,7 @@ const getCommand = async (sock, msg, cache) => {
 			templateButtonReplyMessage: m.templateButtonReplyMessage?.selectedDisplayText || m.templateButtonReplyMessage?.selectedId,
 			listResponseMessage: m.listResponseMessage?.title || m.listResponseMessage?.singleSelectReply?.selectedRowId,
 			documentMessage: m.documentMessage?.caption,
+			interactiveResponseMessage: interactiveText,
 		};
 
 		let body = bodyMap[type] ?? "";
@@ -162,6 +173,7 @@ const getCommand = async (sock, msg, cache) => {
 			"listResponseMessage",
 			"stickerMessage",
 			"documentMessage",
+			"interactiveResponseMessage",
 		];
 
 		if (!types.includes(type)) return;

@@ -96,9 +96,9 @@ router.post(["/api/logout", "/api/admin/logout"], (req, res) => {
 
 // ── Legacy form login/logout (kept for QR page fallback) ─────────────────────
 
-router.get("/admin/login", (req, res) => {
+router.get("/admin/login", (req, res, next) => {
 	if (req.session?.isAdmin) return res.redirect("/admin");
-	res.redirect("/admin/#/login");
+	next();
 });
 
 router.post("/admin/login", (req, res) => {

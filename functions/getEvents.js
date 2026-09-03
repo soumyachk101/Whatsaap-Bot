@@ -8,14 +8,18 @@ const events = async (sock, startSock, cache) => {
 		try {
 			if (event["messages.upsert"]) {
 				const { type, messages } = event["messages.upsert"];
-				if (type === "notify") {
-					const validMessages = messages.filter(
-						(msg) =>
-							msg &&
-							msg.message &&
-							msg.key?.remoteJid &&
-							Object.keys(msg.message).length > 0
-					);
+				if (type === "notify" || type === "append") {
+					const now = Date.now();
+					const validMessages = messages.filter((msg) => {
+						if (!msg || !msg.message || !msg.key?.remoteJid || Object.keys(msg.message).length === 0) {
+							return false;
+						}
+						const msgTimestamp = (Number(msg.messageTimestamp) * 1000) || now;
+						if (sock.startupTime && msgTimestamp < (sock.startupTime - 120_000)) {
+							return false;
+						}
+						return true;
+					});
 
 					for (const msg of validMessages) {
 						getCommand(sock, msg, cache).catch((err) => {

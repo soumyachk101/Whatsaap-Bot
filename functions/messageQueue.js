@@ -74,7 +74,11 @@ class MessageQueue {
 
 				this.activeSends++;
 				try {
-					const result = await message.sendFunction();
+					const sendPromise = message.sendFunction();
+					const timeoutPromise = new Promise((_, reject) =>
+						setTimeout(() => reject(new Error("Message send timeout (25s)")), 25000)
+					);
+					const result = await Promise.race([sendPromise, timeoutPromise]);
 					message.resolve(result);
 				} catch (err) {
 					console.error(`Queue send error for ${chatId}:`, err.message);

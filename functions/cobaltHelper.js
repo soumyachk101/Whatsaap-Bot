@@ -173,7 +173,8 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 		? [
 				"--no-playlist",
 				"--extractor-args",
-				"youtube:player_client=ios,android,web",
+				"youtube:player_client=android,web",
+				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 				"--max-filesize",
 				"70M",
 				"-f",
@@ -188,7 +189,8 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 		: [
 				"--no-playlist",
 				"--extractor-args",
-				"youtube:player_client=ios,android,web",
+				"youtube:player_client=android,web",
+				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 				"--max-filesize",
 				"90M",
 				"-f",
@@ -334,6 +336,16 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 	// Validate URL first
 	if (!url || !isValidHttpUrl(url)) {
 		throw new CobaltDownloadError("invalid_url", "Please provide a valid HTTP/HTTPS URL.");
+	}
+
+	const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
+	if (isYouTube) {
+		try {
+			console.log(`[YouTube DL] Fetching directly via yt-dlp...`);
+			return await downloadWithYtDlp(url, outputDir, audioOnly, signal);
+		} catch (ytdlpErr) {
+			console.warn(`[YouTube DL] Direct yt-dlp attempt failed (${ytdlpErr.message}), falling back to Cobalt...`);
+		}
 	}
 
 	const isInstagram = url.includes("instagram.com");
@@ -497,6 +509,10 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 					? path.join(outputDir, `cobalt_${Date.now()}_${crypto.randomUUID().split("-")[0]}${ext}`)
 					: memoryManager.generateTempFileName(ext);
 
+				const streamController = new AbortController();
+				if (signal) {
+					signal.addEventListener("abort", () => streamController.abort(), { once: true });
+				}
 				const fileStream = fs.createWriteStream(tempFile);
 				let lastProgress = Date.now();
 				let downloadedBytes = 0;
@@ -506,7 +522,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 					const downloadReq = await axios.get(itemUrl, {
 						responseType: "stream",
 						timeout: 60000,
-						signal: signal,
+						signal: streamController.signal,
 						maxContentLength: 100 * 1024 * 1024,
 						headers: {
 							"User-Agent":
@@ -528,7 +544,8 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 					// Stall detection: abort if no progress for 30s
 					const stallInterval = setInterval(() => {
 						if (Date.now() - lastProgress > 30000) {
-							downloadReq.abort();
+							streamController.abort();
+							if (downloadReq.data?.destroy) downloadReq.data.destroy();
 						}
 					}, 5000);
 
