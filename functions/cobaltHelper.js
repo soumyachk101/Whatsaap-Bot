@@ -36,17 +36,16 @@ export const downloadWithYtDlp = (url, outputDir = null, audioOnly = false) => {
         }
 
         const args = audioOnly
-            ? `--no-playlist --max-filesize 50M -f bestaudio --extract-audio --audio-format mp3 -o "${tempFile}" "${url}"`
-            : `--no-playlist --max-filesize 50M -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "${tempFile}" "${url}"`;
+            ? `--no-playlist --extractor-args "youtube:player_client=android" --max-filesize 70M -f "140/ba/b" --extract-audio --audio-format mp3 -o "${tempFile}" "${url}"`
+            : `--no-playlist --extractor-args "youtube:player_client=android" --max-filesize 90M -f "18/best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best" --merge-output-format mp4 -o "${tempFile}" "${url}"`;
 
         const env = { ...process.env };
-        if (ffmpegPath) {
-            const ffmpegDir = path.dirname(ffmpegPath);
-            env.PATH = `${ffmpegDir}${path.delimiter}${env.PATH || ""}`;
-        }
+        const ffmpegDir = ffmpegPath ? path.dirname(ffmpegPath) : "";
+        const pathList = [ffmpegDir, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", env.PATH].filter(Boolean);
+        env.PATH = pathList.join(path.delimiter);
 
         console.log(`[yt-dlp Fallback] Running yt-dlp for ${url}...`);
-        exec(`yt-dlp ${args}`, { timeout: 60000, env }, (err) => {
+        exec(`yt-dlp ${args}`, { timeout: 90000, env }, (err) => {
             if (err || !fs.existsSync(tempFile) || fs.statSync(tempFile).size === 0) {
                 if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
                 return reject(err || new Error("yt-dlp produced an empty file"));
@@ -114,30 +113,23 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
     let success = false;
     let lastError = null;
 
-    const baseApiUrl = process.env.COBALT_API_URL;
+    const baseApiUrl = process.env.COBALT_API_URL || "https://cobalt-engine1.onrender.com";
     const apiKey = process.env.COBALT_API_KEY;
 
     // Ordered list of working instances
     const instances = [
-        "https://api.cobalt.tools",
-        "https://cobalt.kwiatekmom.tokyo",
-        "https://imputcobalt-api-production-dda7.up.railway.app",
-        "https://dog.kittycat.boo",
-        "https://rue-cobalt.xenon.zone",
+        baseApiUrl,
+        "https://cobalt-engine1.onrender.com",
         "https://cobaltapi.cjs.nz",
-        "https://cobalt.api.scie.nz"
-    ];
-
-    if (baseApiUrl && !instances.includes(baseApiUrl)) {
-        instances.unshift(baseApiUrl);
-    }
+        "https://api.cobalt.tools"
+    ].filter((v, i, a) => v && a.indexOf(v) === i);
 
     for (const apiUrl of instances) {
         try {
             const payload = {
                 url: url,
                 downloadMode: audioOnly ? "audio" : "auto",
-                videoQuality: "1080",
+                videoQuality: "720",
                 filenameStyle: "basic"
             };
 
@@ -152,7 +144,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 
             response = await axios.post(apiUrl, payload, {
                 headers,
-                timeout: 20000
+                timeout: 30000
             });
 
             if (response.data && response.data.status === "error") {

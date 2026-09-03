@@ -21,13 +21,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		);
 	}
 
-	// Check if there's no query provided
-	if (!args[0] && !msg.message.extendedTextMessage) {
+	// Extract search query from quoted message or direct input
+	let searchQuery = evv || msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation || msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.extendedTextMessage?.text || "";
+
+	if (!searchQuery) {
 		return sendMessageWTyping(from, { text: "```Enter Word to Search```" }, { quoted: msg });
 	}
-
-	// Extract search query from quoted message or direct input
-	let searchQuery = evv || msg.message.extendedTextMessage.contextInfo.quotedMessage.conversation;
 
 	// Construct URL for Google Custom Search API
 	const urlToSearch = `${baseURL}?key=${GOOGLE_API_KEY_SEARCH}&cx=${SEARCH_ENGINE_KEY}&q=${encodeURIComponent(

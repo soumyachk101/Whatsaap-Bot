@@ -5,103 +5,61 @@ import {
  PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts'
 import { getAnalytics } from '../lib/api.js'
+import * as Icons from '../components/Icons.jsx'
 
 const PALETTE = [
- { name: 'Electric Blue', main: '#00f2fe', gradId: 'electricG' },
- { name: 'Neon Violet', main: '#b224ef', gradId: 'violetG' },
- { name: 'Cyber Teal', main: '#00f2c3', gradId: 'tealG' },
- { name: 'Sunset Gold', main: '#f6d365', gradId: 'goldG' },
- { name: 'Crimson Red', main: '#ff0844', gradId: 'crimsonG' },
+ { main: '#818cf8', gradId: 'violetG' },
+ { main: '#a78bfa', gradId: 'purpleG' },
+ { main: '#60a5fa', gradId: 'blueG' },
+ { main: '#34d399', gradId: 'emeraldG' },
+ { main: '#22d3ee', gradId: 'cyanG' },
 ]
 
-function MetricTile({ title, value, subtext, iconClass, icon, badge, highlightColor }) {
+const ACCENT_COLORS = {
+ violet: { bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)' },
+ emerald: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', glow: 'rgba(16,185,129,0.2)' },
+ blue: { bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)' },
+ rose: { bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.25)', glow: 'rgba(244,63,94,0.2)' },
+ cyan: { bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)', glow: 'rgba(6,182,212,0.2)' },
+ amber: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', glow: 'rgba(245,158,11,0.2)' },
+}
+
+function MetricTile({ title, value, subtext, accent, icon, delay = 0 }) {
+ const c = ACCENT_COLORS[accent] || ACCENT_COLORS.violet
  return (
- <div
- className="card card-hover"
- style={{
- padding: '1.35rem',
- position: 'relative',
- overflow: 'hidden',
- borderLeft: `3px solid ${highlightColor || 'var(--accent)'}`,
- transition: 'all 0.3s ease'
- }}
- onMouseEnter={e => {
- const el = e.currentTarget
- el.style.transform = 'translateY(-3px)'
- el.style.boxShadow = '0 20px 40px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08)'
- }}
- onMouseLeave={e => {
- const el = e.currentTarget
- el.style.transform = ''
- el.style.boxShadow = ''
- }}
- >
- <div style={{
- position: 'absolute',
- top: 0, left: 0, right: 0,
- height: '1px',
- background: `linear-gradient(90deg, transparent, ${highlightColor || 'var(--accent)'}40, transparent)`
- }} />
+ <div className="stat-card page-enter" style={{ animationDelay: `${delay}ms`, borderLeft: `3px solid ${c.border.replace('0.25', '0.5')}` }}>
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent, ${c.border}, transparent)` }} />
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
- <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--muted-foreground)' }}>{title}</span>
- <div className={`icon-box ${iconClass}`} style={{
- width: '36px',
- height: '36px',
- display: 'flex',
- alignItems: 'center',
- justifyContent: 'center',
+ <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-dim)' }}>{title}</span>
+ <div style={{
+ width: 34, height: 34,
+ display: 'flex', alignItems: 'center', justifyContent: 'center',
  borderRadius: 'var(--radius-sm)',
- background: `linear-gradient(135deg, ${(highlightColor || 'var(--accent)')}20, ${(highlightColor || 'var(--accent)')}08)`,
- border: `1px solid ${(highlightColor || 'var(--accent)')}30`,
- boxShadow: `0 4px 10px ${(highlightColor || 'var(--accent)')}15`
+ background: c.bg, border: `1px solid ${c.border}`,
+ boxShadow: `0 4px 10px ${c.glow}`
  }}>
  {icon}
  </div>
  </div>
- <div style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.035em', marginBottom: '0.25rem', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+ <div style={{ fontSize: '1.65rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2 }}>
  {value}
  </div>
- <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
- <span className="text-muted">{subtext}</span>
- {badge && (
- <span className="badge badge-success" style={{
- fontSize: '0.65rem',
- padding: '0.12rem 0.45rem',
- textTransform: 'uppercase',
- background: 'rgba(16, 185, 129, 0.12)',
- color: '#34d399',
- border: '1px solid rgba(16, 185, 129, 0.25)',
- animation: 'pulse-dot 2s infinite'
- }}>
- {badge}
- </span>
- )}
- </div>
+ <div style={{ fontSize: '0.68rem', color: 'var(--text-faint)', marginTop: '0.25rem', fontWeight: 500 }}>{subtext}</div>
  </div>
  )
 }
 
-const CustomGlassTooltip = ({ active, payload, label }) => {
- if (active && payload && payload.length) {
+const GlassTooltip = ({ active, payload, label }) => {
+ if (active && payload?.length) {
  return (
- <div style={{
- background: 'rgba(9, 9, 13, 0.96)',
- backdropFilter: 'blur(16px)',
- WebkitBackdropFilter: 'blur(16px)',
- border: '1px solid rgba(255, 255, 255, 0.12)',
- borderRadius: '12px',
- padding: '0.85rem 1.1rem',
- boxShadow: '0 12px 32px -5px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.03)',
- color: '#fff',
- minWidth: '150px',
- }}>
- <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.35rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
- <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', display: 'inline-block' }} />
- {label || payload[0]?.name || 'Metric'}
+ <div className="chart-tooltip">
+ <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.3rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+ <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8', display: 'inline-block' }} />
+ {label}
  </div>
- {payload.map((entry, idx) => (
- <div key={idx} style={{ fontSize: '0.9rem', fontWeight: 700, color: entry.color || '#38bdf8', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
- <span>{entry.name || 'Count'}:</span>
+ {payload.map((entry, i) => (
+ <div key={i} style={{ fontSize: '0.85rem', fontWeight: 700, color: entry.color || '#818cf8', marginTop: '0.15rem', display: 'flex', justifyContent: 'space-between', gap: '1.2rem' }}>
+ <span>{entry.name || 'Value'}:</span>
  <span>{entry.value?.toLocaleString()}</span>
  </div>
  ))}
@@ -118,9 +76,8 @@ export default function Analytics() {
  const [chartType, setChartType] = useState('area')
  const [mediaView, setMediaView] = useState('donut')
  const [memberView, setMemberView] = useState('chart')
- const [timeFilter, setTimeFilter] = useState('all')
 
- const fetchAnalytics = () => {
+ const fetch = () => {
  setLoading(true)
  getAnalytics()
  .then(setData)
@@ -128,65 +85,40 @@ export default function Analytics() {
  .finally(() => setLoading(false))
  }
 
- useEffect(() => {
- fetchAnalytics()
- }, [])
+ useEffect(() => { fetch() }, [])
 
  if (loading) {
  return (
- <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '65vh', gap: '1.25rem' }}>
- <div style={{
- width: '48px', height: '48px',
- border: '3px solid rgba(255,255,255,0.08)',
- borderTopColor: '#10b981',
- borderRadius: '50%',
- animation: 'spin 0.8s linear infinite',
- boxShadow: '0 0 20px rgba(16, 185, 129, 0.2)'
- }} />
- <span className="text-muted" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Generating visual analytics...</span>
- <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+ <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', gap: '1.25rem' }}>
+ <div style={{ width: '44px', height: '44px', border: '2.5px solid rgba(255,255,255,0.06)', borderTopColor: '#818cf8', borderRadius: '50%', animation: 'spin 0.7s linear infinite', boxShadow: '0 0 20px rgba(99,102,241,0.15)' }} />
+ <span style={{ fontSize: '0.82rem', color: 'var(--text-dim)', fontWeight: 500 }}>Generating visual analytics...</span>
  </div>
  )
  }
 
  if (error) {
  return (
- <div className="card" style={{
- padding: '2rem',
- textAlign: 'center',
- borderColor: '#ef4444',
- background: 'rgba(244, 63, 94, 0.05)'
- }}>
- <p style={{ color: '#ef4444', fontWeight: 600, marginBottom: '1rem' }}>Failed to load analytics: {error}</p>
- <button className="btn btn-secondary" onClick={fetchAnalytics}>Retry</button>
+ <div className="card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.04)' }}>
+ <p style={{ color: '#fb7185', fontWeight: 600, marginBottom: '1rem' }}>Failed: {error}</p>
+ <button className="btn btn-secondary" onClick={fetch}>Retry</button>
  </div>
  )
  }
 
  if (!data) return null
 
- const {
- topGroups,
- topMembers,
- typeBreakdown,
- totalMessages,
- activeGroups,
- blockedMembers,
- totalGroups,
- totalMembers,
- } = data
-
+ const { topGroups, topMembers, typeBreakdown, totalMessages, activeGroups, blockedMembers, totalGroups, totalMembers } = data
  const mediaTotal = (typeBreakdown.image || 0) + (typeBreakdown.video || 0) + (typeBreakdown.sticker || 0) + (typeBreakdown.pdf || 0)
  const textTotal = typeBreakdown.text || 0
  const textPct = totalMessages ? Math.round((textTotal / totalMessages) * 100) : 0
  const mediaPct = totalMessages ? Math.round((mediaTotal / totalMessages) * 100) : 0
 
  const typeData = [
- { name: 'Text Messages', value: typeBreakdown.text, color: '#00f2fe', icon: '💬', gradId: 'electricG' },
- { name: 'Images', value: typeBreakdown.image, color: '#b224ef', icon: '🖼️', gradId: 'violetG' },
- { name: 'Videos', value: typeBreakdown.video, color: '#ff0844', icon: '🎥', gradId: 'crimsonG' },
- { name: 'Stickers', value: typeBreakdown.sticker, color: '#f6d365', icon: '🎭', gradId: 'goldG' },
- { name: 'Documents / PDFs', value: typeBreakdown.pdf, color: '#00f2c3', icon: '📄', gradId: 'tealG' },
+ { name: 'Text Messages', value: typeBreakdown.text, color: '#818cf8', gradId: 'violetG', icon: <Icons.IconMessage size={18} /> },
+ { name: 'Images', value: typeBreakdown.image, color: '#a78bfa', gradId: 'purpleG', icon: <Icons.IconActivity size={18} /> },
+ { name: 'Videos', value: typeBreakdown.video, color: '#60a5fa', gradId: 'blueG', icon: <Icons.IconBroadcast size={18} /> },
+ { name: 'Stickers', value: typeBreakdown.sticker, color: '#34d399', gradId: 'emeraldG', icon: <Icons.IconZap size={18} /> },
+ { name: 'Documents', value: typeBreakdown.pdf, color: '#22d3ee', gradId: 'cyanG', icon: <Icons.IconServer size={18} /> },
  ].filter(d => d.value > 0)
 
  const radarData = [
@@ -197,359 +129,186 @@ export default function Analytics() {
  { subject: 'PDFs', A: typeBreakdown.pdf || 0 },
  ]
 
- const SectionWrapper = ({ children, gradient }) => (
- <div className="card" style={{
- padding: '1.5rem',
- marginBottom: '1.5rem',
- position: 'relative',
- overflow: 'hidden'
- }}>
- <div style={{
- position: 'absolute',
- top: 0, left: 0, right: 0,
- height: '1px',
- background: gradient || 'linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent)'
- }} />
+ const SvgDefs = () => (
+ <svg style={{ height: 0, width: 0, position: 'absolute' }}>
+ <defs>
+ <linearGradient id="violetG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#818cf8" stopOpacity={0.85} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0.1} /></linearGradient>
+ <linearGradient id="purpleG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a78bfa" stopOpacity={0.85} /><stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.1} /></linearGradient>
+ <linearGradient id="blueG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60a5fa" stopOpacity={0.85} /><stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} /></linearGradient>
+ <linearGradient id="emeraldG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34d399" stopOpacity={0.85} /><stop offset="100%" stopColor="#10b981" stopOpacity={0.1} /></linearGradient>
+ <linearGradient id="cyanG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#22d3ee" stopOpacity={0.85} /><stop offset="100%" stopColor="#06b6d4" stopOpacity={0.1} /></linearGradient>
+ <filter id="glow1"><feGaussianBlur stdDeviation="3" result="b" /><feComposite in="SourceGraphic" in2="b" operator="over" /></filter>
+ </defs>
+ </svg>
+ )
+
+ const SectionCard = ({ children, gradient }) => (
+ <div className="card page-enter" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+ {gradient && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: gradient }} />}
  {children}
  </div>
  )
 
- return (
- <div>
- <svg style={{ height: 0, width: 0, position: 'absolute' }}>
- <defs>
- <linearGradient id="electricG" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#00f2fe" stopOpacity={0.9} />
- <stop offset="100%" stopColor="#4facfe" stopOpacity={0.1} />
- </linearGradient>
- <linearGradient id="violetG" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#b224ef" stopOpacity={0.9} />
- <stop offset="100%" stopColor="#7579ff" stopOpacity={0.1} />
- </linearGradient>
- <linearGradient id="tealG" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#00f2c3" stopOpacity={0.9} />
- <stop offset="100%" stopColor="#0098f0" stopOpacity={0.1} />
- </linearGradient>
- <linearGradient id="crimsonG" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#ff0844" stopOpacity={0.9} />
- <stop offset="100%" stopColor="#ffb199" stopOpacity={0.1} />
- </linearGradient>
- <linearGradient id="goldG" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#f6d365" stopOpacity={0.9} />
- <stop offset="100%" stopColor="#fda085" stopOpacity={0.1} />
- </linearGradient>
- </defs>
- </svg>
-
- <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
- <div>
- <h2 className="section-title gradient-text" style={{ fontSize: '1.875rem' }}>
- Visual Analytics Engine
- </h2>
- <p className="text-muted" style={{ marginTop: '0.25rem', fontSize: '0.875rem' }}>
- High-precision traffic spectrum, media categories, and member engagement insights.
- </p>
- </div>
-
- <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
- <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
- {['all', '7d', '24h'].map(t => (
- <button
- key={t}
- onClick={() => setTimeFilter(t)}
- className={`btn ${timeFilter === t ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '1.85rem', padding: '0 0.65rem', fontSize: '0.72rem', textTransform: 'uppercase', borderRadius: '4px' }}
- >
- {t === 'all' ? 'All Time' : t === '7d' ? '7 Days' : '24 Hours'}
+ const SegmentedControl = ({ value, onChange, options }) => (
+ <div style={{ display: 'flex', background: 'rgba(255,255,255,0.025)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '2px' }}>
+ {options.map(opt => (
+ <button key={opt.key} onClick={() => onChange(opt.key)} className={`btn ${value === opt.key ? 'btn-secondary' : 'btn-ghost'}`} style={{ height: '1.85rem', padding: '0 0.6rem', fontSize: '0.7rem', borderRadius: '4px' }}>
+ {opt.label}
  </button>
  ))}
  </div>
+ )
 
- <button
- className="btn btn-ghost"
- onClick={fetchAnalytics}
- title="Refresh Live Data"
- style={{ height: '2.1rem', padding: '0 0.65rem', border: '1px solid var(--border)', fontSize: '0.8rem' }}
- >
- 🔄 Sync
+ return (
+ <div className="page-enter">
+ <SvgDefs />
+
+ <div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+ <div>
+ <h2 className="section-title text-gradient" style={{ fontSize: '1.65rem' }}>Visual Analytics</h2>
+ <p className="section-subtitle" style={{ fontSize: '0.8rem' }}>Traffic spectrum, media breakdown, and member engagement insights</p>
+ </div>
+ <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+ <SegmentedControl value={chartType} setChartType={setChartType} options={[
+ { key: 'area', label: 'Area' }, { key: 'bar', label: 'Bar' }, { key: 'radar', label: 'Radar' }
+ ]} />
+ <button className="btn btn-ghost" onClick={fetch} style={{ height: '2rem', padding: '0 0.6rem', border: '1px solid var(--border)', fontSize: '0.78rem' }}>
+ <Icons.IconRefresh size={14} /> Sync
  </button>
  </div>
  </div>
 
- <div className="grid-4" style={{ marginBottom: '1.5rem' }}>
- <MetricTile
- title="Total Volume"
- value={totalMessages.toLocaleString()}
- subtext="Messages processed"
- iconClass="icon-box-cyan"
- badge="Live"
- highlightColor="#00f2fe"
- icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
- />
- <MetricTile
- title="Active Groups"
- value={`${activeGroups} / ${totalGroups}`}
- subtext={`${totalGroups ? Math.round((activeGroups / totalGroups) * 100) : 0}% Active Rate`}
- iconClass="icon-box-emerald"
- highlightColor="#00f2c3"
- icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>}
- />
- <MetricTile
- title="Tracked Members"
- value={totalMembers.toLocaleString()}
- subtext="Unique WhatsApp users"
- iconClass="icon-box-purple"
- highlightColor="#b224ef"
- icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>}
- />
- <MetricTile
- title="Restricted Members"
- value={blockedMembers.toLocaleString()}
- subtext="Blocked users"
- iconClass="icon-box-amber"
- highlightColor="#ff0844"
- icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>}
- />
+ {/* ── Metric Tiles ──────────────────────────────────────────── */}
+ <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+ <MetricTile title="Total Volume" value={totalMessages.toLocaleString()} subtext="Messages processed" accent="violet" icon={<Icons.IconMessage size={17} />} delay={0} />
+ <MetricTile title="Active Groups" value={`${activeGroups} / ${totalGroups}`} subtext={`${totalGroups ? Math.round(activeGroups / totalGroups * 100) : 0}% active`} accent="emerald" icon={<Icons.IconGlobe size={17} />} delay={60} />
+ <MetricTile title="Members" value={totalMembers.toLocaleString()} subtext="Unique users" accent="blue" icon={<Icons.IconUsers size={17} />} delay={120} />
+ <MetricTile title="Restricted" value={blockedMembers.toLocaleString()} subtext="Blocked users" accent="rose" icon={<Icons.IconAlert size={17} />} delay={180} />
  </div>
 
- <SectionWrapper gradient="linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.2), rgba(178, 36, 239, 0.2), transparent)">
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+ {/* ── Content Density Bar ──────────────────────────────────── */}
+ <SectionCard gradient="linear-gradient(90deg, transparent, rgba(99,102,241,0.2), rgba(139,92,246,0.15), transparent)">
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
  <div>
- <h4 style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Message Content Density</h4>
- <p className="text-muted" style={{ fontSize: '0.75rem' }}>Real-time Text vs Rich Media balance</p>
+ <h4 style={{ fontSize: '0.9rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Message Content Density</h4>
+ <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Text vs Media balance</p>
  </div>
- <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.825rem' }}>
- <span style={{ color: '#00f2fe', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
- <span style={{
- width: 8, height: 8, borderRadius: '50%', background: '#00f2fe',
- boxShadow: '0 0 8px rgba(0, 242, 254, 0.4)'
- }} />
- 💬 Text: {textPct}% ({textTotal.toLocaleString()})
+ <div style={{ display: 'flex', gap: '1.1rem', fontSize: '0.78rem' }}>
+ <span style={{ color: '#818cf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+ <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 6px rgba(129,140,248,0.4)' }} />
+ Text: {textPct}%
  </span>
- <span style={{ color: '#b224ef', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
- <span style={{
- width: 8, height: 8, borderRadius: '50%', background: '#b224ef',
- boxShadow: '0 0 8px rgba(178, 36, 239, 0.4)'
- }} />
- 🖼️ Media: {mediaPct}% ({mediaTotal.toLocaleString()})
+ <span style={{ color: '#a78bfa', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+ <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#a78bfa', boxShadow: '0 0 6px rgba(167,139,250,0.4)' }} />
+ Media: {mediaPct}%
  </span>
  </div>
  </div>
- <div style={{
- height: '0.85rem',
- width: '100%',
- background: 'rgba(255,255,255,0.04)',
- borderRadius: '9999px',
- overflow: 'hidden',
- display: 'flex',
- border: '1px solid rgba(255,255,255,0.06)',
- boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
- }}>
- <div style={{
- width: `${textPct}%`,
- background: 'linear-gradient(90deg, #00f2fe, #4facfe)',
- transition: 'width 0.8s ease',
- boxShadow: textPct > 0 ? '0 0 10px rgba(0, 242, 254, 0.3)' : 'none'
- }} />
- <div style={{
- width: `${mediaPct}%`,
- background: 'linear-gradient(90deg, #b224ef, #7579ff)',
- transition: 'width 0.8s ease',
- boxShadow: mediaPct > 0 ? '0 0 10px rgba(178, 36, 239, 0.3)' : 'none'
- }} />
+ <div style={{ height: '0.65rem', width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 9999, overflow: 'hidden', display: 'flex', border: '1px solid rgba(255,255,255,0.04)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+ <div style={{ width: `${textPct}%`, background: 'linear-gradient(90deg, #818cf8, #6366f1)', transition: 'width 0.8s ease', boxShadow: textPct > 0 ? '0 0 8px rgba(99,102,241,0.3)' : 'none' }} />
+ <div style={{ width: `${mediaPct}%`, background: 'linear-gradient(90deg, #a78bfa, #8b5cf6)', transition: 'width 0.8s ease', boxShadow: mediaPct > 0 ? '0 0 8px rgba(139,92,246,0.3)' : 'none' }} />
  </div>
- </SectionWrapper>
+ </SectionCard>
 
- <SectionWrapper gradient="linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent)">
+ {/* ── Group Traffic ─────────────────────────────────────────── */}
+ <SectionCard gradient="linear-gradient(90deg, transparent, rgba(99,102,241,0.25), rgba(59,130,246,0.15), transparent)" style={{ marginTop: '1.5rem' }}>
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
  <div>
- <h3 className="card-title" style={{ fontSize: '1.1rem', fontWeight: 700 }}>Group Traffic Spectrum</h3>
- <p className="card-description">Volume distribution across top active WhatsApp groups</p>
- </div>
-
- <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
- <button
- onClick={() => setChartType('area')}
- className={`btn ${chartType === 'area' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem' }}
- >
- 📈 Area Stream
- </button>
- <button
- onClick={() => setChartType('bar')}
- className={`btn ${chartType === 'bar' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem' }}
- >
- 📊 Bar Chart
- </button>
- <button
- onClick={() => setChartType('radar')}
- className={`btn ${chartType === 'radar' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '2rem', padding: '0 0.75rem', fontSize: '0.75rem' }}
- >
- 🎯 Radar Spectrum
- </button>
+ <h3 style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Group Traffic Spectrum</h3>
+ <p className="section-subtitle">Volume distribution across top groups</p>
  </div>
  </div>
-
- <div style={{ height: 320 }}>
+ <div style={{ height: 300 }}>
  <ResponsiveContainer width="100%" height="100%">
  {chartType === 'area' ? (
  <AreaChart data={topGroups.slice(0, 8)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
- <defs>
- <filter id="glow1" x="-20%" y="-20%" width="140%" height="140%">
- <feGaussianBlur stdDeviation="3" result="blur" />
- <feComposite in="SourceGraphic" in2="blur" operator="over" />
- </filter>
- </defs>
  <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
  <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
- <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
- <Tooltip content={<CustomGlassTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '3 3' }} />
- <Area type="monotone" dataKey="messages" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#electricG)" filter="url(#glow1)" />
+ <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dx={-8} />
+ <Tooltip content={<GlassTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.06)', strokeWidth: 1, strokeDasharray: '3 3' }} />
+ <Area type="monotone" dataKey="messages" stroke="#818cf8" strokeWidth={2.5} fillOpacity={1} fill="url(#violetG)" filter="url(#glow1)" />
  </AreaChart>
  ) : chartType === 'bar' ? (
  <BarChart data={topGroups.slice(0, 8)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
  <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
- <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
- <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
- <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
- <Bar dataKey="messages" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }}>
- {topGroups.slice(0, 8).map((_, i) => (
- <Cell key={i} fill={`url(#${PALETTE[i % PALETTE.length].gradId})`} />
- ))}
+ <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dy={8} />
+ <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dx={-8} />
+ <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.015)', rx: 6 }} />
+ <Bar dataKey="messages" radius={[6, 6, 0, 0]} barSize={22} activeBar={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1 }}>
+ {topGroups.slice(0, 8).map((_, i) => <Cell key={i} fill={`url(#${PALETTE[i % PALETTE.length].gradId})`} />)}
  </Bar>
  </BarChart>
  ) : (
- <RadarChart cx="50%" cy="50%" outerRadius={110} data={radarData}>
- <PolarGrid stroke="rgba(255,255,255,0.1)" />
+ <RadarChart cx="50%" cy="50%" outerRadius={120} data={radarData}>
+ <PolarGrid stroke="rgba(255,255,255,0.08)" />
  <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 12, fontWeight: 600 }} />
- <PolarRadiusAxis stroke="rgba(255,255,255,0.1)" />
- <Radar name="Messages" dataKey="A" stroke="#00f2fe" fill="#00f2fe" fillOpacity={0.4} />
- <Tooltip content={<CustomGlassTooltip />} />
+ <PolarRadiusAxis stroke="rgba(255,255,255,0.06)" />
+ <Radar name="Messages" dataKey="A" stroke="#818cf8" fill="#818cf8" fillOpacity={0.3} />
+ <Tooltip content={<GlassTooltip />} />
  </RadarChart>
  )}
  </ResponsiveContainer>
  </div>
- </SectionWrapper>
+ </SectionCard>
 
- <SectionWrapper gradient="linear-gradient(90deg, transparent, rgba(178, 36, 239, 0.3), rgba(255, 8, 68, 0.2), transparent)">
+ {/* ── Media Categories ─────────────────────────────────────── */}
+ <SectionCard gradient="linear-gradient(90deg, transparent, rgba(139,92,246,0.25), rgba(244,63,94,0.15), transparent)" style={{ marginTop: '1.5rem' }}>
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
  <div>
- <h3 className="card-title" style={{ fontSize: '1.1rem', fontWeight: 700 }}>🎨 Media Categories Analysis</h3>
- <p className="card-description">Visual breakdown of media and text formats processed</p>
+ <h3 style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Media Categories</h3>
+ <p className="section-subtitle">Visual breakdown of content formats</p>
+ </div>
+ <SegmentedControl value={mediaView} setMediaView={setMediaView} options={[
+ { key: 'donut', label: 'Donut' }, { key: 'bar', label: 'Bar' }
+ ]} />
  </div>
 
- <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
- <button
- onClick={() => setMediaView('donut')}
- className={`btn ${mediaView === 'donut' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '1.85rem', padding: '0 0.65rem', fontSize: '0.72rem' }}
- >
- 🍩 Donut Ring
- </button>
- <button
- onClick={() => setMediaView('bar')}
- className={`btn ${mediaView === 'bar' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '1.85rem', padding: '0 0.65rem', fontSize: '0.72rem' }}
- >
- 📊 Format Comparison
- </button>
- </div>
- </div>
-
- <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+ <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
  {typeData.map(({ name, value, color, icon }) => {
- const pct = totalMessages ? Math.round((value / totalMessages) * 100) : 0
+ const pct = totalMessages ? Math.round(value / totalMessages * 100) : 0
  return (
  <div key={name} style={{
  padding: '1rem',
- background: 'rgba(255,255,255,0.02)',
- borderRadius: 'var(--radius)',
- border: `1px solid ${color}30`,
- position: 'relative',
- overflow: 'hidden',
+ background: 'rgba(255,255,255,0.015)',
+ borderRadius: 'var(--radius-md)',
+ border: `1px solid ${color}25`,
  transition: 'all 0.25s ease',
- cursor: 'default'
- }}
- onMouseEnter={e => {
- e.currentTarget.style.transform = 'translateY(-2px)'
- e.currentTarget.style.borderColor = `${color}60`
- e.currentTarget.style.boxShadow = `0 8px 20px -4px ${color}20`
- }}
- onMouseLeave={e => {
- e.currentTarget.style.transform = ''
- e.currentTarget.style.borderColor = `${color}30`
- e.currentTarget.style.boxShadow = ''
- }}
- >
- <div style={{
- position: 'absolute',
- top: 0, left: 0, right: 0,
- height: '2px',
- background: `linear-gradient(90deg, transparent, ${color}60, transparent)`
- }} />
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
- <span style={{ fontSize: '1.25rem' }}>{icon}</span>
- <span className="badge" style={{
- fontSize: '0.65rem',
- background: `${color}20`,
- color,
- borderColor: `${color}40`
- }}>{pct}%</span>
- </div>
- <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: 500 }}>{name}</div>
- <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem', letterSpacing: '-0.02em' }}>{value.toLocaleString()}</div>
- <div style={{
- marginTop: '0.5rem',
- height: '3px',
- background: 'rgba(255,255,255,0.05)',
- borderRadius: '9999px',
+ cursor: 'default',
+ position: 'relative',
  overflow: 'hidden'
- }}>
- <div style={{
- height: '100%',
- width: `${pct}%`,
- background: `linear-gradient(90deg, ${color}, ${color}aa)`,
- transition: 'width 0.8s ease',
- boxShadow: `0 0 8px ${color}40`
- }} />
+ }}
+ onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = `${color}50`; e.currentTarget.style.boxShadow = `0 8px 20px ${color}15` }}
+ onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = `${color}25`; e.currentTarget.style.boxShadow = '' }}
+ >
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent, ${color}50, transparent)` }} />
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+ <span style={{ color }}>{icon}</span>
+ <span className="badge" style={{ fontSize: '0.6rem', background: `${color}18`, color, borderColor: `${color}35` }}>{pct}%</span>
+ </div>
+ <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 500 }}>{name}</div>
+ <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginTop: '0.15rem', letterSpacing: '-0.02em' }}>{value.toLocaleString()}</div>
+ <div style={{ marginTop: '0.5rem', height: '3px', background: 'rgba(255,255,255,0.04)', borderRadius: 9999, overflow: 'hidden' }}>
+ <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}aa)`, transition: 'width 0.8s ease', boxShadow: `0 0 6px ${color}35` }} />
  </div>
  </div>
  )
  })}
  </div>
 
- <div style={{ height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+ <div style={{ height: 260, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
  {mediaView === 'donut' ? (
  <>
  <div style={{ position: 'absolute', textAlign: 'center', pointerEvents: 'none', zIndex: 0 }}>
- <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
- {totalMessages.toLocaleString()}
- </div>
- <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
- Total Formats
- </div>
+ <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans'" }}>{totalMessages.toLocaleString()}</div>
+ <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Total</div>
  </div>
  <div style={{ width: '100%', height: '100%', zIndex: 10, position: 'relative' }}>
  <ResponsiveContainer width="100%" height="100%">
  <PieChart>
- <Pie
- data={typeData}
- cx="50%"
- cy="50%"
- innerRadius={80}
- outerRadius={110}
- dataKey="value"
- paddingAngle={6}
- stroke="none"
- cornerRadius={8}
- >
- {typeData.map((entry, index) => (
- <Cell key={`cell-${index}`} fill={`url(#${entry.gradId})`} />
- ))}
+ <Pie data={typeData} cx="50%" cy="50%" innerRadius={75} outerRadius={105} dataKey="value" paddingAngle={5} stroke="none" cornerRadius={6}>
+ {typeData.map((entry, i) => <Cell key={i} fill={`url(#${entry.gradId})`} />)}
  </Pie>
- <Tooltip content={<CustomGlassTooltip />} />
+ <Tooltip content={<GlassTooltip />} />
  </PieChart>
  </ResponsiveContainer>
  </div>
@@ -558,161 +317,113 @@ export default function Analytics() {
  <ResponsiveContainer width="100%" height="100%">
  <BarChart data={typeData} margin={{ top: 10, right: 15, left: 0, bottom: 0 }}>
  <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
- <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
- <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
- <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
- <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }}>
- {typeData.map((entry, index) => (
- <Cell key={index} fill={`url(#${entry.gradId})`} />
- ))}
+ <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dy={8} />
+ <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dx={-8} />
+ <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.015)', rx: 6 }} />
+ <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1 }}>
+ {typeData.map((entry, i) => <Cell key={i} fill={`url(#${entry.gradId})`} />)}
  </Bar>
  </BarChart>
  </ResponsiveContainer>
  )}
  </div>
- </SectionWrapper>
+ </SectionCard>
 
- <SectionWrapper gradient="linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), rgba(0, 242, 254, 0.2), transparent)">
+ {/* ── Member Analytics ─────────────────────────────────────── */}
+ <SectionCard gradient="linear-gradient(90deg, transparent, rgba(139,92,246,0.25), rgba(99,102,241,0.15), transparent)" style={{ marginTop: '1.5rem' }}>
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
  <div>
- <h3 className="card-title" style={{ fontSize: '1.1rem', fontWeight: 700 }}>👥 Members Activity Analytics</h3>
- <p className="card-description">Engagement, volume, and message breakdown per member</p>
+ <h3 style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Member Engagement</h3>
+ <p className="section-subtitle">Activity breakdown per member</p>
+ </div>
+ <SegmentedControl value={memberView} setMemberView={setMemberView} options={[
+ { key: 'chart', label: 'Volume' }, { key: 'stacked', label: 'Stacked' }, { key: 'cards', label: 'Rank Cards' }
+ ]} />
  </div>
 
- <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
- <button
- onClick={() => setMemberView('chart')}
- className={`btn ${memberView === 'chart' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '1.85rem', padding: '0 0.65rem', fontSize: '0.72rem' }}
- >
- 📊 Total Volume
- </button>
- <button
- onClick={() => setMemberView('stacked')}
- className={`btn ${memberView === 'stacked' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '1.85rem', padding: '0 0.65rem', fontSize: '0.72rem' }}
- >
- 🧩 Text vs Media
- </button>
- <button
- onClick={() => setMemberView('cards')}
- className={`btn ${memberView === 'cards' ? 'btn-secondary' : 'btn-ghost'}`}
- style={{ height: '1.85rem', padding: '0 0.65rem', fontSize: '0.72rem' }}
- >
- 🏆 Rank Cards
- </button>
- </div>
- </div>
-
- {memberView === 'chart' ? (
- <div style={{ height: 320 }}>
+ {memberView === 'chart' && (
+ <div style={{ height: 300 }}>
  <ResponsiveContainer width="100%" height="100%">
  <BarChart data={topMembers.slice(0, 10)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
  <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
- <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
- <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
- <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
- <Bar dataKey="messages" name="Total Messages" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }}>
- {topMembers.slice(0, 10).map((_, i) => (
- <Cell key={i} fill={`url(#${PALETTE[i % PALETTE.length].gradId})`} />
- ))}
+ <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dy={8} />
+ <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dx={-8} />
+ <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.015)', rx: 6 }} />
+ <Bar dataKey="messages" name="Total" radius={[6, 6, 0, 0]} barSize={22}>
+ {topMembers.slice(0, 10).map((_, i) => <Cell key={i} fill={`url(#${PALETTE[i % PALETTE.length].gradId})`} />)}
  </Bar>
  </BarChart>
  </ResponsiveContainer>
  </div>
- ) : memberView === 'stacked' ? (
- <div style={{ height: 320 }}>
+ )}
+
+ {memberView === 'stacked' && (
+ <div style={{ height: 300 }}>
  <ResponsiveContainer width="100%" height="100%">
  <BarChart data={topMembers.slice(0, 10)} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
  <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
- <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
- <YAxis tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-8} />
- <Tooltip content={<CustomGlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)', rx: 8, ry: 8 }} />
- <Bar dataKey="text" name="Text Messages" stackId="a" fill="url(#electricG)" radius={[0, 0, 4, 4]} barSize={24} />
- <Bar dataKey="image" name="Images" stackId="a" fill="url(#violetG)" />
- <Bar dataKey="video" name="Videos" stackId="a" fill="url(#crimsonG)" />
- <Bar dataKey="sticker" name="Stickers" stackId="a" fill="url(#goldG)" radius={[4, 4, 0, 0]} />
+ <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dy={8} />
+ <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} dx={-8} />
+ <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(255,255,255,0.015)', rx: 6 }} />
+ <Bar dataKey="text" name="Text" stackId="a" fill="url(#violetG)" radius={[0, 0, 4, 4]} barSize={22} />
+ <Bar dataKey="image" name="Images" stackId="a" fill="url(#purpleG)" barSize={22} />
+ <Bar dataKey="video" name="Videos" stackId="a" fill="url(#blueG)" barSize={22} />
+ <Bar dataKey="sticker" name="Stickers" stackId="a" fill="url(#emeraldG)" radius={[4, 4, 0, 0]} barSize={22} />
  </BarChart>
  </ResponsiveContainer>
  </div>
- ) : (
- <div style={{
- display: 'grid',
- gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
- gap: '1rem'
- }}>
+ )}
+
+ {memberView === 'cards' && (
+ <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
  {topMembers.slice(0, 10).map((m, i) => {
- const memMedia = (m.image || 0) + (m.video || 0) + (m.sticker || 0) + (m.pdf || 0)
  const isTop = i < 3
- const cardBg = isTop ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.015)'
- const cardBorder = isTop ? 'rgba(255,255,255,0.08)' : 'var(--border)'
  return (
  <div key={i} style={{
  padding: '1rem',
- background: cardBg,
- borderRadius: 'var(--radius)',
- border: `1px solid ${cardBorder}`,
- transition: 'all 0.3s ease',
+ background: isTop ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.012)',
+ borderRadius: 'var(--radius-md)',
+ border: `1px solid ${isTop ? 'rgba(255,255,255,0.08)' : 'var(--border)'}`,
+ transition: 'all 0.25s ease',
  cursor: 'default',
  position: 'relative',
  overflow: 'hidden'
  }}
- onMouseEnter={e => {
- e.currentTarget.style.transform = 'translateY(-2px)'
- e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
- e.currentTarget.style.boxShadow = '0 12px 24px -6px rgba(0,0,0,0.4)'
- }}
- onMouseLeave={e => {
- e.currentTarget.style.transform = ''
- e.currentTarget.style.borderColor = cardBorder
- e.currentTarget.style.boxShadow = ''
- }}
+ onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
+ onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = isTop ? 'rgba(255,255,255,0.08)' : 'var(--border)' }}
  >
- {isTop && (
- <div style={{
- position: 'absolute',
- top: 0, left: 0, right: 0,
- height: '1px',
- background: `linear-gradient(90deg, transparent, ${PALETTE[i].main}50, transparent)`
- }} />
- )}
+ {isTop && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent, ${PALETTE[i].main}40, transparent)` }} />}
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
- <span className={`rank-badge ${i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other'}`} style={{
- width: '28px',
- height: '28px',
- display: 'flex',
- alignItems: 'center',
- justifyContent: 'center',
- borderRadius: 'var(--radius-sm)',
- background: i === 0 ? 'rgba(245,158,11,0.15)' : i < 3 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
- border: `1px solid ${i === 0 ? 'rgba(245,158,11,0.3)' : i < 3 ? 'rgba(255,255,255,0.1)' : 'var(--border)'}`,
- fontSize: '0.75rem',
- fontWeight: 800,
- color: i === 0 ? '#f59e0b' : i === 1 ? '#a1a1aa' : i === 2 ? '#cd7f32' : 'var(--text-dim)',
+ <span style={{
+ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+ borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', fontWeight: 800,
+ background: i === 0 ? 'rgba(245,158,11,0.12)' : i < 3 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+ border: `1px solid ${i === 0 ? 'rgba(245,158,11,0.25)' : i < 3 ? 'rgba(255,255,255,0.08)' : 'var(--border)'}`,
+ color: i === 0 ? '#fbbf24' : i === 1 ? '#d4d4d8' : i === 2 ? '#cd7f32' : 'var(--text-dim)',
+ fontFamily: "'Plus Jakarta Sans', sans-serif"
  }}>
  {i + 1}
  </span>
- <span style={{ fontSize: '0.68rem', color: 'var(--muted-foreground)', fontWeight: 600 }}>
- ⚡ XP: {(m.xp || 0).toLocaleString()}
+ <span style={{ fontSize: '0.65rem', color: 'var(--text-faint)', fontWeight: 600 }}>
+ <Icons.IconZap size={12} style={{ marginRight: 2, verticalAlign: 'middle' }} />
+ {(m.xp || 0).toLocaleString()} XP
  </span>
  </div>
- <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.35rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
- {m.name}
+ <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+ <div style={{ fontSize: '1.15rem', fontWeight: 800, color: PALETTE[i % PALETTE.length].main, letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans'" }}>
+ {m.messages.toLocaleString()} <span style={{ fontSize: '0.65rem', color: 'var(--text-faint)', fontWeight: 400 }}>msgs</span>
  </div>
- <div style={{ fontSize: '1.25rem', fontWeight: 800, color: PALETTE[i % PALETTE.length].main, letterSpacing: '-0.02em' }}>
- {m.messages.toLocaleString()} <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontWeight: 400 }}>msgs</span>
- </div>
-
- <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.68rem', marginTop: '0.6rem', color: 'var(--muted-foreground)' }}>
- <span>💬 {m.text || 0}</span>
- <span>🖼️ {memMedia}</span>
+ <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.65rem', marginTop: '0.5rem', color: 'var(--text-faint)', flexWrap: 'wrap' }}>
+ <span>Text: {m.text || 0}</span>
+ <span style={{ opacity: 0.3 }}>·</span>
+ <span>Media: {(m.image || 0) + (m.video || 0) + (m.sticker || 0)}</span>
  </div>
  </div>
  )
  })}
  </div>
  )}
- </SectionWrapper>
+ </SectionCard>
  </div>
  )
 }

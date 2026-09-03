@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import {
  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
@@ -8,68 +8,44 @@ import {
 } from '../lib/api.js'
 import { useToast } from '../App.jsx'
 import { useWebSocket } from '../hooks/useWebSocket.js'
+import * as Icons from '../components/Icons.jsx'
 
-function MetricCard({ title, value, subtext, icon, accentColor }) {
- const color = accentColor || 'var(--accent)'
- const bgColor = accentColor ? `${accentColor}15` : 'var(--accent-soft)'
- const borderColor = accentColor ? `${accentColor}30` : 'var(--accent-border)'
- const glowColor = accentColor ? `${accentColor}40` : 'rgba(16, 185, 129, 0.2)'
+// ── Stat Card Component ────────────────────────────────────────────────────
+function StatCard({ title, value, subtext, icon, accent, delay = 0 }) {
+ const colors = {
+ violet: { bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)', glow: 'rgba(139,92,246,0.2)', text: '#a78bfa' },
+ indigo: { bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.2)', glow: 'rgba(99,102,241,0.2)', text: '#a5b4fc' },
+ emerald: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', glow: 'rgba(16,185,129,0.2)', text: '#34d399' },
+ blue: { bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.2)', glow: 'rgba(59,130,246,0.2)', text: '#60a5fa' },
+ amber: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', glow: 'rgba(245,158,11,0.2)', text: '#fbbf24' },
+ rose: { bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.2)', glow: 'rgba(244,63,94,0.2)', text: '#fb7185' },
+ cyan: { bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', glow: 'rgba(6,182,212,0.2)', text: '#22d3ee' },
+ }
+ const c = colors[accent] || colors.indigo
+
  return (
- <div className="card card-hover" style={{ position: 'relative', overflow: 'hidden' }}>
- <div className="stat-header">
- <span className="stat-label">{title}</span>
- <div className="stat-icon-wrapper" style={{
- background: `linear-gradient(135deg, ${bgColor}, transparent)`,
- borderColor,
- color,
- boxShadow: `0 4px 12px ${glowColor}`
- }}>
- {icon}
+ <div className="stat-card page-enter" style={{ animationDelay: `${delay}ms` }}>
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent, ${c.border}, transparent)` }} />
+ <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+ <div className="stat-icon" style={{ background: c.bg, border: `1px solid ${c.border}`, boxShadow: `0 4px 12px ${c.glow}` }}>
+ <span style={{ color: c.text }}>{icon}</span>
  </div>
  </div>
- <div className="stat-value">{value ?? '—'}</div>
- <div style={{
- fontSize: '0.6875rem',
- color: 'var(--text-dim)',
- marginTop: '0.35rem',
- fontWeight: 500,
- display: 'flex',
- alignItems: 'center',
- gap: '0.35rem'
- }}>
- <span style={{
- width: '6px',
- height: '6px',
- borderRadius: '50%',
- background: color,
- opacity: 0.6
- }} />
- {subtext}
- </div>
+ <div className="stat-value" style={{ fontSize: '1.65rem' }}>{value ?? '—'}</div>
+ <div className="stat-label">{title}</div>
+ {subtext && <div className="stat-sub"><span style={{ width: 5, height: 5, borderRadius: '50%', background: c.text, opacity: 0.5, flexShrink: 0 }} />{subtext}</div>}
  </div>
  )
 }
 
+// ── Chart Tooltip ──────────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }) => {
  if (active && payload && payload.length) {
- const data = payload[0]
  return (
- <div style={{
- background: 'rgba(9, 9, 13, 0.96)',
- backdropFilter: 'blur(16px)',
- WebkitBackdropFilter: 'blur(16px)',
- border: '1px solid rgba(255, 255, 255, 0.12)',
- borderRadius: '12px',
- padding: '0.75rem 1rem',
- boxShadow: '0 12px 32px -5px rgba(0, 0, 0, 0.9), 0 0 20px rgba(16, 185, 129, 0.1)',
- color: '#fafafa',
- minWidth: '150px',
- }}>
- <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.3rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
- {label || data.name}
- </p>
- <p style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981', margin: 0, letterSpacing: '-0.02em' }}>
- {data.value?.toLocaleString()} <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-dim)' }}>messages</span>
+ <div className="chart-tooltip">
+ <p style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+ <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#a5b4fc', margin: 0, letterSpacing: '-0.02em' }}>
+ {payload[0].value?.toLocaleString()} <span style={{ fontSize: '0.65rem', fontWeight: 500, color: '#64748b' }}>msgs</span>
  </p>
  </div>
  )
@@ -77,6 +53,248 @@ const CustomTooltip = ({ active, payload, label }) => {
  return null
 }
 
+// ── WhatsApp Status Banner ─────────────────────────────────────────────────
+function ConnectionBanner({ isConnected, onReconnect, onPair, phone, setPhone, pairCode, pairingLoading, onPairSubmit }) {
+ return (
+ <div className="card" style={{
+ background: isConnected
+ ? 'linear-gradient(135deg, rgba(16,185,129,0.04) 0%, rgba(6,182,212,0.02) 100%)'
+ : 'linear-gradient(135deg, rgba(244,63,94,0.04) 0%, rgba(245,158,11,0.02) 100%)',
+ border: `1px solid ${isConnected ? 'rgba(16,185,129,0.15)' : 'rgba(244,63,94,0.12)'}`,
+ position: 'relative',
+ overflow: 'hidden'
+ }}>
+ {isConnected && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(16,185,129,0.3), transparent)' }} />}
+ {!isConnected && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(244,63,94,0.2), transparent)' }} />}
+
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+ <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+ <div style={{
+ width: 42, height: 42, borderRadius: 'var(--radius-md)',
+ background: isConnected ? 'rgba(16,185,129,0.1)' : 'rgba(244,63,94,0.08)',
+ border: `1px solid ${isConnected ? 'rgba(16,185,129,0.2)' : 'rgba(244,63,94,0.15)'}`,
+ display: 'flex', alignItems: 'center', justifyContent: 'center',
+ boxShadow: isConnected ? '0 0 20px rgba(16,185,129,0.1)' : 'none',
+ transition: 'all 0.3s ease'
+ }}>
+ <Icons.IconWhatsApp size={24} style={{ color: isConnected ? '#34d399' : '#f87171' }} />
+ </div>
+ <div>
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+ WhatsApp Connection
+ </h3>
+ <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.1rem', fontWeight: 500 }}>
+ {isConnected ? 'Bot is active and connected to WhatsApp' : 'No active connection. Link a device to begin.'}
+ </p>
+ </div>
+ </div>
+
+ <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+ <button className="btn btn-secondary" onClick={onReconnect} style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}>
+ <Icons.IconRefresh size={14} />
+ Reconnect
+ </button>
+ </div>
+ </div>
+
+ <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+ <form onSubmit={onPairSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+ <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+ <Icons.IconPhone size={13} style={{ marginRight: 4 }} />
+ Link via Phone Number
+ </label>
+ <div style={{ display: 'flex', gap: '0.4rem' }}>
+ <input type="text" className="input" placeholder="e.g. 919876543210" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ flex: 1 }} />
+ <button type="submit" className="btn btn-primary" disabled={pairingLoading} style={{ whiteSpace: 'nowrap', fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}>
+ {pairingLoading ? 'Generating...' : 'Get Code'}
+ </button>
+ </div>
+ <span style={{ fontSize: '0.65rem', color: 'var(--text-faint)' }}>Full number with country code, digits only</span>
+ </form>
+
+ <div style={{
+ background: 'var(--bg-card)',
+ border: '1px solid var(--border)',
+ borderRadius: 'var(--radius-md)',
+ padding: '1rem',
+ display: 'flex',
+ flexDirection: 'column',
+ justifyContent: 'center',
+ alignItems: 'center',
+ minHeight: '90px',
+ position: 'relative',
+ overflow: 'hidden'
+ }}>
+ {pairCode ? (
+ <div style={{ textAlign: 'center' }}>
+ <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+ Pairing Code
+ </div>
+ <div className="pairing-code">{pairCode}</div>
+ <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginTop: '0.4rem', lineHeight: 1.4 }}>
+ WhatsApp → Linked Devices → Link
+ </div>
+ </div>
+ ) : (
+ <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.72rem' }}>
+ {isConnected ? (
+ <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+ <div className="status-dot online" style={{ width: 6, height: 6 }} />
+ <span style={{ color: '#34d399', fontWeight: 600 }}>Connected &amp; Active</span>
+ </div>
+ ) : 'Enter number to generate pairing code'}
+ </div>
+ )}
+ </div>
+ </div>
+ </div>
+ )
+}
+
+// ── Maintenance Mode Card ──────────────────────────────────────────────────
+function MaintenanceCard({ maintenanceMode, onToggle, loading }) {
+ return (
+ <div className="card" style={{
+ background: maintenanceMode ? 'rgba(245,158,11,0.04)' : 'var(--bg-surface)',
+ border: maintenanceMode ? '1px solid rgba(245,158,11,0.2)' : '1px solid var(--border)',
+ transition: 'all 0.4s ease',
+ position: 'relative',
+ overflow: 'hidden'
+ }}>
+ {maintenanceMode && (
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.35), transparent)' }} />
+ )}
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+ <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+ <div style={{
+ width: 38, height: 38, borderRadius: 'var(--radius-md)',
+ background: maintenanceMode ? 'rgba(245,158,11,0.1)' : 'rgba(99,102,241,0.08)',
+ border: `1px solid ${maintenanceMode ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.15)'}`,
+ display: 'flex', alignItems: 'center', justifyContent: 'center',
+ transition: 'all 0.3s ease'
+ }}>
+ {maintenanceMode ? <Icons.IconLock size={18} style={{ color: '#fbbf24' }} /> : <Icons.IconUnlock size={18} style={{ color: '#a5b4fc' }} />}
+ </div>
+ <div>
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+ Command Restriction Mode
+ </h3>
+ <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>
+ {maintenanceMode
+ ? 'Only welcome, stats, and search commands are active.'
+ : 'All commands active. Toggle on to restrict functionality.'}
+ </p>
+ </div>
+ </div>
+
+ <button
+ className={`btn ${maintenanceMode ? 'btn-danger' : 'btn-primary'}`}
+ onClick={onToggle}
+ disabled={loading}
+ style={{ fontSize: '0.75rem', padding: '0.5rem 1rem', minWidth: '140px' }}
+ >
+ {loading ? '...' : maintenanceMode ? 'Disable' : 'Enable Restriction'}
+ </button>
+ </div>
+ </div>
+ )
+}
+
+// ── Action Buttons Card ────────────────────────────────────────────────────
+function ActionButtons({ actionLoading, onReconnect, onClearAuth, onRestart }) {
+ const actions = [
+ { label: 'Reconnect', desc: 'Fresh socket without restart', onClick: onReconnect, icon: Icons.IconRefresh, variant: 'secondary' },
+ { label: 'Clear Session', desc: 'Remove auth credentials', onClick: onClearAuth, icon: Icons.IconTrash, variant: 'secondary' },
+ { label: 'Restart', desc: 'Full process restart', onClick: onRestart, icon: Icons.IconCpu, variant: 'danger' },
+ ]
+
+ return (
+ <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.2), transparent)' }} />
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+ <div>
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+ Process Controls
+ </h3>
+ <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Manage bot lifecycle and connection state</p>
+ </div>
+ </div>
+ <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+ {actions.map(a => (
+ <button key={a.label} className={`btn btn-${a.variant}`} onClick={a.onClick} disabled={actionLoading} style={{ fontSize: '0.75rem', padding: '0.5rem 0.9rem' }}>
+ <a.icon size={14} />
+ {a.label}
+ </button>
+ ))}
+ </div>
+ </div>
+ )
+}
+
+// ── Top Groups Mini List ───────────────────────────────────────────────────
+function TopGroupsList({ groups }) {
+ if (!groups?.length) return null
+
+ const rankStyles = [
+ { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#fbbf24', glow: 'rgba(245,158,11,0.15)' },
+ { bg: 'rgba(161,161,170,0.06)', border: 'rgba(255,255,255,0.08)', color: '#d4d4d8', glow: 'none' },
+ { bg: 'rgba(205,127,50,0.06)', border: 'rgba(205,127,50,0.15)', color: '#cd7f32', glow: 'none' },
+ { bg: 'rgba(255,255,255,0.02)', border: 'var(--border)', color: 'var(--text-dim)', glow: 'none' },
+ { bg: 'rgba(255,255,255,0.02)', border: 'var(--border)', color: 'var(--text-dim)', glow: 'none' },
+ ]
+
+ return (
+ <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
+ {groups.slice(0, 5).map((g, i) => {
+ const r = rankStyles[i] || rankStyles[3]
+ return (
+ <div key={i} style={{
+ padding: '0.8rem 1rem',
+ background: 'var(--bg-surface)',
+ borderRadius: 'var(--radius-md)',
+ border: `1px solid ${r.border}`,
+ display: 'flex',
+ alignItems: 'center',
+ gap: '0.75rem',
+ transition: 'all 0.25s ease',
+ cursor: 'default',
+ boxShadow: r.glow !== 'none' ? `0 0 16px ${r.glow}` : 'none'
+ }}
+ onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+ onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = r.border }}
+ >
+ <div style={{
+ width: 28, height: 28,
+ borderRadius: 'var(--radius-sm)',
+ background: r.bg,
+ border: `1px solid ${r.border}`,
+ display: 'flex', alignItems: 'center', justifyContent: 'center',
+ fontSize: '0.7rem', fontWeight: 800, color: r.color,
+ flexShrink: 0,
+ fontFamily: "'Plus Jakarta Sans', sans-serif"
+ }}>
+ {i + 1}
+ </div>
+ <div style={{ minWidth: 0, flex: 1 }}>
+ <div style={{ fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{g.name}</div>
+ <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 500 }}>
+ {g.messages.toLocaleString()} msgs
+ </div>
+ </div>
+ <div style={{
+ width: 7, height: 7, borderRadius: '50%',
+ background: g.active ? '#10b981' : '#475569',
+ flexShrink: 0,
+ boxShadow: g.active ? '0 0 6px rgba(16,185,129,0.4)' : 'none'
+ }} />
+ </div>
+ )
+ })}
+ </div>
+ )
+}
+
+// ── Main Dashboard Component ───────────────────────────────────────────────
 export default function Dashboard() {
  const toast = useToast()
  const wsStatus = useWebSocket()
@@ -100,12 +318,7 @@ export default function Dashboard() {
  .finally(() => setLoading(false))
  }
 
- useEffect(() => {
- fetchData()
- const t = setInterval(fetchData, 30000)
- return () => clearInterval(t)
- }, [])
-
+ useEffect(() => { fetchData(); const t = setInterval(fetchData, 30_000); return () => clearInterval(t) }, [])
  useEffect(() => {
  getMaintenanceMode()
  .then(r => { if (r?.maintenanceMode != null) setMaintenanceModeState(r.maintenanceMode) })
@@ -118,378 +331,159 @@ export default function Dashboard() {
  try {
  const res = await setMaintenanceMode(newVal)
  setMaintenanceModeState(res?.maintenanceMode ?? newVal)
- toast(`Maintenance mode ${newVal ? 'enabled' : 'disabled'}. Only welcome, stats, and search commands will work.`, true)
+ toast(`Restriction mode ${newVal ? 'enabled' : 'disabled'}`, true)
  } catch (err) {
- toast(err.message || 'Failed to toggle maintenance mode', false)
- } finally {
- setMaintenanceLoading(false)
- }
+ toast(err.message || 'Failed to toggle', false)
+ } finally { setMaintenanceLoading(false) }
  }
 
  const handlePair = async (e) => {
  e.preventDefault()
- if (!phone) return toast('Please enter phone number with country code', false)
+ if (!phone) return toast('Enter phone number with country code', false)
  setPairingLoading(true)
  setPairCode('')
  try {
  const res = await requestPair(phone)
- if (res.code) {
- setPairCode(res.code)
- toast('Pairing code generated!', true)
- } else {
- toast('Failed to generate code', false)
- }
- } catch (err) {
- toast(err.message || 'Error generating pairing code', false)
- } finally {
- setPairingLoading(false)
- }
+ if (res.code) { setPairCode(res.code); toast('Pairing code generated!', true) }
+ else { toast('Failed to generate code', false) }
+ } catch (err) { toast(err.message || 'Error', false) }
+ finally { setPairingLoading(false) }
  }
 
  const handleReconnect = async () => {
  setActionLoading(true)
- try {
- await reconnectBot()
- toast('Reconnection triggered!', true)
- fetchData()
- } catch (err) {
- toast(err.message || 'Reconnect failed', false)
- } finally {
- setActionLoading(false)
- }
+ try { await reconnectBot(); toast('Reconnection triggered', true); fetchData() }
+ catch (err) { toast(err.message, false) }
+ finally { setActionLoading(false) }
  }
 
  const handleClearAuth = async () => {
  if (!confirm('Clear session auth? You will need to re-link WhatsApp.')) return
  setActionLoading(true)
- try {
- await clearAuth()
- toast('Session cleared.', true)
- handleReconnect()
- } catch (err) {
- toast(err.message || 'Clear auth failed', false)
- } finally {
- setActionLoading(false)
- }
+ try { await clearAuth(); toast('Session cleared', true); handleReconnect() }
+ catch (err) { toast(err.message, false) }
+ finally { setActionLoading(false) }
  }
 
  const handleRestart = async () => {
- if (!confirm('Restart background Node process?')) return
+ if (!confirm('Restart Node process?')) return
  setActionLoading(true)
- try {
- await restartBot()
- toast('Process restart initiated. Refresh in 10s.', true)
- } catch (err) {
- toast(err.message || 'Restart failed', false)
- } finally {
- setActionLoading(false)
- }
+ try { await restartBot(); toast('Restart initiated. Refresh in 10s.', true) }
+ catch (err) { toast(err.message, false) }
+ finally { setActionLoading(false) }
  }
 
  if (loading) {
  return (
  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '1rem' }}>
  <div className="spinner" />
- <span style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>Loading control center...</span>
+ <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 500 }}>Loading control center...</span>
  </div>
  )
  }
 
  return (
- <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+ <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
 
- {/* ── Page Title ────────────────────────────────────────────── */}
+ {/* ── Header ─────────────────────────────────────────────────── */}
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
  <div>
- <h1 className="section-title gradient-text">
+ <h1 className="section-title text-gradient" style={{ fontSize: '1.5rem' }}>
  Bot Control Center
  </h1>
- <p className="section-subtitle">
- Manage connection, view live metrics, and control your WhatsApp bot.
- </p>
+ <p className="section-subtitle">Monitor, configure, and manage your WhatsApp bot engine</p>
  </div>
-
- <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
- <span className={`badge ${isConnected ? 'badge-emerald' : 'badge-rose'}`} style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }}>
- <span className={isConnected ? 'pulse-live' : ''} style={{ width: 6, height: 6, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444', flexShrink: 0 }} />
+ <span className={`badge ${isConnected ? 'badge-emerald' : 'badge-rose'}`} style={{ padding: '0.35rem 0.85rem', fontSize: '0.75rem' }}>
+ <span className={isConnected ? 'status-dot online' : 'status-dot offline'} style={{ width: 6, height: 6, borderRadius: '50%' }} />
  {isConnected ? 'WhatsApp Active' : 'Disconnected'}
  </span>
  </div>
- </div>
 
- {/* ── Maintenance Mode Card ─────────────────────────────────── */}
- <div className="card" style={{
- background: maintenanceMode ? 'rgba(245, 158, 11, 0.06)' : 'var(--bg-surface)',
- border: maintenanceMode ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid var(--border)',
- transition: 'all 0.4s ease',
- position: 'relative',
- overflow: 'hidden'
- }}>
- {maintenanceMode && (
- <div style={{
- position: 'absolute',
- top: 0, left: 0, right: 0,
- height: '1px',
- background: 'linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.4), transparent)'
- }} />
- )}
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
- <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
- <div style={{
- width: 36, height: 36, borderRadius: 'var(--radius-sm)',
- background: maintenanceMode ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.1)',
- border: `1px solid ${maintenanceMode ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.15)'}`,
- display: 'flex', alignItems: 'center', justifyContent: 'center',
- fontSize: '1rem',
- transition: 'all 0.3s ease'
- }}>
- {maintenanceMode ? '🔒' : '🔓'}
- </div>
- <div>
- <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
- Command Restriction Mode
- </h3>
- <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>
- {maintenanceMode
- ? 'Only welcome, stats, and search commands are active. All other commands are disabled.'
- : 'All commands are active. Toggle on to restrict to welcome, stats, and search only.'}
- </p>
- </div>
- </div>
-
- <button
- className={`btn ${maintenanceMode ? 'btn-danger' : 'btn-primary'}`}
- onClick={handleMaintenanceToggle}
- disabled={maintenanceLoading}
- style={{ fontSize: '0.75rem', padding: '0.5rem 1rem', minWidth: '120px' }}
- >
- {maintenanceLoading ? '...' : maintenanceMode ? 'Disable Restriction' : 'Enable Restriction'}
- </button>
- </div>
- </div>
-
- {/* ── WhatsApp Control Card ────────────────────────────────── */}
- <div className="card" style={{ background: 'var(--bg-surface)', position: 'relative', overflow: 'hidden' }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.2), transparent)' }} />
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
- <div>
- <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
- WhatsApp Linking & Controls
- </h3>
- <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
- Generate pairing code or manage connection state.
- </p>
- </div>
-
- <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
- <button className="btn btn-secondary" onClick={handleReconnect} disabled={actionLoading} style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}>
- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
- Reconnect
- </button>
- <button className="btn btn-secondary" onClick={handleClearAuth} disabled={actionLoading} style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}>
- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
- Clear Session
- </button>
- <button className="btn btn-danger" onClick={handleRestart} disabled={actionLoading} style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}>
- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
- Restart
- </button>
- </div>
- </div>
-
- <div className="grid grid-cols-2" style={{ gap: '1.25rem', alignItems: 'start' }}>
-
- {/* Pairing Form */}
- <form onSubmit={handlePair} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
- <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
- Link Device via Phone Number
- </label>
- <div style={{ display: 'flex', gap: '0.4rem' }}>
- <input
- type="text"
- className="input"
- placeholder="e.g. 919876543210"
- value={phone}
- onChange={(e) => setPhone(e.target.value)}
- />
- <button type="submit" className="btn btn-primary" disabled={pairingLoading} style={{ whiteSpace: 'nowrap' }}>
- {pairingLoading ? 'Generating...' : 'Get Code'}
- </button>
- </div>
- <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)' }}>
- Full WhatsApp number with country code, digits only.
- </span>
- </form>
-
- {/* Pairing Code Display */}
- <div style={{
- background: 'var(--bg-card)',
- border: '1px solid var(--border)',
- borderRadius: 'var(--radius-md)',
- padding: '1.25rem',
- display: 'flex',
- flexDirection: 'column',
- justifyContent: 'center',
- alignItems: 'center',
- minHeight: '100px',
- position: 'relative',
- overflow: 'hidden'
- }}>
- {pairCode ? (
- <div style={{ textAlign: 'center' }}>
- <div style={{ fontSize: '0.625rem', color: 'var(--text-dim)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
- Pairing Code
- </div>
- <div className="pairing-code">
- {pairCode}
- </div>
- <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.5rem', lineHeight: 1.4 }}>
- WhatsApp → Linked Devices → Link with phone number
- </div>
- </div>
- ) : (
- <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.75rem' }}>
- {isConnected ? (
- <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
- <div className="pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
- <span style={{ color: '#34d399', fontWeight: 600 }}>WhatsApp is connected & active</span>
- </div>
- ) : 'Enter number to generate an 8-digit pairing code'}
- </div>
- )}
- </div>
- </div>
- </div>
-
- {/* ── Metric Cards ──────────────────────────────────────────── */}
+ {/* ── Stat Cards ─────────────────────────────────────────────── */}
  <div className="grid grid-cols-4">
- <MetricCard
- title="Total Groups"
- value={stats?.groupCount?.toLocaleString()}
- subtext="Active WhatsApp groups"
- accentColor="#3b82f6"
- icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>}
- />
- <MetricCard
- title="Total Members"
- value={stats?.memberCount?.toLocaleString()}
- subtext="Unique participants"
- accentColor="#8b5cf6"
- icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>}
- />
- <MetricCard
- title="Total Messages"
- value={analytics?.totalMessages?.toLocaleString()}
- subtext="All-time volume"
- accentColor="#10b981"
- icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
- />
- <MetricCard
- title="System Uptime"
- value={stats ? fmtUptime(stats.uptime) : '0s'}
- subtext="Continuous process time"
- accentColor="#f59e0b"
- icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
- />
+ <StatCard title="Total Groups" value={stats?.groupCount?.toLocaleString()} subtext="Registered groups" icon={<Icons.IconGlobe size={18} />} accent="violet" delay={50} />
+ <StatCard title="Total Members" value={stats?.memberCount?.toLocaleString()} subtext="Unique participants" icon={<Icons.IconUsers size={18} />} accent="indigo" delay={100} />
+ <StatCard title="Total Messages" value={analytics?.totalMessages?.toLocaleString()} subtext="All-time volume" icon={<Icons.IconMessage size={18} />} accent="emerald" delay={150} />
+ <StatCard title="Uptime" value={stats ? fmtUptime(stats.uptime) : '0s'} subtext="Continuous process time" icon={<Icons.IconClock size={18} />} accent="blue" delay={200} />
  </div>
 
- {/* ── Activity Chart ────────────────────────────────────────── */}
+ {/* ── Maintenance Mode ───────────────────────────────────────── */}
+ <MaintenanceCard
+ maintenanceMode={maintenanceMode}
+ onToggle={handleMaintenanceToggle}
+ loading={maintenanceLoading}
+ />
+
+ {/* ── Connection & Pairing ───────────────────────────────────── */}
+ <ConnectionBanner
+ isConnected={isConnected}
+ onReconnect={handleReconnect}
+ phone={phone}
+ setPhone={setPhone}
+ pairCode={pairCode}
+ pairingLoading={pairingLoading}
+ onPairSubmit={handlePair}
+ />
+
+ {/* ── Process Controls ───────────────────────────────────────── */}
+ <ActionButtons
+ actionLoading={actionLoading}
+ onReconnect={handleReconnect}
+ onClearAuth={onClearAuth}
+ onRestart={onRestart}
+ />
+
+ {/* ── Activity Chart ─────────────────────────────────────────── */}
  <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent)' }} />
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent)' }} />
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
  <div>
- <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+ <Icons.IconBarChart size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom', color: '#a5b4fc' }} />
  Group Activity Volume
  </h3>
- <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>
- Message throughput across highest volume groups
- </p>
+ <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Message throughput across highest volume groups</p>
  </div>
- <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Top 10</span>
+ <span className="badge badge-indigo" style={{ fontSize: '0.6rem' }}>Top 10</span>
  </div>
 
  {analytics?.topGroups?.length ? (
- <ResponsiveContainer width="100%" height={260}>
- <AreaChart data={analytics.topGroups.slice(0, 10)} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+ <ResponsiveContainer width="100%" height={250}>
+ <AreaChart data={analytics.topGroups.slice(0, 10)} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
  <defs>
  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
- <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+ <stop offset="0%" stopColor="#818cf8" stopOpacity={0.2} />
+ <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
  </linearGradient>
  <filter id="chartGlow">
  <feGaussianBlur stdDeviation="2" result="blur" />
  <feComposite in="SourceGraphic" in2="blur" operator="over" />
  </filter>
  </defs>
- <CartesianGrid strokeDasharray="3 3" stroke="#1e1e22" />
+ <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
  <XAxis dataKey="name" tick={{ fill: '#52525b', fontSize: 10 }} axisLine={false} tickLine={false} />
  <YAxis tick={{ fill: '#52525b', fontSize: 10 }} axisLine={false} tickLine={false} />
- <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.08)', strokeWidth: 1, strokeDasharray: '3 3' }} />
- <Area type="monotone" dataKey="messages" stroke="#10b981" strokeWidth={2.5} fill="url(#areaGrad)" filter="url(#chartGlow)" />
+ <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.06)', strokeWidth: 1, strokeDasharray: '3 3' }} />
+ <Area type="monotone" dataKey="messages" stroke="#818cf8" strokeWidth={2.5} fill="url(#areaGrad)" filter="url(#chartGlow)" />
  </AreaChart>
  </ResponsiveContainer>
- ) : <p style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>No group activity recorded yet.</p>}
+ ) : (
+ <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textAlign: 'center', padding: '2rem' }}>No group activity recorded yet.</p>
+ )}
  </div>
 
- {/* ── Top Groups List ──────────────────────────────────────── */}
+ {/* ── Top Groups List ────────────────────────────────────────── */}
  {analytics?.topGroups?.length ? (
  <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent)' }} />
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
- <div>
- <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(59,130,246,0.25), transparent)' }} />
+ <div style={{ marginBottom: '1rem' }}>
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+ <Icons.IconTrendingUp size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom', color: '#60a5fa' }} />
  Most Active Groups
  </h3>
- <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Highest message throughput</p>
+ <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Highest message throughput</p>
  </div>
- </div>
- <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
- {analytics.topGroups.slice(0, 5).map((g, i) => {
- const rankColors = ['#f59e0b', '#a1a1aa', '#cd7f32', 'var(--text-dim)', 'var(--text-dim)']
- const rankBg = i === 0 ? 'rgba(245,158,11,0.1)' : i < 3 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)'
- const rankBorder = i === 0 ? 'rgba(245,158,11,0.2)' : i < 3 ? 'rgba(255,255,255,0.08)' : 'var(--border)'
- return (
- <div key={i} style={{
- padding: '0.875rem 1rem',
- background: 'var(--bg-surface)',
- borderRadius: 'var(--radius-md)',
- border: `1px solid ${rankBorder}`,
- display: 'flex',
- alignItems: 'center',
- gap: '0.75rem',
- transition: 'all 0.25s ease',
- cursor: 'default'
- }}
- onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
- onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = rankBorder }}
- >
- <div style={{
- width: 32, height: 32,
- borderRadius: 'var(--radius-sm)',
- background: rankBg,
- border: `1px solid ${rankBorder}`,
- display: 'flex', alignItems: 'center', justifyContent: 'center',
- fontSize: '0.75rem', fontWeight: 800, color: rankColors[i],
- flexShrink: 0,
- }}>
- {i + 1}
- </div>
- <div style={{ minWidth: 0, flex: 1 }}>
- <div style={{ fontWeight: 600, fontSize: '0.8125rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</div>
- <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', fontWeight: 500 }}>
- {g.messages.toLocaleString()} messages
- </div>
- </div>
- <div style={{
- width: 8, height: 8, borderRadius: '50%',
- background: g.active ? '#10b981' : '#64748b',
- flexShrink: 0,
- boxShadow: g.active ? '0 0 6px rgba(16, 185, 129, 0.4)' : 'none'
- }} />
- </div>
- )
- })}
- </div>
+ <TopGroupsList groups={analytics.topGroups} />
  </div>
  ) : null}
 

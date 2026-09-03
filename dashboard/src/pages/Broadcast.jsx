@@ -1,201 +1,140 @@
 import { useState, useEffect } from 'react'
 import { broadcast, getGroups } from '../lib/api.js'
 import { useToast } from '../App.jsx'
+import * as Icons from '../components/Icons.jsx'
 
 export default function Broadcast() {
-  const toast = useToast()
-  const [text, setText]       = useState('')
-  const [loading, setLoading] = useState(false)
-  
-  const [groups, setGroups] = useState([])
-  const [targetType, setTargetType] = useState('active') // 'active', 'all', 'custom'
-  const [selectedJids, setSelectedJids] = useState([])
+ const toast = useToast()
+ const [text, setText] = useState('')
+ const [loading, setLoading] = useState(false)
+ const [groups, setGroups] = useState([])
+ const [targetType, setTargetType] = useState('active')
+ const [selectedJids, setSelectedJids] = useState([])
 
-  useEffect(() => {
-    getGroups()
-      .then(data => {
-        console.log('Fetched groups for broadcast:', data)
-        setGroups(data || [])
-      })
-      .catch(err => {
-        console.error('Failed to fetch groups:', err)
-        toast('Failed to load groups list', false)
-      })
-  }, [])
+ useEffect(() => {
+ getGroups()
+ .then(data => setGroups(data || []))
+ .catch(err => toast('Failed to load groups', false))
+ }, [])
 
-  const activeGroups = groups.filter(g => g.isBotOn)
+ const activeGroups = groups.filter(g => g.isBotOn)
 
-  function handleToggleGroup(jid) {
-    setSelectedJids(prev => 
-      prev.includes(jid) ? prev.filter(j => j !== jid) : [...prev, jid]
-    )
-  }
+ function handleToggle(jid) {
+ setSelectedJids(prev => prev.includes(jid) ? prev.filter(j => j !== jid) : [...prev, jid])
+ }
 
-  async function handleSend(e) {
-    e.preventDefault()
-    if (!text.trim()) return
+ async function handleSend(e) {
+ e.preventDefault()
+ if (!text.trim()) return
 
-    let targetJids = []
-    if (targetType === 'active') {
-      targetJids = activeGroups.map(g => g._id)
-    } else if (targetType === 'all') {
-      targetJids = groups.map(g => g._id)
-    } else if (targetType === 'custom') {
-      targetJids = selectedJids
-      if (targetJids.length === 0) {
-        toast('Please select at least one group for custom broadcast.', false)
-        return
-      }
-    }
+ let targetJids = []
+ if (targetType === 'active') targetJids = activeGroups.map(g => g._id)
+ else if (targetType === 'all') targetJids = groups.map(g => g._id)
+ else if (targetType === 'custom') {
+ targetJids = selectedJids
+ if (!targetJids.length) return toast('Select at least one group', false)
+ }
 
-    if (!confirm(`Are you sure you want to broadcast this message to ${targetJids.length} group(s)?`)) return
+ if (!confirm(`Send broadcast to ${targetJids.length} group(s)?`)) return
 
-    setLoading(true)
-    try {
-      const res = await broadcast(text, targetJids)
-      toast(`Broadcast sent to ${res.sent || 0} groups! (${res.failed || 0} failed)`)
-      setText('')
-      setSelectedJids([])
-    } catch (err) {
-      toast(err.message, false)
-    } finally {
-      setLoading(false)
-    }
-  }
+ setLoading(true)
+ try {
+ const res = await broadcast(text, targetJids)
+ toast(`Sent to ${res.sent || 0} groups (${res.failed || 0} failed)`)
+ setText('')
+ setSelectedJids([])
+ } catch (err) { toast(err.message, false) }
+ finally { setLoading(false) }
+ }
 
-  return (
-    <div style={{ maxWidth: '800px' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.025em' }}>Broadcast</h2>
-        <p className="text-muted" style={{ marginTop: '0.25rem' }}>Send a global message to specific groups or your entire network.</p>
-      </div>
+ const count = targetType === 'active' ? activeGroups.length : targetType === 'all' ? groups.length : selectedJids.length
 
-      <div className="card">
-        <div className="card-header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
-          <h3 className="card-title">Compose Message</h3>
-          <p className="card-description">This message will be sent immediately to the selected targets.</p>
-        </div>
+ return (
+ <div style={{ maxWidth: '800px' }}>
+ <div style={{ marginBottom: '1.75rem' }}>
+ <h2 className="section-title" style={{ fontSize: '1.45rem' }}>
+ <Icons.IconBroadcast size={22} style={{ marginRight: 10, verticalAlign: 'text-bottom', color: '#a5b4fc' }} />
+ Broadcast
+ </h2>
+ <p className="section-subtitle">Send a global message to specific groups or your entire network</p>
+ </div>
 
-        <form onSubmit={handleSend} style={{ padding: '0 1.5rem 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
-          {/* Target Selection */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Target Audience</label>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              
-              <label style={{ 
-                display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '1rem', 
-                border: `1px solid ${targetType === 'active' ? 'var(--foreground)' : 'var(--border)'}`, 
-                borderRadius: 'var(--radius)', cursor: 'pointer',
-                backgroundColor: targetType === 'active' ? 'var(--secondary)' : 'transparent'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input type="radio" name="target" value="active" checked={targetType === 'active'} onChange={() => setTargetType('active')} style={{ cursor: 'pointer' }} />
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Active groups</span>
-                </div>
-                <span className="text-muted" style={{ fontSize: '0.75rem', paddingLeft: '1.5rem' }}>Only where bot is ON ({activeGroups.length})</span>
-              </label>
+ <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent)' }} />
 
-              <label style={{ 
-                display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '1rem', 
-                border: `1px solid ${targetType === 'all' ? 'var(--foreground)' : 'var(--border)'}`, 
-                borderRadius: 'var(--radius)', cursor: 'pointer',
-                backgroundColor: targetType === 'all' ? 'var(--secondary)' : 'transparent'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input type="radio" name="target" value="all" checked={targetType === 'all'} onChange={() => setTargetType('all')} style={{ cursor: 'pointer' }} />
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>All groups</span>
-                </div>
-                <span className="text-muted" style={{ fontSize: '0.75rem', paddingLeft: '1.5rem' }}>Every group ({groups.length})</span>
-              </label>
+ <div style={{ paddingBottom: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)' }}>
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>Compose Message</h3>
+ <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>Sent immediately to selected targets</p>
+ </div>
 
-              <label style={{ 
-                display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '1rem', 
-                border: `1px solid ${targetType === 'custom' ? 'var(--foreground)' : 'var(--border)'}`, 
-                borderRadius: 'var(--radius)', cursor: 'pointer',
-                backgroundColor: targetType === 'custom' ? 'var(--secondary)' : 'transparent'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input type="radio" name="target" value="custom" checked={targetType === 'custom'} onChange={() => setTargetType('custom')} style={{ cursor: 'pointer' }} />
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Custom selection</span>
-                </div>
-                <span className="text-muted" style={{ fontSize: '0.75rem', paddingLeft: '1.5rem' }}>Select specific groups</span>
-              </label>
-            </div>
+ <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+ {/* Target Selection */}
+ <div>
+ <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Target Audience</label>
+ <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+ {[
+ { key: 'active', label: 'Active Groups', desc: `Bot ON (${activeGroups.length})`, icon: <Icons.IconWifi size={18} style={{ color: '#34d399' }} /> },
+ { key: 'all', label: 'All Groups', desc: `Every group (${groups.length})`, icon: <Icons.IconGlobe size={18} style={{ color: '#60a5fa' }} /> },
+ { key: 'custom', label: 'Custom', desc: 'Select specific', icon: <Icons.IconUsers size={18} style={{ color: '#a78bfa' }} /> },
+ ].map(opt => (
+ <label key={opt.key} style={{
+ display: 'flex', flexDirection: 'column', gap: '0.35rem', padding: '1rem',
+ border: `1px solid ${targetType === opt.key ? 'rgba(99,102,241,0.35)' : 'var(--border)'}`,
+ borderRadius: 'var(--radius-md)', cursor: 'pointer',
+ background: targetType === opt.key ? 'rgba(99,102,241,0.05)' : 'transparent',
+ transition: 'all 0.2s ease'
+ }}>
+ <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+ <input type="radio" name="target" value={opt.key} checked={targetType === opt.key} onChange={() => setTargetType(opt.key)} style={{ cursor: 'pointer' }} />
+ <span style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-main)' }}>{opt.label}</span>
+ </div>
+ <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', paddingLeft: '1.35rem' }}>
+ {opt.icon}
+ <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{opt.desc}</span>
+ </div>
+ </label>
+ ))}
+ </div>
+ </div>
 
-            {targetType === 'custom' && (
-              <div style={{ 
-                marginTop: '0.5rem', 
-                maxHeight: '300px', 
-                overflowY: 'auto', 
-                border: '1px solid var(--border)', 
-                borderRadius: 'var(--radius)', 
-                padding: '0.5rem',
-                backgroundColor: 'rgba(255,255,255,0.02)'
-              }}>
-                {groups.length === 0 ? <p className="text-muted" style={{ padding: '1rem', fontSize: '0.875rem', textAlign: 'center' }}>No groups found in database.</p> : 
-                  groups.map(g => (
-                    <label key={g._id} style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '1rem', 
-                      padding: '0.75rem', 
-                      cursor: 'pointer', 
-                      borderRadius: '4px',
-                      borderBottom: '1px solid rgba(255,255,255,0.05)'
-                    }}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedJids.includes(g._id)} 
-                        onChange={() => handleToggleGroup(g._id)}
-                        style={{ width: '16px', height: '16px' }}
-                      />
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                          {g.grpName || g._id.split('@')[0] || 'Unknown Group'}
-                        </span>
-                        <span className="text-muted" style={{ fontSize: '0.7rem', fontFamily: 'monospace' }}>
-                          {g._id}
-                        </span>
-                      </div>
-                    </label>
-                  ))
-                }
-              </div>
-            )}
-          </div>
+ {/* Custom group selection */}
+ {targetType === 'custom' && (
+ <div style={{
+ maxHeight: '280px', overflowY: 'auto', border: '1px solid var(--border)',
+ borderRadius: 'var(--radius-md)', padding: '0.5rem', background: 'rgba(255,255,255,0.015)'
+ }}>
+ {groups.length === 0 ? <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.8rem' }}>No groups in database</p> :
+ groups.map(g => (
+ <label key={g._id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.65rem 0.5rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+ <input type="checkbox" checked={selectedJids.includes(g._id)} onChange={() => handleToggle(g._id)} style={{ width: '15px', height: '15px', cursor: 'pointer' }} />
+ <div style={{ minWidth: 0, flex: 1 }}>
+ <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>{g.grpName || g._id.split('@')[0] || 'Unknown'}</span>
+ <span style={{ fontSize: '0.65rem', color: 'var(--text-faint)', fontFamily: "'JetBrains Mono', monospace", display: 'block' }}>{g._id}</span>
+ </div>
+ <span className={`badge ${g.isBotOn ? 'badge-emerald' : 'badge-zinc'}`} style={{ fontSize: '0.6rem' }}>{g.isBotOn ? 'Active' : 'Off'}</span>
+ </label>
+ ))
+ }
+ </div>
+ )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Message Content</label>
-            <textarea
-              className="input"
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder="Type your announcement here..."
-              rows={8}
-              required
-              style={{ height: 'auto', padding: '1rem', resize: 'vertical', fontFamily: 'inherit', backgroundColor: 'var(--background)' }}
-            />
-          </div>
+ {/* Message input */}
+ <div>
+ <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Message Content</label>
+ <textarea className="input" value={text} onChange={e => setText(e.target.value)} placeholder="Type your announcement..." rows={6} required style={{ fontSize: '0.85rem', lineHeight: 1.6, background: 'var(--bg-input)' }} />
+ </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-            <p className="text-muted" style={{ fontSize: '0.75rem' }}>
-              Targeting <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>
-                {targetType === 'active' ? activeGroups.length : targetType === 'all' ? groups.length : selectedJids.length}
-              </span> groups.
-            </p>
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
-              disabled={loading || !text.trim() || (targetType === 'custom' && selectedJids.length === 0)}
-              style={{ minWidth: '160px' }}
-            >
-              {loading ? 'Sending...' : 'Send Broadcast'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
+ {/* Send bar */}
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+ <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+ Targeting <span style={{ color: 'var(--text-main)', fontWeight: 700 }}>{count}</span> group{count !== 1 ? 's' : ''}
+ </p>
+ <button type="submit" className="btn btn-primary" disabled={loading || !text.trim() || (targetType === 'custom' && !selectedJids.length)} style={{ minWidth: '160px' }}>
+ <Icons.IconSend size={15} /> {loading ? 'Sending...' : 'Send Broadcast'}
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
+ )
 }

@@ -31,7 +31,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await sendMessageWTyping(
 			from,
 			{
-				audio: downloadPath,
+				audio: { url: downloadPath },
 				mimetype: "audio/mp4",
 				ptt: false,
 			},
