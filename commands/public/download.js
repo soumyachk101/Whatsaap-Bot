@@ -174,23 +174,29 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				}
 				memoryManager.markFileSent(filePath);
 			} catch (sendErr) {
-				console.error("[Universal DL] Send error with URL, trying buffer fallback:", sendErr.message);
+				console.error("[Universal DL] Send error, trying stream-based buffer fallback:", sendErr.message);
+				const fileSizeMB = stats.size / (1024 * 1024);
+				if (fileSizeMB > 50) {
+					console.warn(`[Universal DL] Buffer fallback skipped: ${fileSizeMB.toFixed(1)}MB exceeds 50MB limit.`);
+					await sendMessageWTyping(from, { text: `⚠️ File too large for direct upload (${fileSizeMB.toFixed(1)}MB). Please try again later.` }, { quoted: msg });
+					continue;
+				}
 				try {
-					const buf = fs.readFileSync(filePath);
+					const readStream = memoryManager.createOptimizedReadStream(filePath);
 					if (mediaInfo.detected === "video") {
-						await sock.sendMessage(from, { video: buf, mimetype: "video/mp4" }, { quoted: msg });
+						await sock.sendMessage(from, { video: readStream, mimetype: "video/mp4" }, { quoted: msg });
 					} else if (mediaInfo.detected === "audio") {
 						const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-						await sock.sendMessage(from, { audio: buf, mimetype: mime, ptt: false }, { quoted: msg });
+						await sock.sendMessage(from, { audio: readStream, mimetype: mime, ptt: false }, { quoted: msg });
 					} else if (mediaInfo.detected === "image") {
-						await sock.sendMessage(from, { image: buf }, { quoted: msg });
+						await sock.sendMessage(from, { image: readStream }, { quoted: msg });
 					} else {
-						await sock.sendMessage(from, { document: buf, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
+						await sock.sendMessage(from, { document: readStream, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
 					}
 					memoryManager.markFileSent(filePath);
 				} catch (bufErr) {
-					console.error("[Universal DL] Buffer send fallback error:", bufErr.message);
-					await sendMessageWTyping(from, { text: "❌ Failed to upload media file. Please try again." }, { quoted: msg });
+					console.error("[Universal DL] Stream fallback error:", bufErr.message);
+					await sendMessageWTyping(from, { text: "❌ Failed to upload media file. Please try again later." }, { quoted: msg });
 				}
 			}
 			await new Promise((res) => setTimeout(res, 500));

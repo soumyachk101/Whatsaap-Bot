@@ -129,6 +129,13 @@ class MemoryManager {
 	markFileSent(filePath) {
 		this.downloadStatus.set(filePath, "sent");
 	}
+	/**
+	 * Set an arbitrary download status for a file (used by download pipeline).
+	 * Valid values: "registered" | "downloading" | "ready" | "sent"
+	 */
+	markFileStatus(filePath, status) {
+		this.downloadStatus.set(filePath, status);
+	}
 
 	/**
 	 * Create optimized read stream with automatic cleanup
@@ -231,18 +238,13 @@ class MemoryManager {
 			const downloadState = this.downloadStatus.get(filePath);
 			const age = now - registeredAt;
 
-			// Skip files actively being downloaded or just sent
-			if (!force && downloadState === "downloading" && age < this.orphanThreshold) {
+			// Skip files that are actively downloading or already ready-to-send
+			if (!force && (downloadState === "downloading" || downloadState === "ready")) {
 				continue;
 			}
 
-			// Skip recently sent/ready files
+			// Skip recently sent files within the max age window
 			if (!force && downloadState === "sent" && age < this.maxTempFileAge) {
-				continue;
-			}
-
-			// Skip ready files within max age
-			if (!force && downloadState !== "downloading" && age < this.maxTempFileAge) {
 				continue;
 			}
 

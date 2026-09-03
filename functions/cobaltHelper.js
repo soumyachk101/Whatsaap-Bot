@@ -4,7 +4,7 @@ import fs from "fs";
 import stream from "stream";
 import { promisify } from "util";
 import path from "path";
-import { exec, execFile } from "child_process";
+import { execFile, execFileSync } from "child_process";
 import { lookup } from "dns";
 import snapsave from "snapsave-downloader";
 import memoryManager from "./memoryUtils.js";
@@ -12,6 +12,25 @@ import instanceHealth from "./instanceHealth.js";
 import ffmpegStatic from "ffmpeg-static";
 
 const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStatic || "ffmpeg";
+
+// Binary availability flags — checked at module load time
+let ytDlpAvailable = true;
+let ffmpegAvailable = true;
+
+try {
+	execFileSync("yt-dlp", ["--version"], { stdio: "ignore" });
+} catch {
+	ytDlpAvailable = false;
+	console.warn("[BinaryCheck] yt-dlp not found on PATH; YouTube downloads will fall back to Cobalt.");
+}
+
+try {
+	execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
+} catch {
+	ffmpegAvailable = false;
+	console.warn("[BinaryCheck] ffmpeg not found on PATH; some yt-dlp conversions may fail.");
+}
+
 const pipeline = promisify(stream.pipeline);
 
 /**
@@ -169,6 +188,9 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 		? path.join(outputDir, `ytdlp_${Date.now()}_${crypto.randomUUID().split("-")[0]}${ext}`)
 		: memoryManager.generateTempFileName(ext);
 
+	// Mark as downloading so GC does not delete it mid-flight
+	memoryManager.markFileStatus(tempFile, "downloading");
+
 	const ytdlpArgs = audioOnly
 		? [
 				"--no-playlist",
@@ -244,6 +266,7 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 
 			if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
 				console.log(`[yt-dlp Fallback] Downloaded successfully: ${tempFile}`);
+				memoryManager.markFileStatus(tempFile, "ready");
 				return [tempFile];
 			}
 			lastErr = new Error("yt-dlp produced an empty file");
@@ -321,6 +344,9 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 		throw new Error("SnapSave download yielded no valid files");
 	}
 
+	// Mark all files as ready for delivery
+	downloadedFiles.forEach((f) => memoryManager.markFileStatus(f, "ready"));
+
 	console.log(`[SnapSave Fallback] Successfully downloaded ${downloadedFiles.length} file(s)`);
 	return downloadedFiles;
 };
@@ -339,7 +365,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 	}
 
 	const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
-	if (isYouTube) {
+	if (isYouTube && ytDlpAvailable) {
 		try {
 			console.log(`[YouTube DL] Fetching directly via yt-dlp...`);
 			return await downloadWithYtDlp(url, outputDir, audioOnly, signal);
@@ -458,25 +484,46 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 		const items = [];
 
 		if (data.status === "picker") {
-			const videoItems = data.picker.filter((item) => item.type === "video");
-			const otherItems = data.picker.filter((item) => item.type !== "video");
+			// Helper: extract extension from a URL, defaulting to the item's type field
+			const urlExt = (u) => {
+				try {
+					const pathname = new URL(u).pathname;
+					const dotIdx = pathname.lastIndexOf(".");
+					if (dotIdx >= 0) return pathname.slice(dotIdx + 1).toLowerCase();
+				} catch { /* ignore */ }
+				return null;
+			};
+
+			const isVideoUrl = (item) => {
+				const ext = urlExt(item.url);
+				if (ext && ["mp4", "webm", "mov", "m3u8"].includes(ext)) return true;
+				if (item.type === "video") return true;
+				return false;
+			};
+
+			const videoItems = data.picker.filter(isVideoUrl);
+			const otherItems = data.picker.filter((item) => !isVideoUrl(item));
 
 			if (videoItems.length > 0) {
-				videoItems.forEach((item) => {
+				// Always prefer .mp4 over image extensions for Reels/TV
+				const sorted = [...videoItems].sort((a, b) => {
+					const extA = urlExt(a.url);
+					const extB = urlExt(b.url);
+					if (["mp4", "webm", "mov", "m3u8"].includes(extA) && !["mp4", "webm", "mov", "m3u8"].includes(extB)) return -1;
+					if (!["mp4", "webm", "mov", "m3u8"].includes(extA) && ["mp4", "webm", "mov", "m3u8"].includes(extB)) return 1;
+					return 0;
+				});
+				sorted.forEach((item) => {
 					if (item.url) items.push({ url: item.url, type: "video" });
 				});
 			} else if (otherItems.length > 0 && !isReelOrTv) {
 				otherItems.forEach((item) => {
 					if (item.url) items.push({ url: item.url, type: item.type || "photo" });
 				});
-			} else {
+			} else if (isReelOrTv) {
+				// For Reels/TV even non-video items: try everything, the validator later will catch bad URLs
 				for (const item of data.picker) {
-					if (item.url) {
-						const itemType = isReelOrTv ? "video" : item.type || "auto";
-						if (itemType === "video" || isReelOrTv) {
-							items.push({ url: item.url, type: itemType });
-						}
-					}
+					if (item.url) items.push({ url: item.url, type: item.type || "auto" });
 				}
 			}
 		} else if (data.status === "tunnel" || data.status === "redirect") {
@@ -572,6 +619,9 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 					if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
 					continue;
 				}
+
+				// Mark as ready so GC protects it until delivery
+				memoryManager.markFileStatus(tempFile, "ready");
 
 				downloadedFiles.push(tempFile);
 			}

@@ -7,6 +7,9 @@ class DownloadQueue {
 		this.maxConcurrent = maxConcurrent;
 		this.active = 0;
 		this.queue = [];
+		this.heartbeatInterval = 5000; // check every 5s
+		this.stallThreshold = 300000; // 5 minutes total timeout
+		this.idleThreshold = 60000; // 60s of no heartbeat = stalled
 	}
 
 	async acquire(userId) {
@@ -16,7 +19,7 @@ class DownloadQueue {
 		}
 
 		const position = this.queue.length + 1;
-		this.queue.push({ userId, resolve: null, reject: null });
+		this.queue.push({ userId, resolve: null, reject: null, lastHeartbeat: Date.now() });
 
 		return new Promise((resolve, reject) => {
 			const entry = this.queue[this.queue.length - 1];
@@ -30,11 +33,27 @@ class DownloadQueue {
 				reject(new Error("queue_timeout"));
 			};
 
+			// Progress heartbeat: only fire timeout if the download is truly stalled
+			const stallCheck = setInterval(() => {
+				if (!this.queue.includes(entry)) {
+					clearInterval(stallCheck);
+					return;
+				}
+				entry.lastHeartbeat = Date.now();
+				const elapsed = Date.now() - entry.lastHeartbeat;
+				if (elapsed > this.stallThreshold) {
+					clearInterval(stallCheck);
+					entry.reject();
+				}
+			}, this.heartbeatInterval);
+
+			// Hard cap at stallThreshold in case heartbeat interval drifts
 			setTimeout(() => {
+				clearInterval(stallCheck);
 				if (this.queue.includes(entry)) {
 					entry.reject();
 				}
-			}, 120000);
+			}, this.stallThreshold);
 		});
 	}
 
