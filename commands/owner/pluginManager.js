@@ -52,6 +52,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
  try {
  // ── #plugin list ─────────────────────────────────────────────────────────
  if (command === "plugin") {
+ if (!isOwner) {
+ return scopedReply(sendMessageWTyping, from, msg, "🚫 Only the owner can use #plugin commands.");
+ }
  if (args.length === 0 || args[0] === "list") {
  const plugins = pmListPlugins();
  if (plugins.length === 0) {
@@ -152,6 +155,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
  // ── #skill list ──────────────────────────────────────────────────────────
  if (command === "skill") {
+ if (!isOwner) {
+ return scopedReply(sendMessageWTyping, from, msg, "🚫 Only the owner can use #skill commands.");
+ }
  if (args.length === 0 || args[0] === "list") {
  let skills = getSkills();
 
