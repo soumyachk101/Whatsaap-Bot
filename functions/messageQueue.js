@@ -4,8 +4,10 @@ class MessageQueue {
 		this.processing = new Map(); // Track processing status
 		this.messageDelay = 0; // Immediate dispatch (0ms delay)
 		this.groupMessageDelay = 0;
-		this.maxConcurrent = 25; // High throughput
-		this.activeSends = 0;
+		this.maxConcurrent = 25; // Global concurrent send limit
+		this.totalActiveSends = 0;
+		this.activeSendsByChat = new Map(); // Per-chat active send tracking
+		this.perChatMax = 5; // Max concurrent sends per chat
 		this.batchSize = 10; // Batch processing
 		this.groupBatchDelay = 0;
 
@@ -65,14 +67,21 @@ class MessageQueue {
 
 		try {
 			while (queue.length > 0) {
-				while (this.activeSends >= this.maxConcurrent) {
+				// Wait if total active sends across all chats exceeds global limit
+				while (this.totalActiveSends >= this.maxConcurrent) {
 					await new Promise((resolve) => setTimeout(resolve, 10));
 				}
 
 				const message = queue.shift();
 				if (!message) break;
 
-				this.activeSends++;
+				// Wait if this chat already has too many active sends
+				while ((this.activeSendsByChat.get(chatId) || 0) >= this.perChatMax) {
+					await new Promise((resolve) => setTimeout(resolve, 10));
+				}
+
+				this.totalActiveSends++;
+				this.activeSendsByChat.set(chatId, (this.activeSendsByChat.get(chatId) || 0) + 1);
 				try {
 					const sendPromise = message.sendFunction();
 					const timeoutPromise = new Promise((_, reject) =>
@@ -84,7 +93,9 @@ class MessageQueue {
 					console.error(`Queue send error for ${chatId}:`, err.message);
 					message.reject(err);
 				} finally {
-					this.activeSends--;
+					this.totalActiveSends--;
+					const current = this.activeSendsByChat.get(chatId) || 0;
+					this.activeSendsByChat.set(chatId, Math.max(0, current - 1));
 				}
 			}
 		} finally {
@@ -100,12 +111,14 @@ class MessageQueue {
 		const stats = {
 			totalQueued: 0,
 			queuesByChat: {},
-			activeSends: this.activeSends,
+			totalActiveSends: this.totalActiveSends,
+			activeSendsByChat: {},
 		};
 
 		for (const [chatId, queue] of this.queues.entries()) {
 			stats.totalQueued += queue.length;
 			stats.queuesByChat[chatId] = queue.length;
+			stats.activeSendsByChat[chatId] = this.activeSendsByChat.get(chatId) || 0;
 		}
 
 		return stats;

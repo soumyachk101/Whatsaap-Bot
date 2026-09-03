@@ -50,13 +50,11 @@ const getCommand = async (sock, msg, cache) => {
 
 	try {
 		await commandsReady();
-		if (!sock) return;
-		if (!sock.user) {
-			sock.user = { id: (process.env.BOT_NUMBER?.split(",")[0] || "123456789") + "@s.whatsapp.net", name: "WhatsAppBot" };
-		}
+		if (!sock || !msg) return;
+		const from = msg.key?.remoteJid;
+		if (!from) return;
 		const messageKeys = Object.keys(msg.message);
 		if (messageKeys.length === 0) return;
-		if (msg.key.fromMe && !msg.key.remoteJid) return;
 
 		const sendMessageWTyping = async (to, msgObj, messageOptions) => {
 			try {
@@ -105,7 +103,6 @@ const getCommand = async (sock, msg, cache) => {
 			}
 		};
 
-		const from = msg.key.remoteJid;
 		const content = JSON.stringify(msg.message);
 
 		let m = msg.message || {};
@@ -223,26 +220,22 @@ const getCommand = async (sock, msg, cache) => {
 		let groupMetadata = null;
 		if (isGroup) {
 			groupMetadata = groupMetadataCache.get(from) || (typeof cache?.get === "function" ? cache.get(from + ":groupMetadata") : null);
-			if (!groupMetadata && isCmd) {
-				try {
-					groupMetadata = await Promise.race([
-						sock.groupMetadata(from),
-						new Promise((_, reject) =>
-							setTimeout(() => reject(new Error("Group metadata fetch timeout")), 5000)
-						),
-					]);
-					if (groupMetadata) {
-						groupMetadataCache.set(from, groupMetadata);
+			if (!groupMetadata) {
+				groupMetadata = { participants: [], subject: from };
+				// Background fetch to refresh cache without blocking command execution
+				Promise.race([
+					sock.groupMetadata(from),
+					new Promise((_, reject) =>
+						setTimeout(() => reject(new Error("Group metadata fetch timeout")), 5000)
+					),
+				]).then((m) => {
+					if (m) {
+						groupMetadataCache.set(from, m);
 						if (typeof cache?.set === "function") {
-							cache.set(from + ":groupMetadata", groupMetadata, 60 * 60);
+							cache.set(from + ":groupMetadata", m, 60 * 60);
 						}
 					}
-				} catch (e) {
-					console.error("Group metadata fetch failed:", e.message);
-					groupMetadata = { participants: [], subject: from };
-				}
-			} else if (!groupMetadata) {
-				groupMetadata = { participants: [], subject: from };
+				}).catch(() => {});
 			}
 		}
 
@@ -470,6 +463,7 @@ const getCommand = async (sock, msg, cache) => {
 					`💬 <b>In:</b> ${groupMetadata.subject}`,
 					msg
 				);
+				return;
 			}
 		}
 
@@ -564,58 +558,63 @@ const getCommand = async (sock, msg, cache) => {
 		// Log command execution for dashboard stats & activity
 		logCommandEvent(command, senderJid, isGroup ? (groupData?.grpName || from) : null);
 
+		const COMMAND_TIMEOUT_MS = 30000;
+		const runHandler = async (handlerFn, label) => {
+			const t0 = Date.now();
+			try {
+				const result = await Promise.race([
+					handlerFn(),
+					new Promise((_, reject) =>
+						setTimeout(() => reject(new Error(`Command timeout: '${command}' (${label}) exceeded ${COMMAND_TIMEOUT_MS / 1000}s`)), COMMAND_TIMEOUT_MS)
+					),
+				]);
+				const t1 = Date.now();
+				console.log(`[PROFILE] Command '${command}' (${label}) took ${t1 - t0}ms`);
+				return result;
+			} catch (err) {
+				if (err.message && err.message.includes("Command timeout")) {
+					console.error(`[WATCHDOG] ${err.message}`);
+					await sendMessageWTyping(from, { text: `⏱️ *Command Timeout*\n\nCommand '${command}' took too long to respond. Please try again.` }, { quoted: msg }).catch(() => {});
+				}
+				throw err;
+			}
+		};
+
 		if (commandsPublic[command]) {
-			const t0 = Date.now();
-			const result = await commandsPublic[command](sock, msg, from, args, msgInfoObj);
-			const t1 = Date.now();
-			console.log(`[PROFILE] Command '${command}' (public) took ${t1 - t0}ms`);
-			return result;
+			return runHandler(() => commandsPublic[command](sock, msg, from, args, msgInfoObj), "public");
 		} else if (commandsMembers[command]) {
-			const t0 = Date.now();
-			const result = await commandsMembers[command](sock, msg, from, args, msgInfoObj);
-			const t1 = Date.now();
-			console.log(`[PROFILE] Command '${command}' (members) took ${t1 - t0}ms`);
-			return result;
+			return runHandler(() => commandsMembers[command](sock, msg, from, args, msgInfoObj), "members");
 		} else if (commandsAdmins[command]) {
 			if (!isGroup) {
 				return sendMessageWTyping(from, { text: "```This command can only be used in a group.```" }, { quoted: msg });
 			}
-			const t0 = Date.now();
-			let result;
 			if (isGroupAdmin || isOwner || moderatos.includes(senderNumber)) {
-				result = await commandsAdmins[command](sock, msg, from, args, msgInfoObj);
+				return runHandler(() => commandsAdmins[command](sock, msg, from, args, msgInfoObj), "admins");
 			} else {
-				result = await sendMessageWTyping(
+				return sendMessageWTyping(
 					from,
 					{ text: "```🚫 Access Denied! This command requires Group Admin privileges.```" },
 					{ quoted: msg }
 				);
 			}
-			const t1 = Date.now();
-			console.log(`[PROFILE] Command '${command}' (admins) took ${t1 - t0}ms`);
-			return result;
 		} else if (commandsOwners[command]) {
-			const t0 = Date.now();
-			let result;
 			if (isOwner || moderatos.includes(senderNumber)) {
-				result = await commandsOwners[command](sock, msg, from, args, msgInfoObj);
+				return runHandler(() => commandsOwners[command](sock, msg, from, args, msgInfoObj), "owners");
 			} else {
-				result = await sendMessageWTyping(
+				return sendMessageWTyping(
 					from,
 					{ text: "```🚫 Access Denied! Only the Bot Owner can use this command.```" },
 					{ quoted: msg }
 				);
 			}
-			const t1 = Date.now();
-			console.log(`[PROFILE] Command '${command}' (owners) took ${t1 - t0}ms`);
-			return result;
 		}
 	} catch (error) {
 		console.error("❌ Error processing message:", error.message);
 		console.error("📍 Error stack:", error.stack);
 		try {
-			if (from && msg && sock) {
-				await sock.sendMessage(from, { text: `❌ *Error processing command:*\n_${error.message}_` }, { quoted: msg });
+			const safeFrom = (from && typeof from === "string") ? from : (msg?.key?.remoteJid || "");
+			if (safeFrom && sock) {
+				await sock.sendMessage(safeFrom, { text: `❌ *Error processing command:*\n_${error.message}_` }, { quoted: msg });
 			}
 		} catch (_) {}
 	}

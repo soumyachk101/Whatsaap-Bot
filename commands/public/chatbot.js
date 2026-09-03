@@ -255,10 +255,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			);
 		} else {
 			await chat(prompt, from, msg, taggedMember, msgInfoObj, data, tagMessage, tagMessageSenderJID);
+			return;
 		}
 	} else {
 		if (msgInfoObj.isOwner) {
 			await chat(prompt, from, msg, taggedMember, msgInfoObj, null, tagMessage, tagMessageSenderJID);
+			return;
 		} else {
 			return sendMessageWTyping(
 				from,
