@@ -1,29 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import GlassCard from '../components/GlassCard.jsx'
 import { SearchIcon, RefreshIcon } from '../components/SVG.jsx'
+import { getLogs } from '../lib/api.js'
 
-// ── Mock Log Generator ──────────────────────────────────────────────────
 const LOG_LEVELS = ['info', 'warn', 'error', 'debug']
-const LOG_MESSAGES = {
- info: ['Message received from +9198xxxxxxx', 'Group metadata updated: "General"', 'Auto-reply sent to 9195xxxxxxx', 'Plugin loaded: sticker.js', 'Session keepalive ping sent', 'Profile picture updated for 9198xxxxxxx', 'Broadcast delivered to 23/25 groups'],
- warn: ['Rate limit approaching for +9198xxxxxxx', 'Slow response from WhatsApp API (2.3s)', 'Memory usage above 75%', 'Retry attempt 2/3 for message delivery', 'Connection quality degraded', 'Queue size exceeding 100 items'],
- error: ['Failed to send message to +9198xxxxxxx: timeout', 'Database connection lost, retrying...', 'Authentication token expired', 'WebSocket connection dropped unexpectedly', 'Failed to parse incoming message payload', 'Rate limit exceeded, backing off for 60s'],
- debug: ['Processing message ID: 3AB4...8F2C', 'Cache hit for group 9198xxxxxxx@g.us', 'Webhook payload received, size: 1.2KB', 'Session check: connected=true, battery=82%', 'Plugin execution time: 45ms'],
-}
-
-function generateLogs(count = 200) {
- const logs = []
- const now = Date.now()
- for (let i = 0; i < count; i++) {
- const level = LOG_LEVELS[Math.floor(Math.random() * LOG_LEVELS.length)]
- const msgs = LOG_MESSAGES[level]
- const msg = msgs[Math.floor(Math.random() * msgs.length)]
- const t = new Date(now - i * 3000 - Math.floor(Math.random() * 2000))
- const time = t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
- logs.push({ time, level, msg })
- }
- return logs
-}
 
 // ── Logs Page ──────────────────────────────────────────────────────────
 export default function Logs() {
@@ -34,14 +14,20 @@ export default function Logs() {
  const [loading, setLoading] = useState(true)
  const bottomRef = useRef(null)
 
+ const fetchRealLogs = () => {
+  getLogs(filter === 'all' ? '' : filter, 200)
+   .then(res => {
+    if (Array.isArray(res?.logs)) setLogs(res.logs)
+   })
+   .catch(() => {})
+   .finally(() => setLoading(false))
+ }
+
  useEffect(() => {
- setLoading(true)
- // Simulate loading logs
- setTimeout(() => {
- setLogs(generateLogs(150))
- setLoading(false)
- }, 600)
- }, [])
+  fetchRealLogs()
+  const timer = setInterval(fetchRealLogs, 3000)
+  return () => clearInterval(timer)
+ }, [filter])
 
  useEffect(() => {
  if (autoScroll && bottomRef.current) {
@@ -68,7 +54,7 @@ export default function Logs() {
  }), [logs])
 
  const refresh = () => {
- setLogs(generateLogs(150))
+  fetchRealLogs()
  }
 
  return (

@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { group, updateGroupData } from "../sqlite-DB/groupDataDb.js";
 import { member } from "../sqlite-DB/membersDataDb.js";
-import { bot, getBotData } from "../sqlite-DB/botDataDb.js";
+import { bot, getBotData, clearBotCache } from "../sqlite-DB/botDataDb.js";
 import { cmdToText } from "../functions/getAddCommands.js";
 import { clearSQLiteAuthState } from "../functions/useSQLiteAuthState.js";
+import { getLogs, getRecentActivities, getActivityOverview, getCommandsRun, logSystemEvent } from "../functions/botLogger.js";
 import mdClient from "../sqlite.js";
 
 const router = Router();
@@ -127,6 +128,7 @@ router.get("/api/admin/stats", requireAdmin, async (req, res) => {
 			uptime: Math.floor(process.uptime()),
 			groupCount,
 			memberCount,
+			commandsRun: getCommandsRun(),
 			memoryUsage: {
 				heapUsed: mem.heapUsed,
 				heapTotal: mem.heapTotal,
@@ -206,6 +208,8 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 			blockedMembers,
 			totalGroups: groups.length,
 			totalMembers: members.length,
+			activity: getActivityOverview(),
+			recentActivity: getRecentActivities(),
 		});
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -486,6 +490,73 @@ router.patch("/api/admin/members/:jid", requireAdmin, async (req, res) => {
 			return res.status(400).json({ error: "Unknown action" });
 		}
 		res.json({ ok: true });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+// ── API: Real-time System Logs ──────────────────────────────────────────────
+router.get("/api/admin/logs", requireAdmin, (req, res) => {
+	try {
+		const level = req.query.level;
+		const limit = Number(req.query.limit) || 150;
+		const logList = getLogs(limit, level);
+		res.json({
+			logs: logList,
+			stats: {
+				total: logList.length,
+				info: logList.filter(l => l.level === "info").length,
+				warn: logList.filter(l => l.level === "warn").length,
+				error: logList.filter(l => l.level === "error").length,
+				debug: logList.filter(l => l.level === "debug").length,
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+// ── API: Persistent Plugins ─────────────────────────────────────────────────
+const DEFAULT_PLUGINS = [
+	{ id: 'sticker', name: 'Sticker Maker', desc: 'Convert images and GIFs to WhatsApp stickers automatically', category: 'Media', color: '#a78bfa', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)', icon: '🎨', enabled: true },
+	{ id: 'antilink', name: 'Anti-Link', desc: 'Automatically delete messages containing links in groups', category: 'Moderation', color: '#fb7185', bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.2)', icon: '🔗', enabled: true },
+	{ id: 'welcome', name: 'Welcome Bot', desc: 'Send customizable welcome messages to new group members', category: 'Utility', color: '#34d399', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', icon: '👋', enabled: true },
+	{ id: 'games', name: 'Mini Games', desc: 'Fun games like tic-tac-toe, trivia, and word guessing', category: 'Fun', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', icon: '🎮', enabled: true },
+	{ id: 'music', name: 'Music Player', desc: 'Search and play music from YouTube and Spotify', category: 'Media', color: '#a78bfa', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)', icon: '🎵', enabled: true },
+	{ id: 'moderation', name: 'Auto Mod', desc: 'Auto-mute, warn, and kick users who violate rules', category: 'Moderation', color: '#fb7185', bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.2)', icon: '🛡️', enabled: true },
+	{ id: 'currency', name: 'Currency Converter', desc: 'Real-time exchange rates for 150+ currencies', category: 'Utility', color: '#22d3ee', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', icon: '💱', enabled: true },
+	{ id: 'jokes', name: 'Joke Bot', desc: 'Random jokes, memes, and fun facts on demand', category: 'Fun', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', icon: '😄', enabled: true },
+	{ id: 'ocr', name: 'OCR Reader', desc: 'Extract text from images using optical character recognition', category: 'Utility', color: '#22d3ee', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', icon: '📄', enabled: true },
+];
+
+router.get("/api/admin/plugins", requireAdmin, async (req, res) => {
+	try {
+		const botDoc = await getBotData();
+		const savedPlugins = botDoc?.plugins || {};
+		const plugins = DEFAULT_PLUGINS.map(p => ({
+			...p,
+			enabled: savedPlugins[p.id] !== undefined ? Boolean(savedPlugins[p.id]) : p.enabled,
+		}));
+		res.json({ plugins });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+router.patch("/api/admin/plugins/:id", requireAdmin, async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { enabled } = req.body;
+		if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled must be boolean" });
+
+		const botDoc = await getBotData();
+		const savedPlugins = botDoc?.plugins || {};
+		savedPlugins[id] = enabled;
+
+		await bot.updateOne({ _id: "bot" }, { $set: { plugins: savedPlugins } }, { upsert: true });
+		clearBotCache();
+		logSystemEvent(`Plugin "${id}" ${enabled ? "enabled" : "disabled"}`, enabled ? "#34d399" : "#fb7185");
+		res.json({ ok: true, id, enabled });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}

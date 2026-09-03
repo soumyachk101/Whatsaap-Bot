@@ -19,7 +19,9 @@ sqliteDb.exec(`
  CREATE TABLE IF NOT EXISTS AuthTable (
  id TEXT PRIMARY KEY,
  youtube_session TEXT,
- disabledGlobally TEXT
+ disabledGlobally TEXT,
+ maintenanceMode INTEGER,
+ plugins TEXT
  );
 
  CREATE TABLE IF NOT EXISTS Groups (
@@ -37,6 +39,9 @@ sqliteDb.exec(`
  data TEXT
  );
 `);
+
+try { sqliteDb.exec("ALTER TABLE AuthTable ADD COLUMN plugins TEXT;"); } catch {}
+try { sqliteDb.exec("ALTER TABLE AuthTable ADD COLUMN maintenanceMode INTEGER;"); } catch {}
 
 let mongoDbInstance = null;
 
@@ -96,7 +101,7 @@ class Collection {
 		if (id && Object.keys(query).length === 1) {
 			const row = sqliteDb.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`).get(id);
 			if (!row) return null;
-			if (this.tableName === 'AuthTable') return { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]') };
+			if (this.tableName === 'AuthTable') return { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]'), plugins: JSON.parse(row.plugins || '{}') };
 			const data = JSON.parse(row.data);
 			data._id = row.id;
 			return data;
@@ -460,7 +465,7 @@ class Collection {
 			let changes = 0;
 			if (keys.length > 0) {
 				const setClause = keys.map(k => `${k} = ?`).join(', ');
-				const values = keys.map(k => k === 'disabledGlobally' ? JSON.stringify(fields[k]) : fields[k]);
+				const values = keys.map(k => (k === 'disabledGlobally' || k === 'plugins') ? JSON.stringify(fields[k]) : fields[k]);
 				let res = sqliteDb.prepare(`UPDATE AuthTable SET ${setClause} WHERE id = ?`).run(...values, id);
 				changes = res.changes;
 				if (changes === 0 && options.upsert) {

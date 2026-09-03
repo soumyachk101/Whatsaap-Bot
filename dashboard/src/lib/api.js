@@ -89,6 +89,14 @@ export const getMaintenanceMode = () => api.get('/api/admin/maintenance-mode')
 export const setMaintenanceMode = (enabled) =>
  api.patch('/api/admin/maintenance-mode', { maintenanceMode: enabled })
 
+// Real-time Logs & Persistent Plugins
+export const getLogs = (level = '', limit = 150) =>
+  api.get(`/api/admin/logs?level=${encodeURIComponent(level)}&limit=${limit}`)
+
+export const getPlugins = () => api.get('/api/admin/plugins')
+export const togglePlugin = (id, enabled) =>
+  api.patch(`/api/admin/plugins/${encodeURIComponent(id)}`, { enabled })
+
 // Helpers
 export function fmtUptime(secs) {
  const h = Math.floor(secs / 3600)

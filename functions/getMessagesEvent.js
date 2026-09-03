@@ -14,6 +14,7 @@ import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
 import { groupMetadataCache } from "./getSocket.js";
 import { extractPhoneNumber, isLID } from "./lidUtils.js";
+import { logCommandEvent, logMessageEvent } from "./botLogger.js";
 
 const parseNumberEnv = (envVal) => {
 	if (!envVal) return [];
@@ -259,6 +260,7 @@ const getCommand = async (sock, msg, cache) => {
 
 		const updateId = senderPnJid || senderJid;
 		const updateName = msg.key.fromMe ? sock.user?.name : msg.pushName;
+		logMessageEvent(updateId, isGroup ? from : null);
 
 		// Asynchronous non-blocking background database stats tracking
 		(async () => {
@@ -516,8 +518,8 @@ const getCommand = async (sock, msg, cache) => {
 		}
 
 		if (isGroup) {
-			let resBotOn = groupData ? groupData.isBotOn === true : false;
-			if (resBotOn == false && !isOwner && !(command.startsWith("group") || command.startsWith("dev") || command === "bot" || allowedWhenOff.includes(command))) {
+			let isBotExplicitlyOff = groupData && groupData.isBotOn === false;
+			if (isBotExplicitlyOff && !isOwner && !(command.startsWith("group") || command.startsWith("dev") || command === "bot" || allowedWhenOff.includes(command))) {
 				return;
 			}
 			let blockCommandsInDB = (await groupData?.cmdBlocked) || [];
@@ -535,6 +537,9 @@ const getCommand = async (sock, msg, cache) => {
 				return sendMessageWTyping(from, { text: `🚫 This command is globally disabled.` }, { quoted: msg });
 			}
 		}
+
+		// Log command execution for dashboard stats & activity
+		logCommandEvent(command, senderJid, isGroup ? (groupData?.grpName || from) : null);
 
 		if (commandsPublic[command]) {
 			const t0 = Date.now();

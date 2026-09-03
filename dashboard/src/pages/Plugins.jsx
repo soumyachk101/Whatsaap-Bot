@@ -1,18 +1,19 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import GlassCard from '../components/GlassCard.jsx'
 import { SearchIcon } from '../components/SVG.jsx'
+import { getPlugins, togglePlugin as apiTogglePlugin } from '../lib/api.js'
 
-// ── Mock Plugins ────────────────────────────────────────────────────────
+// ── Mock Plugins (Initial fallback) ──────────────────────────────────────
 const PLUGINS = [
  { id: 'sticker', name: 'Sticker Maker', desc: 'Convert images and GIFs to WhatsApp stickers automatically', category: 'Media', color: '#a78bfa', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)', icon: '🎨', enabled: true },
  { id: 'antilink', name: 'Anti-Link', desc: 'Automatically delete messages containing links in groups', category: 'Moderation', color: '#fb7185', bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.2)', icon: '🔗', enabled: true },
  { id: 'welcome', name: 'Welcome Bot', desc: 'Send customizable welcome messages to new group members', category: 'Utility', color: '#34d399', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', icon: '👋', enabled: true },
- { id: 'games', name: 'Mini Games', desc: 'Fun games like tic-tac-toe, trivia, and word guessing', category: 'Fun', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', icon: '🎮', enabled: false },
+ { id: 'games', name: 'Mini Games', desc: 'Fun games like tic-tac-toe, trivia, and word guessing', category: 'Fun', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', icon: '🎮', enabled: true },
  { id: 'music', name: 'Music Player', desc: 'Search and play music from YouTube and Spotify', category: 'Media', color: '#a78bfa', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)', icon: '🎵', enabled: true },
  { id: 'moderation', name: 'Auto Mod', desc: 'Auto-mute, warn, and kick users who violate rules', category: 'Moderation', color: '#fb7185', bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.2)', icon: '🛡️', enabled: true },
- { id: 'currency', name: 'Currency Converter', desc: 'Real-time exchange rates for 150+ currencies', category: 'Utility', color: '#22d3ee', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', icon: '💱', enabled: false },
- { id: 'jokes', name: 'Joke Bot', desc: 'Random jokes, memes, and fun facts on demand', category: 'Fun', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', icon: '😄', enabled: false },
- { id: 'ocr', name: 'OCR Reader', desc: 'Extract text from images using optical character recognition', category: 'Utility', color: '#22d3ee', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', icon: '📄', enabled: false },
+ { id: 'currency', name: 'Currency Converter', desc: 'Real-time exchange rates for 150+ currencies', category: 'Utility', color: '#22d3ee', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', icon: '💱', enabled: true },
+ { id: 'jokes', name: 'Joke Bot', desc: 'Random jokes, memes, and fun facts on demand', category: 'Fun', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', icon: '😄', enabled: true },
+ { id: 'ocr', name: 'OCR Reader', desc: 'Extract text from images using optical character recognition', category: 'Utility', color: '#22d3ee', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', icon: '📄', enabled: true },
 ]
 
 const CATEGORIES = ['All', 'Media', 'Moderation', 'Utility', 'Fun']
@@ -23,18 +24,34 @@ export default function Plugins() {
  const [search, setSearch] = useState('')
  const [category, setCategory] = useState('All')
 
+ useEffect(() => {
+  getPlugins()
+   .then(res => {
+    if (Array.isArray(res?.plugins)) setPlugins(res.plugins)
+   })
+   .catch(() => {})
+ }, [])
+
  const filtered = useMemo(() => {
- let result = plugins
- if (category !== 'All') result = result.filter(p => p.category === category)
- if (search.trim()) {
- const q = search.toLowerCase()
- result = result.filter(p => p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q))
- }
- return result
+  let result = plugins
+  if (category !== 'All') result = result.filter(p => p.category === category)
+  if (search.trim()) {
+   const q = search.toLowerCase()
+   result = result.filter(p => p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q))
+  }
+  return result
  }, [plugins, search, category])
 
- const togglePlugin = (id) => {
- setPlugins(prev => prev.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p))
+ const handleTogglePlugin = async (id) => {
+  const current = plugins.find(p => p.id === id)
+  if (!current) return
+  const nextVal = !current.enabled
+  setPlugins(prev => prev.map(p => p.id === id ? { ...p, enabled: nextVal } : p))
+  try {
+   await apiTogglePlugin(id, nextVal)
+  } catch (err) {
+   setPlugins(prev => prev.map(p => p.id === id ? { ...p, enabled: !nextVal } : p))
+  }
  }
 
  const enabledCount = plugins.filter(p => p.enabled).length
@@ -96,7 +113,7 @@ export default function Plugins() {
  {plugin.category}
  </span>
  <label className="toggle" style={{ cursor: 'pointer' }}>
- <input type="checkbox" checked={plugin.enabled} onChange={() => togglePlugin(plugin.id)} />
+ <input type="checkbox" checked={plugin.enabled} onChange={() => handleTogglePlugin(plugin.id)} />
  <div className="toggle-track"><div className="toggle-thumb" /></div>
  </label>
  </div>

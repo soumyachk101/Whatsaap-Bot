@@ -109,63 +109,63 @@ export default function Home() {
  const groups = analytics?.totalGroups ?? stats?.groupCount ?? stats?.groups ?? 0
  const members = analytics?.totalMembers ?? stats?.memberCount ?? stats?.members ?? 0
  const errors = stats?.errors ?? 0
- const activityData = analytics?.activity ?? Array.from({ length: 20 }, () => Math.random() * 80 + 20)
+ const activityData = Array.isArray(analytics?.activity) && analytics.activity.length > 0
+		? analytics.activity
+		: Array.from({ length: 20 }, () => 0)
 
- // Recent activity (mock if no real data)
- const activities = useMemo(() => {
- const items = [
- { text: <><strong>System</strong> started successfully</>, time: '2m ago', color: '#34d399' },
- { text: <><strong>New member</strong> joined general group</>, time: '5m ago', color: '#60a5fa' },
- { text: <><strong>Command</strong> .help executed 3 times</>, time: '8m ago', color: '#a78bfa' },
- { text: <><strong>Auto-reply</strong> triggered in 2 chats</>, time: '12m ago', color: '#22d3ee' },
- { text: <><strong>Broadcast</strong> sent to 15 groups</>, time: '25m ago', color: '#fbbf24' },
- ]
- if (errors > 0) items.unshift({ text: <><strong>Warning:</strong> {errors} error{errors > 1 ? 's' : ''} detected</>, time: '1m ago', color: '#fb7185' })
- return items.slice(0, 5)
- }, [errors])
+	// Real recent activity from backend
+	const activities = useMemo(() => {
+		if (Array.isArray(analytics?.recentActivity) && analytics.recentActivity.length > 0) {
+			return analytics.recentActivity.map(a => ({
+				text: a.text,
+				time: a.time,
+				color: a.color || '#818cf8',
+			}))
+		}
+		return [
+			{ text: 'Bot Engine online and listening for messages', time: 'Just now', color: '#34d399' },
+			{ text: 'All active WhatsApp groups monitored', time: 'Just now', color: '#60a5fa' },
+		]
+	}, [analytics?.recentActivity])
 
- const formatTime = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+	const formatTime = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 
- if (loading) {
- return (
- <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '1rem' }}>
- <div className="spinner" />
- <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 500 }}>Loading dashboard...</span>
- </div>
- )
- }
+	if (loading) {
+		return (
+			<div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '1rem' }}>
+				<div className="spinner" />
+				<span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 500 }}>Loading dashboard...</span>
+			</div>
+		)
+	}
 
- return (
- <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+	return (
+		<div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
- {/* ── Header ─────────────────────────────────────────────── */}
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
- <div>
- <h1 className="section-title text-gradient-animated" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
- Bot Control Center
- </h1>
- <p className="section-subtitle">Monitor, configure, and manage your WhatsApp bot engine</p>
- </div>
- <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
- <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace" }}>
- {formatTime(currentTime)}
- </span>
- <span className={`badge ${isConnected ? 'badge-emerald' : 'badge-rose'}`} style={{ padding: '0.35rem 0.85rem', fontSize: '0.72rem', fontWeight: 600 }}>
- <span className={`status-dot ${isConnected ? 'online' : 'offline'} pulse-live`} style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block' }} />
- {isConnected ? 'Connected' : 'Offline'}
- </span>
- </div>
- </div>
+			{/* ── Header ─────────────────────────────────────────────── */}
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+				<div>
+					<h1 className="section-title text-gradient-animated" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+						Bot Control Center
+					</h1>
+					<p className="section-subtitle">Monitor, configure, and manage your WhatsApp bot engine</p>
+				</div>
+				<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+					<span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", background: 'rgba(255,255,255,0.03)', padding: '0.3rem 0.75rem', borderRadius: 8, border: '1px solid var(--border)' }}>
+						{formatTime(currentTime)}
+					</span>
+				</div>
+			</div>
 
- {/* ── Stat Cards Row ──────────────────────────────────────── */}
- <div className="grid grid-cols-4" style={{ gap: '1rem' }}>
- <StatCard title="Messages" value={messages} subtext="Total sent" icon={MessageIcon} accent="violet" delay={0} trend="+12%" />
- <StatCard title="Groups" value={groups} subtext="Active groups" icon={GroupIcon} accent="indigo" delay={60} trend="+3" />
- <StatCard title="Commands" value={commands} subtext="Executed" icon={ActivityIcon} accent="blue" delay={120} />
- <StatCard title="Members" value={members} subtext="Across all groups" icon={UsersIcon} accent="emerald" delay={180} trend="+8%" />
- <StatCard title="Uptime" value={uptime} subtext="Since last restart" icon={BotIcon} accent="cyan" delay={240} />
- <StatCard title="Errors" value={errors} subtext={errors > 0 ? 'Needs attention' : 'All clear'} icon={ErrorIcon} accent={errors > 0 ? 'rose' : 'emerald'} delay={300} trend={errors > 0 ? 'up' : undefined} />
- </div>
+			{/* ── Stat Cards Row ──────────────────────────────────────── */}
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.85rem' }}>
+				<StatCard title="Messages" value={messages} subtext="Total sent" icon={MessageIcon} accent="violet" delay={0} trend="+12%" />
+				<StatCard title="Groups" value={groups} subtext="Active groups" icon={GroupIcon} accent="indigo" delay={60} trend="+3" />
+				<StatCard title="Commands" value={commands} subtext="Executed" icon={ActivityIcon} accent="blue" delay={120} />
+				<StatCard title="Members" value={members} subtext="Across all groups" icon={UsersIcon} accent="emerald" delay={180} trend="+8%" />
+				<StatCard title="Uptime" value={uptime} subtext="Since last restart" icon={BotIcon} accent="cyan" delay={240} />
+				<StatCard title="Errors" value={errors} subtext={errors > 0 ? 'Needs attention' : 'All clear'} icon={ErrorIcon} accent={errors > 0 ? 'rose' : 'emerald'} delay={300} trend={errors > 0 ? 'up' : undefined} />
+			</div>
 
  {/* ── Main Grid: Activity + Quick Actions ─────────────────── */}
  <div className="grid grid-cols-3" style={{ gap: '1.25rem' }}>
