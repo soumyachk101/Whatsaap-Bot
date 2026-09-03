@@ -354,7 +354,7 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 /**
  * Download media via Cobalt API with fallback to yt-dlp & SnapSave
  */
-export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false, signal = null) => {
+export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false, signal = null, onProgress = null) => {
 	if (!validateUrl(url)) {
 		throw new CobaltDownloadError("invalid_url", "Invalid URL. Only http/https links are supported.");
 	}
@@ -562,6 +562,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 				}
 				const fileStream = fs.createWriteStream(tempFile);
 				let lastProgress = Date.now();
+							onProgress?.();
 				let downloadedBytes = 0;
 				let contentLength = null;
 
@@ -580,12 +581,14 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 							downloadedBytes = progress.loaded;
 							if (progress.total) contentLength = progress.total;
 							lastProgress = Date.now();
+							onProgress?.();
 						},
 					});
 
 					downloadReq.data.on("data", (chunk) => {
 						downloadedBytes += chunk.length;
 						lastProgress = Date.now();
+							onProgress?.();
 					});
 
 					// Stall detection: abort if no progress for 30s

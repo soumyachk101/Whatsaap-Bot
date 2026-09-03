@@ -7,9 +7,19 @@ class DownloadQueue {
 		this.maxConcurrent = maxConcurrent;
 		this.active = 0;
 		this.queue = [];
-		this.heartbeatInterval = 5000; // check every 5s
-		this.stallThreshold = 300000; // 5 minutes total timeout
-		this.idleThreshold = 60000; // 60s of no heartbeat = stalled
+		this.stallThreshold = 300000; // 5 minutes without heartbeat = stalled
+		this.heartbeatCheckInterval = 5000; // check every 5s
+	}
+
+	/**
+	 * Signal that a queued download is still making progress.
+	 * Prevents stall-timeout for active downloads.
+	 */
+	heartbeat(userId) {
+		const entry = this.queue.find((e) => e.userId === userId);
+		if (entry) {
+			entry.lastHeartbeat = Date.now();
+		}
 	}
 
 	async acquire(userId) {
@@ -19,10 +29,10 @@ class DownloadQueue {
 		}
 
 		const position = this.queue.length + 1;
-		this.queue.push({ userId, resolve: null, reject: null, lastHeartbeat: Date.now() });
+		const entry = { userId, resolve: null, reject: null, lastHeartbeat: Date.now() };
+		this.queue.push(entry);
 
 		return new Promise((resolve, reject) => {
-			const entry = this.queue[this.queue.length - 1];
 			entry.resolve = () => {
 				this.queue = this.queue.filter((e) => e !== entry);
 				this.active++;
@@ -33,27 +43,26 @@ class DownloadQueue {
 				reject(new Error("queue_timeout"));
 			};
 
-			// Progress heartbeat: only fire timeout if the download is truly stalled
+			// Stall detection: only fire timeout if no heartbeat received within threshold
 			const stallCheck = setInterval(() => {
 				if (!this.queue.includes(entry)) {
 					clearInterval(stallCheck);
 					return;
 				}
-				entry.lastHeartbeat = Date.now();
 				const elapsed = Date.now() - entry.lastHeartbeat;
 				if (elapsed > this.stallThreshold) {
 					clearInterval(stallCheck);
 					entry.reject();
 				}
-			}, this.heartbeatInterval);
+			}, this.heartbeatCheckInterval);
 
-			// Hard cap at stallThreshold in case heartbeat interval drifts
+			// Absolute safety net: 2x stall threshold
 			setTimeout(() => {
 				clearInterval(stallCheck);
 				if (this.queue.includes(entry)) {
 					entry.reject();
 				}
-			}, this.stallThreshold);
+			}, this.stallThreshold * 2);
 		});
 	}
 

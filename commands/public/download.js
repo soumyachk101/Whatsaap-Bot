@@ -125,7 +125,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await downloadQueue.acquire(from);
 		acquired = true;
 
-		downloadedPaths = await downloadViaCobalt(targetUrl, null, false);
+		downloadedPaths = await downloadViaCobalt(targetUrl, null, false, null, () => downloadQueue.heartbeat(from));
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Could not download media from link.");
 		}

@@ -18,4 +18,5 @@ Scan result: clean with one integration note. No blocking conflicts.
 ## Task Progress
 - Task 1: complete (commits 2132e5d..0081e99) — under review
 - Task 2: complete (commits 2132e5d..4af53e1) — under review
-- Task 3: dispatched (plugin/skill system) — waiting for completion
+- Task 3: complete (commits 2132e5d..f48a84d) — under review
+- Security fix: owner-only guard added to #plugin and #skill commands (c7a3fa0)
