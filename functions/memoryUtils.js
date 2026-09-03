@@ -19,6 +19,8 @@ class MemoryManager {
 		this.maxTempFiles = 100; // Limit temp files tracked
 		this.maxActiveStreams = 50; // Limit active streams tracked
 		this.maxTempFileAge = 15 * 60 * 1000; // Only GC files older than 15 minutes
+		this.downloadStatus = new Map();
+		this.orphanThreshold = 3 * 60 * 1000;
 
 		// Auto cleanup every 3 minutes (increased frequency)
 		this.cleanupInterval = setInterval(() => {
@@ -29,6 +31,28 @@ class MemoryManager {
 		this.memoryCheckInterval = setInterval(() => {
 			this.checkMemoryUsage();
 		}, 30000);
+
+		// Cleanup orphan temp files older than 1 hour on startup
+		setTimeout(() => {
+			const tempDir = path.join(__dirname, "..", "temp");
+			if (!fs.existsSync(tempDir)) return;
+			try {
+				const files = fs.readdirSync(tempDir);
+				const now = Date.now();
+				let cleaned = 0;
+				for (const file of files) {
+					const filePath = path.join(tempDir, file);
+					try {
+						const stats = fs.statSync(filePath);
+						if (now - stats.mtimeMs > 3600000) {
+							fs.unlinkSync(filePath);
+							cleaned++;
+						}
+					} catch (err) { /* skip individual errors */ }
+				}
+				if (cleaned > 0) console.log(`[MemoryManager] Cleaned ${cleaned} orphan temp files on startup`);
+			} catch (err) { /* skip */ }
+		}, 5000);
 	}
 
 	/**
@@ -85,15 +109,25 @@ class MemoryManager {
 	 */
 	safeUnlink(filePath) {
 		try {
-			if (fs.existsSync(filePath)) {
-				fs.unlinkSync(filePath);
-				this.tempFiles.delete(filePath);
-				return true;
-			}
+			fs.promises.unlink(filePath).catch(err => {
+				if (err.code !== "ENOENT") {
+					console.warn(`[safeUnlink] Failed to delete ${filePath}:`, err.message);
+				}
+			});
+			this.tempFiles.delete(filePath);
+			this.downloadStatus.delete(filePath);
+			return true;
 		} catch (error) {
-			console.warn(`Failed to delete file ${filePath}:`, error.message);
+			console.warn(`[safeUnlink] Failed to delete ${filePath}:`, error.message);
+			return false;
 		}
-		return false;
+	}
+
+	markFileReady(filePath) {
+		this.downloadStatus.set(filePath, "ready");
+	}
+	markFileSent(filePath) {
+		this.downloadStatus.set(filePath, "sent");
 	}
 
 	/**
@@ -190,39 +224,53 @@ class MemoryManager {
 	 * Perform garbage collection and cleanup
 	 */
 	performGarbageCollection(force = false) {
-		// Clean up temp files — only stale ones, never files still in use by an
-		// in-flight download/send (deleting fresh files broke song/mp3/mp4 sends)
-		let cleanedFiles = 0;
 		const now = Date.now();
+		let cleanedFiles = 0;
+
 		for (const [filePath, registeredAt] of this.tempFiles) {
-			if (!force && now - registeredAt < this.maxTempFileAge) continue;
+			const downloadState = this.downloadStatus.get(filePath);
+			const age = now - registeredAt;
+
+			// Skip files actively being downloaded or just sent
+			if (!force && downloadState === "downloading" && age < this.orphanThreshold) {
+				continue;
+			}
+
+			// Skip recently sent/ready files
+			if (!force && downloadState === "sent" && age < this.maxTempFileAge) {
+				continue;
+			}
+
+			// Skip ready files within max age
+			if (!force && downloadState !== "downloading" && age < this.maxTempFileAge) {
+				continue;
+			}
+
 			if (this.safeUnlink(filePath)) {
 				cleanedFiles++;
 			} else {
-				this.tempFiles.delete(filePath); // already gone, stop tracking
+				this.tempFiles.delete(filePath);
 			}
 		}
 
-		// Close inactive streams
 		let closedStreams = 0;
-		for (const stream of this.activeStreams) {
+		for (const stream of [...this.activeStreams]) {
 			if (stream.destroyed || stream.readableEnded || stream.writableEnded) {
 				try {
 					if (stream.destroy) stream.destroy();
 					this.activeStreams.delete(stream);
 					closedStreams++;
 				} catch (error) {
-					console.warn("Error closing stream:", error.message);
+					console.warn("[GC] Error closing stream:", error.message);
 				}
 			}
 		}
 
-		// Force garbage collection if available
-		if (global.gc) {
-			global.gc();
-		}
+		if (global.gc) global.gc();
 
-		console.log(`Cleanup completed: ${cleanedFiles} files, ${closedStreams} streams`);
+		if (cleanedFiles > 0 || closedStreams > 0) {
+			console.log(`[MemoryManager] GC: ${cleanedFiles} files, ${closedStreams} streams cleaned`);
+		}
 	}
 
 	/**
@@ -230,16 +278,17 @@ class MemoryManager {
 	 * @param {string} ext
 	 */
 	generateTempFileName(ext) {
-		const filename = `temp_${Date.now()}_${Math.floor(Math.random() * 10000)}${ext}`;
+		const uniqueId = crypto.randomUUID().split("-")[0];
+		const filename = `temp_${Date.now()}_${uniqueId}${ext}`;
 		const tempDir = path.join(__dirname, "..", "temp");
 
-		// Ensure temp directory exists
 		if (!fs.existsSync(tempDir)) {
 			fs.mkdirSync(tempDir, { recursive: true });
 		}
 
 		const filePath = path.join(tempDir, filename);
 		this.registerTempFile(filePath);
+		this.downloadStatus.set(filePath, "registered");
 		return filePath;
 	}
 
