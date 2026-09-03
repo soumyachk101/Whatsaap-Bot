@@ -18,8 +18,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	try {
-		await sendMessageWTyping(from, { text: `🔍 *Searching YouTube for:* \`${searchQuery}\`...` }, { quoted: msg });
-
 		const r = await yts(searchQuery);
 
 		let videos = [];

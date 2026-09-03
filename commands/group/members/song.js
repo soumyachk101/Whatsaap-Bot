@@ -43,9 +43,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let queueResult;
 	try {
 		queueResult = await downloadQueue.acquire(from);
-		if (queueResult.queued) {
-			await sendMessageWTyping(from, { text: `⏳ You're #${queueResult.position} in queue. Please wait...` }, { quoted: msg });
-		}
 	} catch (qErr) {
 		return sendMessageWTyping(from, { text: "❌ Server busy. Try again later." }, { quoted: msg });
 	}
@@ -68,7 +65,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let fileDown = null;
 
 	try {
-		await sendMessageWTyping(from, { text: "⏳ Searching and downloading song... Please wait." }, { quoted: msg });
 		let URL = "";
 		let title = "Audio Track";
 		let durationText = "";
@@ -82,7 +78,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			}
 		} else {
 			try {
-				await sendMessageWTyping(from, { text: `🔍 *Searching for:* \`${songQuery}\`...` }, { quoted: msg });
 				const videoInfo = await findSongURL(songQuery);
 				URL = videoInfo.url;
 				title = videoInfo.title || songQuery;
@@ -96,8 +91,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				return sendMessageWTyping(from, { text: `❌ No songs found for: *${songQuery}*` }, { quoted: msg });
 			}
 		}
-
-		await sendMessageWTyping(from, { text: `⏳ Downloading audio...` }, { quoted: msg });
 
 		const downloadedPaths = await downloadViaCobalt(URL, null, true);
 

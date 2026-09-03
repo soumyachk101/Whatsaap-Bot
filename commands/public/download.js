@@ -79,9 +79,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let queueResult;
 	try {
 		queueResult = await downloadQueue.acquire(from);
-		if (queueResult.queued) {
-			await sendMessageWTyping(from, { text: `⏳ You're #${queueResult.position} in queue. Please wait...` }, { quoted: msg });
-		}
 	} catch (qErr) {
 		return sendMessageWTyping(from, { text: "❌ Server busy. Try again later." }, { quoted: msg });
 	}
@@ -110,7 +107,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let targetUrl = extractUrl(inputQuery);
 
 	if (!targetUrl) {
-		await sendMessageWTyping(from, { text: `🔍 *Searching for:* \`${inputQuery}\`...` }, { quoted: msg });
 		const videoMeta = await findVideoURL(inputQuery);
 		if (!videoMeta || !videoMeta.url) {
 			return sendMessageWTyping(from, { text: `❌ *No video found for:* \`${inputQuery}\`` }, { quoted: msg });
@@ -129,12 +125,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	} catch {
 		return sendMessageWTyping(from, { text: "❌ Invalid URL. Please send a valid https:// link." }, { quoted: msg });
 	}
-
-	const processingMsg = await sendMessageWTyping(
-		from,
-		{ text: `⏳ Downloading from \`${new URL(targetUrl).hostname}\`... Please wait.` },
-		{ quoted: msg }
-	);
 
 	let downloadedPaths = [];
 	try {
@@ -168,8 +158,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		if (validFiles.length === 0) {
 			throw new Error("All downloaded files were too large or empty.");
 		}
-
-		await sendMessageWTyping(from, { text: `✅ Download complete! Sending ${validFiles.length} file(s)...` }, { quoted: msg });
 
 		for (const filePath of validFiles) {
 			if (!fs.existsSync(filePath)) continue;

@@ -31,9 +31,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let queueResult;
 	try {
 		queueResult = await downloadQueue.acquire(from);
-		if (queueResult.queued) {
-			await sendMessageWTyping(from, { text: `⏳ You're #${queueResult.position} in queue. Please wait...` }, { quoted: msg });
-		}
 	} catch (qErr) {
 		return sendMessageWTyping(from, { text: "❌ Server busy. Try again later." }, { quoted: msg });
 	}
@@ -41,8 +38,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let downloadPath = null;
 
 	try {
-		await sendMessageWTyping(from, { text: "⏳ Downloading audio... Please wait." }, { quoted: msg });
-
 		const downloadedPaths = await downloadViaCobalt(url, null, true);
 
 		if (!downloadedPaths || downloadedPaths.length === 0) {
