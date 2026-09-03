@@ -3,19 +3,40 @@ import yts from "yt-search";
 import memoryManager from "../../../functions/memoryUtils.js";
 import { downloadViaCobalt, CobaltDownloadError } from "../../../functions/cobaltHelper.js";
 
+const USER_COOLDOWN = 10000;
+const userLastDownload = new Map();
+function checkUserCooldown(jid) {
+	const last = userLastDownload.get(jid);
+	if (last && Date.now() - last < USER_COOLDOWN) return false;
+	userLastDownload.set(jid, Date.now());
+	if (userLastDownload.size > 1000) {
+		const now = Date.now();
+		for (const [k, v] of userLastDownload) if (now - v > 60000) userLastDownload.delete(k);
+	}
+	return true;
+}
+
 const findSongURL = async (name) => {
 	try {
 		const r = await yts(`${name}`);
 		if (r && Array.isArray(r.videos) && r.videos.length > 0) {
-			return r.videos[0];
+			const videoInfo = r.videos[0];
+			if (!videoInfo || !videoInfo.url) {
+				throw new Error("No video URL found in search results");
+			}
+			return videoInfo;
 		}
 		if (r && r.type === "video") {
-			return r;
+			const videoInfo = r;
+			if (!videoInfo || !videoInfo.url) {
+				throw new Error("No video URL found in search results");
+			}
+			return videoInfo;
 		}
 		throw new Error("No results found");
 	} catch (error) {
 		console.error("Search error:", error);
-		throw new Error("Failed to search for song");
+		throw new Error(error.message || "Failed to search for song");
 	}
 };
 
@@ -30,6 +51,10 @@ const isValidHttpUrl = (url) => {
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { evv, prefix, sendMessageWTyping } = msgInfoObj;
+
+	if (!checkUserCooldown(from)) {
+		return sendMessageWTyping(from, { text: "⏳ Please wait 10 seconds before another download." }, { quoted: msg });
+	}
 
 	let songQuery = evv ? evv.trim() : "";
 	if (!songQuery && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
@@ -49,6 +74,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let fileDown = null;
 
 	try {
+		await sendMessageWTyping(from, { text: "⏳ Searching and downloading song... Please wait." }, { quoted: msg });
 		let URL = "";
 		let title = "Audio Track";
 		let durationText = "";
@@ -110,11 +136,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		console.error("Song download error:", err);
 		const userMsg = err instanceof CobaltDownloadError
 			? `❌ Download failed (${err.code}): ${err.message}`
-			: `❌ Failed to download song: ${err.message}`;
+			: "❌ Failed to download song. Try again with a different link or name.";
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
-		if (fileDown && fs.existsSync(fileDown)) {
-			setTimeout(() => memoryManager.safeUnlink(fileDown), 2000);
+		if (fileDown) {
+			await new Promise(resolve => setTimeout(resolve, 3000));
+			if (fs.existsSync(fileDown)) memoryManager.safeUnlink(fileDown);
 		}
 	}
 };

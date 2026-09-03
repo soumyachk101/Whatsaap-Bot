@@ -97,103 +97,96 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	let targetUrl = extractUrl(inputQuery);
-	let videoMeta = null;
 
-	if (!targetUrl || !isValidHttpUrl(targetUrl)) {
-		// Not a direct URL -> Search YouTube
+	if (!targetUrl) {
 		await sendMessageWTyping(from, { text: `🔍 *Searching for:* \`${inputQuery}\`...` }, { quoted: msg });
-		videoMeta = await findVideoURL(inputQuery);
+		const videoMeta = await findVideoURL(inputQuery);
 		if (!videoMeta || !videoMeta.url) {
 			return sendMessageWTyping(from, { text: `❌ *No video found for:* \`${inputQuery}\`` }, { quoted: msg });
 		}
 		targetUrl = videoMeta.url;
 	}
 
-	if (!isValidHttpUrl(targetUrl)) {
-		return sendMessageWTyping(from, { text: `❌ *Invalid URL.* Please provide a valid link.` }, { quoted: msg });
+	try {
+		const u = new URL(targetUrl);
+		if (!["http:", "https:"].includes(u.protocol)) throw new Error("Invalid protocol");
+	} catch {
+		return sendMessageWTyping(from, { text: "❌ Invalid URL. Please send a valid https:// link." }, { quoted: msg });
 	}
+
+	const processingMsg = await sendMessageWTyping(
+		from,
+		{ text: `⏳ Downloading from \`${new URL(targetUrl).hostname}\`... Please wait.` },
+		{ quoted: msg }
+	);
 
 	let downloadedPaths = [];
 	try {
-		await sendMessageWTyping(from, { text: `⏳ Downloading... Best source se fetch kar raha hoon.` }, { quoted: msg });
-
 		downloadedPaths = await downloadViaCobalt(targetUrl, null, false);
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Could not download media from link.");
 		}
 
-		await sendMessageWTyping(from, { text: `✅ Downloaded! Sending ${downloadedPaths.length} file(s)...` }, { quoted: msg });
-
+		const validFiles = [];
 		for (const filePath of downloadedPaths) {
 			if (!fs.existsSync(filePath)) continue;
-
 			const stats = await fs.promises.stat(filePath);
 			const fileSizeMB = stats.size / (1024 * 1024);
 
 			if (fileSizeMB > 95) {
 				await sendMessageWTyping(
 					from,
-					{ text: `⚠️ File is too large to send on WhatsApp (${fileSizeMB.toFixed(2)}MB). Limit is 95MB.` },
+					{ text: `⚠️ File too large for WhatsApp (${fileSizeMB.toFixed(1)}MB). Limit: 95MB. Skipping.` },
 					{ quoted: msg }
 				);
+				memoryManager.safeUnlink(filePath);
 				continue;
 			}
+			if (stats.size === 0) {
+				memoryManager.safeUnlink(filePath);
+				continue;
+			}
+			validFiles.push(filePath);
+		}
 
+		if (validFiles.length === 0) {
+			throw new Error("All downloaded files were too large or empty.");
+		}
+
+		await sendMessageWTyping(from, { text: `✅ Download complete! Sending ${validFiles.length} file(s)...` }, { quoted: msg });
+
+		for (const filePath of validFiles) {
+			if (!fs.existsSync(filePath)) continue;
+			memoryManager.markFileReady(filePath);
 			const mediaInfo = await detectMediaFileType(filePath);
 
-			if (mediaInfo.detected === "video") {
-				await sock.sendMessage(
-					from,
-					{
-						video: { url: filePath },
-						mimetype: "video/mp4",
-					},
-					{ quoted: msg }
-				);
-			} else if (mediaInfo.detected === "image") {
-				await sock.sendMessage(
-					from,
-					{
-						image: { url: filePath },
-					},
-					{ quoted: msg }
-				);
-			} else if (mediaInfo.detected === "audio") {
-				await sock.sendMessage(
-					from,
-					{
-						audio: { url: filePath },
-						mimetype: "audio/mp4",
-						ptt: false,
-					},
-					{ quoted: msg }
-				);
-			} else {
-				await sock.sendMessage(
-					from,
-					{
-						document: { url: filePath },
-						fileName: `media.${mediaInfo.ext}`,
-						mimetype: mediaInfo.mime,
-					},
-					{ quoted: msg }
-				);
+			try {
+				if (mediaInfo.detected === "video") {
+					await sock.sendMessage(from, { video: { url: filePath }, mimetype: "video/mp4" }, { quoted: msg });
+				} else if (mediaInfo.detected === "image") {
+					await sock.sendMessage(from, { image: { url: filePath } }, { quoted: msg });
+				} else if (mediaInfo.detected === "audio") {
+					const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
+					await sock.sendMessage(from, { audio: { url: filePath }, mimetype: mime, ptt: false }, { quoted: msg });
+				} else {
+					await sock.sendMessage(from, { document: { url: filePath }, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
+				}
+				memoryManager.markFileSent(filePath);
+			} catch (sendErr) {
+				console.error("[Universal DL] Send error:", sendErr);
 			}
 			await new Promise((res) => setTimeout(res, 500));
 		}
 	} catch (err) {
-		console.error("[Universal DL] Download Error:", err);
-		const userMsg = err.code
-			? `❌ Download failed (${err.code}): ${err.message}`
-			: `❌ *Download failed!* Couldn't fetch media right now.`;
-		return sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
+		console.error("[Universal DL] Error:", err);
+		const userMsg = err.message?.includes("cancelled") ? "❌ Download was cancelled."
+			: err.message?.includes("Invalid URL") ? "❌ Invalid URL provided."
+			: `❌ Download failed. Please try again later.`;
+		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
-		if (downloadedPaths && downloadedPaths.length > 0) {
-			// Delay cleanup slightly to let Baileys finish reading
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-			downloadedPaths.forEach((p) => {
-				if (fs.existsSync(p)) memoryManager.safeUnlink(p);
-			});
+		await new Promise((res) => setTimeout(res, 2000));
+		for (const p of downloadedPaths) {
+			if (fs.existsSync(p)) memoryManager.safeUnlink(p);
 		}
 	}
 };

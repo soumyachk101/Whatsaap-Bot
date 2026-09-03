@@ -2,6 +2,19 @@ import fs from "fs";
 import { downloadViaCobalt, CobaltDownloadError } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
 
+const USER_COOLDOWN = 10000;
+const userLastDownload = new Map();
+function checkUserCooldown(jid) {
+	const last = userLastDownload.get(jid);
+	if (last && Date.now() - last < USER_COOLDOWN) return false;
+	userLastDownload.set(jid, Date.now());
+	if (userLastDownload.size > 1000) {
+		const now = Date.now();
+		for (const [k, v] of userLastDownload) if (now - v > 60000) userLastDownload.delete(k);
+	}
+	return true;
+}
+
 const isValidHttpUrl = (url) => {
 	try {
 		const u = new URL(url);
@@ -27,10 +40,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(from, { text: `❌ *Invalid URL.* Please provide a valid HTTP/HTTPS link.` }, { quoted: msg });
 	}
 
+	if (!checkUserCooldown(from)) {
+		return sendMessageWTyping(from, { text: "⏳ Please wait 10 seconds before another download." }, { quoted: msg });
+	}
+
 	let downloadPath = null;
 
 	try {
-		await sendMessageWTyping(from, { text: `⏳ Downloading audio...` }, { quoted: msg });
+		await sendMessageWTyping(from, { text: "⏳ Downloading audio... Please wait." }, { quoted: msg });
 
 		const downloadedPaths = await downloadViaCobalt(url, null, true);
 
@@ -61,12 +78,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		console.error("MP3 Download Error:", error);
 		const userMsg = error instanceof CobaltDownloadError
 			? `❌ Download failed (${error.code}): ${error.message}`
-			: "Couldn't fetch that link right now, try again in a bit";
+			: "❌ Couldn't fetch audio from that link. Try again in a bit.";
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
-		if (downloadPath && fs.existsSync(downloadPath)) {
-			// Small delay so Baileys can finish reading
-			setTimeout(() => memoryManager.safeUnlink(downloadPath), 2000);
+		if (downloadPath) {
+			await new Promise(resolve => setTimeout(resolve, 3000));
+			if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
 		}
 	}
 };

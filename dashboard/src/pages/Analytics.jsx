@@ -50,23 +50,26 @@ function MetricTile({ title, value, subtext, accent, icon, delay = 0 }) {
 }
 
 const GlassTooltip = ({ active, payload, label }) => {
- if (active && payload?.length) {
- return (
- <div className="chart-tooltip">
- <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.3rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
- <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8', display: 'inline-block' }} />
- {label}
- </div>
- {payload.map((entry, i) => (
- <div key={i} style={{ fontSize: '0.85rem', fontWeight: 700, color: entry.color || '#818cf8', marginTop: '0.15rem', display: 'flex', justifyContent: 'space-between', gap: '1.2rem' }}>
- <span>{entry.name || 'Value'}:</span>
- <span>{entry.value?.toLocaleString()}</span>
- </div>
- ))}
- </div>
- )
- }
- return null
+	if (active && payload?.length) {
+		const title = label || payload[0]?.payload?.subject || payload[0]?.payload?.name || ''
+		return (
+			<div className="chart-tooltip">
+				{title && (
+					<div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.3rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+						<span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8', display: 'inline-block' }} />
+						{title}
+					</div>
+				)}
+				{payload.map((entry, i) => (
+					<div key={i} style={{ fontSize: '0.85rem', fontWeight: 700, color: entry.color || '#818cf8', marginTop: '0.15rem', display: 'flex', justifyContent: 'space-between', gap: '1.2rem' }}>
+						<span>{entry.name || 'Messages'}:</span>
+						<span>{entry.value?.toLocaleString()}</span>
+					</div>
+				))}
+			</div>
+		)
+	}
+	return null
 }
 
 export default function Analytics() {
@@ -107,27 +110,45 @@ export default function Analytics() {
 
  if (!data) return null
 
- const { topGroups, topMembers, typeBreakdown, totalMessages, activeGroups, blockedMembers, totalGroups, totalMembers } = data
+ const {
+  topGroups = [],
+  topMembers = [],
+  typeBreakdown = {},
+  totalMessages = 0,
+  activeGroups = 0,
+  blockedMembers = 0,
+  totalGroups = 0,
+  totalMembers = 0
+ } = data || {}
+
  const mediaTotal = (typeBreakdown.image || 0) + (typeBreakdown.video || 0) + (typeBreakdown.sticker || 0) + (typeBreakdown.pdf || 0)
  const textTotal = typeBreakdown.text || 0
  const textPct = totalMessages ? Math.round((textTotal / totalMessages) * 100) : 0
  const mediaPct = totalMessages ? Math.round((mediaTotal / totalMessages) * 100) : 0
 
  const typeData = [
- { name: 'Text Messages', value: typeBreakdown.text, color: '#818cf8', gradId: 'violetG', icon: <Icons.IconMessage size={18} /> },
- { name: 'Images', value: typeBreakdown.image, color: '#a78bfa', gradId: 'purpleG', icon: <Icons.IconActivity size={18} /> },
- { name: 'Videos', value: typeBreakdown.video, color: '#60a5fa', gradId: 'blueG', icon: <Icons.IconBroadcast size={18} /> },
- { name: 'Stickers', value: typeBreakdown.sticker, color: '#34d399', gradId: 'emeraldG', icon: <Icons.IconZap size={18} /> },
- { name: 'Documents', value: typeBreakdown.pdf, color: '#22d3ee', gradId: 'cyanG', icon: <Icons.IconServer size={18} /> },
+ { name: 'Text Messages', value: typeBreakdown.text || 0, color: '#818cf8', gradId: 'violetG', icon: <Icons.IconMessage size={18} /> },
+ { name: 'Images', value: typeBreakdown.image || 0, color: '#a78bfa', gradId: 'purpleG', icon: <Icons.IconActivity size={18} /> },
+ { name: 'Videos', value: typeBreakdown.video || 0, color: '#60a5fa', gradId: 'blueG', icon: <Icons.IconBroadcast size={18} /> },
+ { name: 'Stickers', value: typeBreakdown.sticker || 0, color: '#34d399', gradId: 'emeraldG', icon: <Icons.IconZap size={18} /> },
+ { name: 'Documents', value: typeBreakdown.pdf || 0, color: '#22d3ee', gradId: 'cyanG', icon: <Icons.IconServer size={18} /> },
  ].filter(d => d.value > 0)
 
- const radarData = [
- { subject: 'Text', A: typeBreakdown.text || 0 },
- { subject: 'Images', A: typeBreakdown.image || 0 },
- { subject: 'Videos', A: typeBreakdown.video || 0 },
- { subject: 'Stickers', A: typeBreakdown.sticker || 0 },
- { subject: 'PDFs', A: typeBreakdown.pdf || 0 },
- ]
+ const radarData = useMemo(() => {
+  if (topGroups && topGroups.length >= 3) {
+   return topGroups.slice(0, 6).map((g) => ({
+    subject: (g.name || 'Group').length > 14 ? (g.name || 'Group').slice(0, 12) + '…' : (g.name || 'Group'),
+    messages: g.messages || 0,
+   }))
+  }
+  return [
+   { subject: 'Text', messages: typeBreakdown?.text || 0 },
+   { subject: 'Images', messages: typeBreakdown?.image || 0 },
+   { subject: 'Videos', messages: typeBreakdown?.video || 0 },
+   { subject: 'Stickers', messages: typeBreakdown?.sticker || 0 },
+   { subject: 'PDFs', messages: typeBreakdown?.pdf || 0 },
+  ]
+ }, [topGroups, typeBreakdown])
 
  const SvgDefs = () => (
  <svg style={{ height: 0, width: 0, position: 'absolute' }}>
@@ -149,15 +170,39 @@ export default function Analytics() {
  </div>
  )
 
- const SegmentedControl = ({ value, onChange, options }) => (
- <div style={{ display: 'flex', background: 'rgba(255,255,255,0.025)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '2px' }}>
- {options.map(opt => (
- <button key={opt.key} onClick={() => onChange(opt.key)} className={`btn ${value === opt.key ? 'btn-secondary' : 'btn-ghost'}`} style={{ height: '1.85rem', padding: '0 0.6rem', fontSize: '0.7rem', borderRadius: '4px' }}>
- {opt.label}
- </button>
- ))}
- </div>
- )
+ const SegmentedControl = ({ value, onChange, options, setChartType, setMediaView, setMemberView }) => {
+  const handle = onChange || setChartType || setMediaView || setMemberView || (() => {})
+  return (
+   <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '2px' }}>
+    {options.map(opt => {
+     const active = value === opt.key
+     return (
+      <button
+       key={opt.key}
+       type="button"
+       onClick={() => handle(opt.key)}
+       className={`btn ${active ? 'btn-secondary' : 'btn-ghost'}`}
+       style={{
+        height: '1.85rem',
+        padding: '0 0.75rem',
+        fontSize: '0.72rem',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontWeight: active ? 700 : 500,
+        background: active ? 'rgba(129,140,248,0.2)' : 'transparent',
+        borderColor: active ? 'rgba(129,140,248,0.4)' : 'transparent',
+        color: active ? '#c7d2fe' : 'var(--text-dim)',
+        boxShadow: active ? '0 0 10px rgba(129,140,248,0.2)' : 'none',
+        transition: 'all 0.2s ease',
+       }}
+      >
+       {opt.label}
+      </button>
+     )
+    })}
+   </div>
+  )
+ }
 
  return (
  <div className="page-enter">
@@ -169,7 +214,7 @@ export default function Analytics() {
  <p className="section-subtitle" style={{ fontSize: '0.8rem' }}>Traffic spectrum, media breakdown, and member engagement insights</p>
  </div>
  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
- <SegmentedControl value={chartType} setChartType={setChartType} options={[
+ <SegmentedControl value={chartType} onChange={setChartType} options={[
  { key: 'area', label: 'Area' }, { key: 'bar', label: 'Bar' }, { key: 'radar', label: 'Radar' }
  ]} />
  <button className="btn btn-ghost" onClick={fetch} style={{ height: '2rem', padding: '0 0.6rem', border: '1px solid var(--border)', fontSize: '0.78rem' }}>
@@ -239,12 +284,12 @@ export default function Analytics() {
  </Bar>
  </BarChart>
  ) : (
- <RadarChart cx="50%" cy="50%" outerRadius={120} data={radarData}>
- <PolarGrid stroke="rgba(255,255,255,0.08)" />
- <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 12, fontWeight: 600 }} />
- <PolarRadiusAxis stroke="rgba(255,255,255,0.06)" />
- <Radar name="Messages" dataKey="A" stroke="#818cf8" fill="#818cf8" fillOpacity={0.3} />
- <Tooltip content={<GlassTooltip />} />
+ <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+  <PolarGrid stroke="rgba(255,255,255,0.08)" />
+  <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 11, fontWeight: 600 }} />
+  <PolarRadiusAxis stroke="rgba(255,255,255,0.06)" tick={{ fill: '#71717a', fontSize: 10 }} />
+  <Radar name="Messages" dataKey="messages" stroke="#818cf8" fill="#818cf8" fillOpacity={0.35} />
+  <Tooltip content={<GlassTooltip />} />
  </RadarChart>
  )}
  </ResponsiveContainer>
@@ -258,7 +303,7 @@ export default function Analytics() {
  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Media Categories</h3>
  <p className="section-subtitle">Visual breakdown of content formats</p>
  </div>
- <SegmentedControl value={mediaView} setMediaView={setMediaView} options={[
+ <SegmentedControl value={mediaView} onChange={setMediaView} options={[
  { key: 'donut', label: 'Donut' }, { key: 'bar', label: 'Bar' }
  ]} />
  </div>
@@ -336,7 +381,7 @@ export default function Analytics() {
  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Member Engagement</h3>
  <p className="section-subtitle">Activity breakdown per member</p>
  </div>
- <SegmentedControl value={memberView} setMemberView={setMemberView} options={[
+ <SegmentedControl value={memberView} onChange={setMemberView} options={[
  { key: 'chart', label: 'Volume' }, { key: 'stacked', label: 'Stacked' }, { key: 'cards', label: 'Rank Cards' }
  ]} />
  </div>

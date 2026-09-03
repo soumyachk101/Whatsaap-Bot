@@ -34,7 +34,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	)}`;
 
 	try {
-		const response = await axios.get(urlToSearch);
+		const response = await axios.get(urlToSearch, { timeout: 10000 });
 
 		// Extract search results
 		const searchResults = response.data?.items?.slice(0, maxResults); // Limiting results to 'maxResults'
@@ -51,8 +51,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			sendMessageWTyping(from, { text: "```No Results Found```" }, { quoted: msg });
 		}
 	} catch (error) {
-		console.error("Error during Google search:", error);
-		sendMessageWTyping(from, { text: "```Error occurred while searching```" }, { quoted: msg });
+		console.error("[Google Search] Error:", error.message);
+		sendMessageWTyping(from, { text: "❌ Search failed. Try again later." }, { quoted: msg });
 	}
 };
 

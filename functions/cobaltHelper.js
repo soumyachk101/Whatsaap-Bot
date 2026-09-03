@@ -1,15 +1,39 @@
 import axios from "axios";
+import crypto from "crypto";
 import fs from "fs";
 import stream from "stream";
 import { promisify } from "util";
 import path from "path";
-import { execFile } from "child_process";
+import { exec, execFile } from "child_process";
 import snapsave from "snapsave-downloader";
 import memoryManager from "./memoryUtils.js";
-
-import ffmpegPath from "ffmpeg-static";
+import instanceHealth from "./instanceHealth.js";
 
 const pipeline = promisify(stream.pipeline);
+
+/**
+ * Validate that a URL is a safe HTTP/HTTPS link
+ */
+const validateUrl = (url) => {
+	try {
+		const parsed = new URL(url);
+		return ["http:", "https:"].includes(parsed.protocol);
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * Validate that a URL is a safe HTTP/HTTPS link (existing, with hostname check)
+ */
+const isValidHttpUrl = (url) => {
+	try {
+		const u = new URL(url);
+		return ["http:", "https:"].includes(u.protocol) && u.hostname.length > 2;
+	} catch {
+		return false;
+	}
+};
 
 /**
  * Custom Error for Cobalt API issues
@@ -21,18 +45,6 @@ export class CobaltDownloadError extends Error {
 		this.code = code;
 	}
 }
-
-/**
- * Validate that a URL is a safe HTTP/HTTPS link
- */
-const isValidHttpUrl = (url) => {
-	try {
-		const u = new URL(url);
-		return ["http:", "https:"].includes(u.protocol) && u.hostname.length > 2;
-	} catch {
-		return false;
-	}
-};
 
 /**
  * Validate downloaded file by magic bytes / file signature
@@ -96,7 +108,7 @@ const validateDownloadedFile = (filePath, expectedType = "auto") => {
 export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false, signal = null) => {
 	const ext = audioOnly ? ".mp3" : ".mp4";
 	const tempFile = outputDir
-		? path.join(outputDir, `ytdlp_${Date.now()}_${Math.floor(Math.random() * 100000)}${ext}`)
+		? path.join(outputDir, `ytdlp_${Date.now()}_${crypto.randomUUID().split("-")[0]}${ext}`)
 		: memoryManager.generateTempFileName(ext);
 
 	const args = audioOnly
@@ -131,11 +143,42 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 	const pathList = [ffmpegDir, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", env.PATH].filter(Boolean);
 	env.PATH = pathList.join(path.delimiter);
 
+	const ytdlpArgs = audioOnly
+		? [
+				"--no-playlist",
+				"--extractor-args",
+				"youtube:player_client=android",
+				"--max-filesize",
+				"70M",
+				"-f",
+				"140/ba/b",
+				"--extract-audio",
+				"--audio-format",
+				"mp3",
+				"-o",
+				tempFile,
+				url,
+			]
+		: [
+				"--no-playlist",
+				"--extractor-args",
+				"youtube:player_client=android",
+				"--max-filesize",
+				"90M",
+				"-f",
+				"18/best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best",
+				"--merge-output-format",
+				"mp4",
+				"-o",
+				tempFile,
+				url,
+			];
+
 	let lastErr;
 	for (let attempt = 1; attempt <= 2; attempt++) {
 		try {
 			await new Promise((resolve, reject) => {
-				const child = execFile("yt-dlp", args, { timeout: 90000, env, signal }, (err) => {
+				const child = execFile("yt-dlp", ytdlpArgs, { timeout: 90000, env, signal }, (err) => {
 					if (err) return reject(err);
 					resolve();
 				});
@@ -188,7 +231,7 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 		const ext = isVideo ? ".mp4" : ".jpg";
 
 		const tempFile = outputDir
-			? path.join(outputDir, `snapsave_${Date.now()}_${Math.floor(Math.random() * 100000)}${ext}`)
+			? path.join(outputDir, `snapsave_${Date.now()}_${crypto.randomUUID().split("-")[0]}${ext}`)
 			: memoryManager.generateTempFileName(ext);
 
 		const fileStream = fs.createWriteStream(tempFile);
@@ -313,12 +356,17 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 
 	// Parallel race: all instances at once, first success wins
 	try {
-		const raceResults = await Promise.allSettled(instances.map((apiUrl) => tryInstance(apiUrl)));
+		const raceResults = await Promise.allSettled(
+			instances.map((apiUrl) => tryInstance(apiUrl))
+		);
 
 		let bestResult = null;
+		const startTime = Date.now();
 		for (const result of raceResults) {
 			if (result.status === "fulfilled" && result.value.success) {
 				bestResult = result.value;
+				const latency = Date.now() - startTime;
+				instanceHealth.recordSuccess(result.value.url || instances[0], latency);
 				break;
 			}
 			if (result.status === "rejected" && result.reason?.isFinal) {
@@ -326,6 +374,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 			}
 			if (result.status === "fulfilled" && !bestResult) {
 				bestResult = result.value;
+				instanceHealth.recordFailure(bestResult.url || instances[0], Date.now() - startTime);
 			}
 		}
 
@@ -387,7 +436,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 				const ext = audioOnly ? ".mp3" : itemType === "photo" ? ".jpg" : ".mp4";
 
 				const tempFile = outputDir
-					? path.join(outputDir, `cobalt_${Date.now()}_${Math.floor(Math.random() * 100000)}${ext}`)
+					? path.join(outputDir, `cobalt_${Date.now()}_${crypto.randomUUID().split("-")[0]}${ext}`)
 					: memoryManager.generateTempFileName(ext);
 
 				const fileStream = fs.createWriteStream(tempFile);
