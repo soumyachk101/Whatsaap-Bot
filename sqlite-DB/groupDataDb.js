@@ -8,7 +8,7 @@ const CACHE_TTL = 300_000;
 
 const defaultGroupDoc = (groupJid, groupMetadata = {}) => ({
 	_id: groupJid,
-	isBotOn: false,
+	isBotOn: true,
 	isImgOn: false,
 	isChatBotOn: false,
 	is91Only: false,

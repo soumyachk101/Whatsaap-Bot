@@ -207,62 +207,61 @@ export default function Analytics() {
  return (
  <div className="page-enter">
  <SvgDefs />
+	<div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+		<div>
+			<h2 className="section-title text-gradient" style={{ fontSize: '1.65rem' }}>Visual Analytics</h2>
+			<p className="section-subtitle" style={{ fontSize: '0.8rem' }}>Traffic spectrum, media breakdown, and member engagement insights</p>
+		</div>
+		<div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+			<button className="btn btn-secondary" onClick={fetch} style={{ height: '2.1rem', padding: '0 0.85rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+				<Icons.IconRefresh size={14} /> Sync Live Data
+			</button>
+		</div>
+	</div>
 
- <div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
- <div>
- <h2 className="section-title text-gradient" style={{ fontSize: '1.65rem' }}>Visual Analytics</h2>
- <p className="section-subtitle" style={{ fontSize: '0.8rem' }}>Traffic spectrum, media breakdown, and member engagement insights</p>
- </div>
- <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
- <SegmentedControl value={chartType} onChange={setChartType} options={[
- { key: 'area', label: 'Area' }, { key: 'bar', label: 'Bar' }, { key: 'radar', label: 'Radar' }
- ]} />
- <button className="btn btn-ghost" onClick={fetch} style={{ height: '2rem', padding: '0 0.6rem', border: '1px solid var(--border)', fontSize: '0.78rem' }}>
- <Icons.IconRefresh size={14} /> Sync
- </button>
- </div>
- </div>
+	{/* ── Metric Tiles ──────────────────────────────────────────── */}
+	<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+		<MetricTile title="Total Volume" value={totalMessages.toLocaleString()} subtext="Messages processed" accent="violet" icon={<Icons.IconMessage size={17} />} delay={0} />
+		<MetricTile title="Active Groups" value={`${activeGroups} / ${totalGroups}`} subtext={`${totalGroups ? Math.round(activeGroups / totalGroups * 100) : 0}% active`} accent="emerald" icon={<Icons.IconGlobe size={17} />} delay={60} />
+		<MetricTile title="Members" value={totalMembers.toLocaleString()} subtext="Unique users" accent="blue" icon={<Icons.IconUsers size={17} />} delay={120} />
+		<MetricTile title="Restricted" value={blockedMembers.toLocaleString()} subtext="Blocked users" accent="rose" icon={<Icons.IconAlert size={17} />} delay={180} />
+	</div>
 
- {/* ── Metric Tiles ──────────────────────────────────────────── */}
- <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
- <MetricTile title="Total Volume" value={totalMessages.toLocaleString()} subtext="Messages processed" accent="violet" icon={<Icons.IconMessage size={17} />} delay={0} />
- <MetricTile title="Active Groups" value={`${activeGroups} / ${totalGroups}`} subtext={`${totalGroups ? Math.round(activeGroups / totalGroups * 100) : 0}% active`} accent="emerald" icon={<Icons.IconGlobe size={17} />} delay={60} />
- <MetricTile title="Members" value={totalMembers.toLocaleString()} subtext="Unique users" accent="blue" icon={<Icons.IconUsers size={17} />} delay={120} />
- <MetricTile title="Restricted" value={blockedMembers.toLocaleString()} subtext="Blocked users" accent="rose" icon={<Icons.IconAlert size={17} />} delay={180} />
- </div>
+	{/* ── Content Density Bar ──────────────────────────────────── */}
+	<SectionCard gradient="linear-gradient(90deg, transparent, rgba(99,102,241,0.2), rgba(139,92,246,0.15), transparent)">
+		<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+			<div>
+				<h4 style={{ fontSize: '0.9rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Message Content Density</h4>
+				<p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Text vs Media balance</p>
+			</div>
+			<div style={{ display: 'flex', gap: '1.1rem', fontSize: '0.78rem' }}>
+				<span style={{ color: '#818cf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+					<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 6px rgba(129,140,248,0.4)' }} />
+					Text: {textPct}%
+				</span>
+				<span style={{ color: '#a78bfa', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+					<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#a78bfa', boxShadow: '0 0 6px rgba(167,139,250,0.4)' }} />
+					Media: {mediaPct}%
+				</span>
+			</div>
+		</div>
+		<div style={{ height: '0.65rem', width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 9999, overflow: 'hidden', display: 'flex', border: '1px solid rgba(255,255,255,0.04)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+			<div style={{ width: `${textPct}%`, background: 'linear-gradient(90deg, #818cf8, #6366f1)', transition: 'width 0.8s ease', boxShadow: textPct > 0 ? '0 0 8px rgba(99,102,241,0.3)' : 'none' }} />
+			<div style={{ width: `${mediaPct}%`, background: 'linear-gradient(90deg, #a78bfa, #8b5cf6)', transition: 'width 0.8s ease', boxShadow: mediaPct > 0 ? '0 0 8px rgba(139,92,246,0.3)' : 'none' }} />
+		</div>
+	</SectionCard>
 
- {/* ── Content Density Bar ──────────────────────────────────── */}
- <SectionCard gradient="linear-gradient(90deg, transparent, rgba(99,102,241,0.2), rgba(139,92,246,0.15), transparent)">
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
- <div>
- <h4 style={{ fontSize: '0.9rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Message Content Density</h4>
- <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Text vs Media balance</p>
- </div>
- <div style={{ display: 'flex', gap: '1.1rem', fontSize: '0.78rem' }}>
- <span style={{ color: '#818cf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
- <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 6px rgba(129,140,248,0.4)' }} />
- Text: {textPct}%
- </span>
- <span style={{ color: '#a78bfa', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
- <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#a78bfa', boxShadow: '0 0 6px rgba(167,139,250,0.4)' }} />
- Media: {mediaPct}%
- </span>
- </div>
- </div>
- <div style={{ height: '0.65rem', width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 9999, overflow: 'hidden', display: 'flex', border: '1px solid rgba(255,255,255,0.04)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
- <div style={{ width: `${textPct}%`, background: 'linear-gradient(90deg, #818cf8, #6366f1)', transition: 'width 0.8s ease', boxShadow: textPct > 0 ? '0 0 8px rgba(99,102,241,0.3)' : 'none' }} />
- <div style={{ width: `${mediaPct}%`, background: 'linear-gradient(90deg, #a78bfa, #8b5cf6)', transition: 'width 0.8s ease', boxShadow: mediaPct > 0 ? '0 0 8px rgba(139,92,246,0.3)' : 'none' }} />
- </div>
- </SectionCard>
-
- {/* ── Group Traffic ─────────────────────────────────────────── */}
- <SectionCard gradient="linear-gradient(90deg, transparent, rgba(99,102,241,0.25), rgba(59,130,246,0.15), transparent)" style={{ marginTop: '1.5rem' }}>
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
- <div>
- <h3 style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Group Traffic Spectrum</h3>
- <p className="section-subtitle">Volume distribution across top groups</p>
- </div>
- </div>
+	{/* ── Group Traffic ─────────────────────────────────────────── */}
+	<SectionCard gradient="linear-gradient(90deg, transparent, rgba(99,102,241,0.25), rgba(59,130,246,0.15), transparent)" style={{ marginTop: '1.5rem' }}>
+		<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+			<div>
+				<h3 style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Group Traffic Spectrum</h3>
+				<p className="section-subtitle">Volume distribution across top groups</p>
+			</div>
+			<SegmentedControl value={chartType} onChange={setChartType} options={[
+				{ key: 'area', label: 'Area' }, { key: 'bar', label: 'Bar' }, { key: 'radar', label: 'Radar' }
+			]} />
+		</div>
  <div style={{ height: 300 }}>
  <ResponsiveContainer width="100%" height="100%">
  {chartType === 'area' ? (

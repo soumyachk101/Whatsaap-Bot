@@ -6,19 +6,6 @@ import { downloadViaCobalt, CobaltDownloadError } from "../../functions/cobaltHe
 import { isValidVideoFile } from "../../functions/fileUtils.js";
 import downloadQueue from "../../functions/downloadQueue.js";
 
-const USER_COOLDOWN = 10000;
-const userLastDownload = new Map();
-function checkUserCooldown(jid) {
-	const last = userLastDownload.get(jid);
-	if (last && Date.now() - last < USER_COOLDOWN) return false;
-	userLastDownload.set(jid, Date.now());
-	if (userLastDownload.size > 1000) {
-		const now = Date.now();
-		for (const [k, v] of userLastDownload) if (now - v > 60000) userLastDownload.delete(k);
-	}
-	return true;
-}
-
 const extractUrl = (text) => {
 	if (!text) return null;
 	const match = text.match(/https?:\/\/[^\s]+/i);
@@ -89,10 +76,6 @@ const detectMediaFileType = async (filePath) => {
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, prefix, evv } = msgInfoObj;
 
-	if (!checkUserCooldown(from)) {
-		return sendMessageWTyping(from, { text: "⏳ Please wait 10 seconds before another download." }, { quoted: msg });
-	}
-
 	let queueResult;
 	try {
 		queueResult = await downloadQueue.acquire(from);
@@ -100,9 +83,6 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			await sendMessageWTyping(from, { text: `⏳ You're #${queueResult.position} in queue. Please wait...` }, { quoted: msg });
 		}
 	} catch (qErr) {
-		if (qErr.message.startsWith("cooldown:")) {
-			return sendMessageWTyping(from, { text: `⏳ Please wait ${qErr.message.split(":")[1]}s before another download.` }, { quoted: msg });
-		}
 		return sendMessageWTyping(from, { text: "❌ Server busy. Try again later." }, { quoted: msg });
 	}
 

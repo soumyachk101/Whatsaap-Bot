@@ -1,26 +1,17 @@
 /**
- * Download queue with concurrency limit and per-user cooldown
+ * Fast Download queue with high concurrency and NO rate limiting / cooldowns
  */
 
 class DownloadQueue {
-	constructor(maxConcurrent = 3) {
+	constructor(maxConcurrent = 10) {
 		this.maxConcurrent = maxConcurrent;
 		this.active = 0;
 		this.queue = [];
-		this.userCooldowns = new Map();
-		this.cooldownMs = 10000; // 10 seconds between downloads per user
 	}
 
 	async acquire(userId) {
-		const lastDownload = this.userCooldowns.get(userId);
-		if (lastDownload && Date.now() - lastDownload < this.cooldownMs) {
-			const waitMs = this.cooldownMs - (Date.now() - lastDownload);
-			throw new Error(`cooldown:${Math.ceil(waitMs / 1000)}`);
-		}
-
 		if (this.active < this.maxConcurrent) {
 			this.active++;
-			this.userCooldowns.set(userId, Date.now());
 			return { queued: false, position: 0 };
 		}
 
@@ -32,7 +23,6 @@ class DownloadQueue {
 			entry.resolve = () => {
 				this.queue = this.queue.filter((e) => e !== entry);
 				this.active++;
-				this.userCooldowns.set(userId, Date.now());
 				resolve({ queued: true, position });
 			};
 			entry.reject = () => {
@@ -68,4 +58,4 @@ class DownloadQueue {
 	}
 }
 
-export default new DownloadQueue(3);
+export default new DownloadQueue(10);

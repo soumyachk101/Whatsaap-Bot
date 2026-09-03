@@ -8,21 +8,11 @@ class RateLimiter {
 		this.defaultCooldown = 10000; // 10 seconds
 	}
 
-	check(userId, cooldownMs = this.defaultCooldown) {
-		const lastUsed = this.cooldowns.get(userId);
-		if (lastUsed && Date.now() - lastUsed < cooldownMs) {
-			return { allowed: false, waitMs: cooldownMs - (Date.now() - lastUsed) };
-		}
-		this.cooldowns.set(userId, Date.now());
+	check(userId, cooldownMs = 0) {
 		return { allowed: true };
 	}
 
-	cleanup() {
-		const now = Date.now();
-		for (const [userId, ts] of this.cooldowns) {
-			if (now - ts > 60000) this.cooldowns.delete(userId);
-		}
-	}
+	cleanup() {}
 }
 
 // Cleanup old entries every minute

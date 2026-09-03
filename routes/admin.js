@@ -139,18 +139,18 @@ router.get("/api/admin/stats", requireAdmin, async (req, res) => {
 router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 	try {
 		const [groups, members] = await Promise.all([
-			group.find({}, { projection: { grpName: 1, totalMsgCount: 1, isBotOn: 1 } }).toArray(),
+			group.find({}).toArray(),
 			member.find({}).toArray(),
 		]);
 
 		// Top 10 groups by messages
 		const topGroups = [...groups]
-			.sort((a, b) => (b.totalMsgCount || 0) - (a.totalMsgCount || 0))
+			.sort((a, b) => (b.totalMsgCount || b.totalmsg || 0) - (a.totalMsgCount || a.totalmsg || 0))
 			.slice(0, 10)
 			.map(g => ({
 				name: (g.grpName || g._id).slice(0, 22),
-				messages: g.totalMsgCount || 0,
-				active: g.isBotOn,
+				messages: g.totalMsgCount || g.totalmsg || 0,
+				active: g.isBotOn !== false,
 			}));
 
 		// Top 10 members by total messages
@@ -181,8 +181,15 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 			{ text: 0, image: 0, video: 0, sticker: 0, pdf: 0 }
 		);
 
-		const totalMessages = Object.values(typeBreakdown).reduce((a, b) => a + b, 0);
-		const activeGroups = groups.filter(g => g.isBotOn).length;
+		const memberTotalMessages = Object.values(typeBreakdown).reduce((a, b) => a + b, 0);
+		const groupTotalMessages = groups.reduce((acc, g) => acc + (g.totalMsgCount || g.totalmsg || 0), 0);
+		const totalMessages = Math.max(groupTotalMessages, memberTotalMessages);
+
+		if (memberTotalMessages === 0 && totalMessages > 0) {
+			typeBreakdown.text = totalMessages;
+		}
+
+		const activeGroups = groups.filter(g => g.isBotOn !== false).length;
 		const blockedMembers = members.filter(m => m.isBlock).length;
 
 		res.json({

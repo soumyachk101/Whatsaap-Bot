@@ -347,7 +347,7 @@ const getCommand = async (sock, msg, cache) => {
 			"group", "dev", "bot", "help", "menu", "alive", "a", "ping", "status"
 		];
 		
-		if (isGroup && (!groupData || groupData.isBotOn === false)) {
+		if (isGroup && (groupData && groupData.isBotOn === false)) {
 			if (!allowedWhenOff.includes(command) && !isOwner) {
 				return;
 			}
