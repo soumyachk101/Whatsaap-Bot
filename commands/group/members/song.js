@@ -40,13 +40,6 @@ const isValidHttpUrl = (url) => {
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { evv, prefix, sendMessageWTyping } = msgInfoObj;
 
-	let queueResult;
-	try {
-		queueResult = await downloadQueue.acquire(from);
-	} catch (qErr) {
-		return sendMessageWTyping(from, { text: "❌ Server busy. Try again later." }, { quoted: msg });
-	}
-
 	let songQuery = evv ? evv.trim() : "";
 	if (!songQuery && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
 		const quoted = msg.message.extendedTextMessage.contextInfo.quotedMessage;
@@ -62,9 +55,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	}
 
 	console.log("Song request query:", songQuery);
+
+	let acquired = false;
 	let fileDown = null;
 
 	try {
+		await downloadQueue.acquire(from);
+		acquired = true;
+
 		let URL = "";
 		let title = "Audio Track";
 		let durationText = "";
@@ -150,7 +148,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			await new Promise(resolve => setTimeout(resolve, 8000));
 			if (fs.existsSync(fileDown)) memoryManager.safeUnlink(fileDown);
 		}
-		downloadQueue.release();
+		if (acquired) {
+			downloadQueue.release();
+		}
 	}
 };
 

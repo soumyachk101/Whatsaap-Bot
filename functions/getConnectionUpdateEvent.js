@@ -20,7 +20,6 @@ const getConnectionUpdate = async (sock, startSock, events) => {
 
 		// Clean up this socket instance
 		try {
-			sock.ev?.removeAllListeners();
 			if (sock.ws) {
 				sock.ws.close();
 				sock.ws.terminate?.();

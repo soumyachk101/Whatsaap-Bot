@@ -2,17 +2,20 @@ import { downloadMediaMessage } from "baileys";
 
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
 import { writeFile } from "fs/promises";
+import memoryManager from "../../../functions/memoryUtils.js";
 
-const getRandom = (ext) => {
-	return `${Math.floor(Math.random() * 10000)}${ext}`;
-};
+const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStatic || "ffmpeg";
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+const getRandom = (ext) => memoryManager.generateTempFileName(ext);
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { type, content, sendMessageWTyping } = msgInfoObj;
 
-	if (msg.message.extendedTextMessage) {
-		msg["message"] = msg.message.extendedTextMessage.contextInfo.quotedMessage;
+	if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+		msg.message = msg.message.extendedTextMessage.contextInfo.quotedMessage;
 	}
 
 	const isMedia = type === "imageMessage" || type === "videoMessage";
@@ -44,14 +47,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 						{ quoted: msg }
 					)
 					.then(() => {
-						try {
-							fs.unlinkSync(media);
-							fs.unlinkSync(path);
-						} catch {}
+						memoryManager.safeUnlink(media);
+						memoryManager.safeUnlink(path);
 					});
 			})
 			.on("error", (err) => {
 				console.error("Error:", err);
+				memoryManager.safeUnlink(media);
+				memoryManager.safeUnlink(path);
 				sendMessageWTyping(from, { text: `Error while converting` }, { quoted: msg });
 			})
 			.save(path);

@@ -532,17 +532,15 @@ class Collection {
 		let modifiedCount = 0;
 		let deletedCount = 0;
 
-		sqliteDb.transaction(async () => {
-			for (const op of ops) {
-				if (op.updateOne) {
-					const res = await this.updateOne(op.updateOne.filter, op.updateOne.update, { upsert: op.updateOne.upsert });
-					if (res && res.matchedCount) matchedCount += res.matchedCount;
-				} else if (op.deleteOne) {
-					const res = await this.deleteMany(op.deleteOne.filter); // deletes one because id is unique
-					if (res && res.deletedCount) deletedCount += res.deletedCount;
-				}
+		for (const op of ops) {
+			if (op.updateOne) {
+				const res = await this.updateOne(op.updateOne.filter, op.updateOne.update, { upsert: op.updateOne.upsert });
+				if (res && res.matchedCount) matchedCount += res.matchedCount;
+			} else if (op.deleteOne) {
+				const res = await this.deleteMany(op.deleteOne.filter); // deletes one because id is unique
+				if (res && res.deletedCount) deletedCount += res.deletedCount;
 			}
-		})();
+		}
 
 		return { matchedCount, modifiedCount, deletedCount };
 	}

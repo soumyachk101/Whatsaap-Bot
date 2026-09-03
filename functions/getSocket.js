@@ -103,7 +103,7 @@ const socket = async () => {
 		keepAliveIntervalMs: 30000,
 
 		browser: ["Ubuntu", "Chrome", "20.0.04"],
-		emitOwnEvents: false, // IMPORTANT
+		emitOwnEvents: true,
 		retryRequestDelayMs: 150,
 		maxMsgRetryCount: 3,
 

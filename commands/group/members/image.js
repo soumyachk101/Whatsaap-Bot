@@ -1,17 +1,20 @@
 import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
 import fs from "fs";
 import { downloadMediaMessage } from "baileys";
 import { writeFile } from "fs/promises";
+import memoryManager from "../../../functions/memoryUtils.js";
 
-const getRandom = (ext) => {
-	return `${Math.floor(Math.random() * 10000)}${ext}`;
-};
+const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStatic || "ffmpeg";
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+const getRandom = (ext) => memoryManager.generateTempFileName(ext);
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { type, content, sendMessageWTyping } = msgInfoObj;
 
-	if (msg.message.extendedTextMessage) {
-		msg["message"] = msg.message.extendedTextMessage.contextInfo.quotedMessage;
+	if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+		msg.message = msg.message.extendedTextMessage.contextInfo.quotedMessage;
 	}
 
 	const isMedia = type === "imageMessage" || type === "videoMessage";
@@ -21,7 +24,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	if (isMedia || isTaggedSticker) {
 		if (msg.message?.videoMessage?.seconds > 11) {
-			return sendMessageWTyping(from, { text: "Send less then 11 seconds." }, { quoted: msg });
+			return sendMessageWTyping(from, { text: "Send less than 11 seconds." }, { quoted: msg });
 		}
 		const buffer = await downloadMediaMessage(msg, "buffer", {});
 		await writeFile(media, buffer);
@@ -33,31 +36,35 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	async function sendImage(media) {
 		const ran = getRandom(".png");
 		try {
-			const file = ffmpeg(`./${media}`).fromFormat("webp_pipe").save(ran);
+			const file = ffmpeg(media).save(ran);
 			file.on("error", (err) => {
 				console.log(err);
+				memoryManager.safeUnlink(media);
+				memoryManager.safeUnlink(ran);
 				sendMessageWTyping(
 					from,
-					{ text: "❌ There is some problem!\nOnly non-animated stickers can be convert to image!" },
+					{ text: "❌ There is some problem!\nOnly non-animated stickers can be converted to image!" },
 					{ quoted: msg }
 				);
 			}).on("end", async () => {
-				// Use sendMessageWTyping with file path for async/efficient sending
-				await sendMessageWTyping(
-					from,
-					{
-						image: ran,
-						caption: "Sent by DownloadWorld",
-						mimetype: "image/png",
-					},
-					{ quoted: msg }
-				);
 				try {
-					fs.unlinkSync(media);
-					fs.unlinkSync(ran);
-				} catch {}
+					await sendMessageWTyping(
+						from,
+						{
+							image: ran,
+							caption: "Sent by DownloadWorld",
+							mimetype: "image/png",
+						},
+						{ quoted: msg }
+					);
+				} finally {
+					memoryManager.safeUnlink(media);
+					memoryManager.safeUnlink(ran);
+				}
 			});
 		} catch (err) {
+			memoryManager.safeUnlink(media);
+			memoryManager.safeUnlink(ran);
 			sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });
 			console.log(err);
 		}

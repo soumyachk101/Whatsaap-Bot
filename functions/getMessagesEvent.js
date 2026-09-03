@@ -115,7 +115,8 @@ const getCommand = async (sock, msg, cache) => {
 			m?.viewOnceMessageV2?.message ||
 			m?.viewOnceMessageV2Extension?.message ||
 			m?.documentWithCaptionMessage?.message ||
-			m?.editedMessage?.message?.protocolMessage?.editedMessage
+			m?.editedMessage?.message?.protocolMessage?.editedMessage ||
+			m?.deviceSentMessage?.message
 		) {
 			m =
 				m?.ephemeralMessage?.message ||
@@ -123,7 +124,8 @@ const getCommand = async (sock, msg, cache) => {
 				m?.viewOnceMessageV2?.message ||
 				m?.viewOnceMessageV2Extension?.message ||
 				m?.documentWithCaptionMessage?.message ||
-				m?.editedMessage?.message?.protocolMessage?.editedMessage;
+				m?.editedMessage?.message?.protocolMessage?.editedMessage ||
+				m?.deviceSentMessage?.message;
 		}
 
 		// Skip protocol messages and reactions
@@ -214,7 +216,7 @@ const getCommand = async (sock, msg, cache) => {
 					groupMetadata = await Promise.race([
 						sock.groupMetadata(from),
 						new Promise((_, reject) =>
-							setTimeout(() => reject(new Error("Group metadata fetch timeout")), 1500)
+							setTimeout(() => reject(new Error("Group metadata fetch timeout")), 5000)
 						),
 					]);
 					if (groupMetadata) {
@@ -253,10 +255,19 @@ const getCommand = async (sock, msg, cache) => {
 
 		const botIdentityJids = [...new Set([...botNumber, botJid, botLid].filter(Boolean))];
 
+		const cleanDigits = (s) => String(s || "").replace(/\D/g, "").slice(-10);
+		const senderDigits = cleanDigits(senderPhone) || cleanDigits(senderPnJid) || cleanDigits(senderJid);
+
 		const isOwner =
 			msg.key.fromMe ||
-			myNumber.some((n) => n === senderJid || n === senderPnJid || (senderPhone && n.includes(senderPhone))) ||
-			botIdentityJids.some((b) => b === senderJid || b === senderPnJid || (senderPhone && b.includes(senderPhone)));
+			myNumber.some((n) => {
+				const nDigits = cleanDigits(n);
+				return n === senderJid || n === senderPnJid || (nDigits && senderDigits && nDigits === senderDigits);
+			}) ||
+			botIdentityJids.some((b) => {
+				const bDigits = cleanDigits(b);
+				return b === senderJid || b === senderPnJid || (bDigits && senderDigits && bDigits === senderDigits);
+			});
 
 		const updateId = senderPnJid || senderJid;
 		const updateName = msg.key.fromMe ? sock.user?.name : msg.pushName;
@@ -590,6 +601,11 @@ const getCommand = async (sock, msg, cache) => {
 	} catch (error) {
 		console.error("❌ Error processing message:", error.message);
 		console.error("📍 Error stack:", error.stack);
+		try {
+			if (from && msg && sock) {
+				await sock.sendMessage(from, { text: `❌ *Error processing command:*\n_${error.message}_` }, { quoted: msg });
+			}
+		} catch (_) {}
 	}
 };
 

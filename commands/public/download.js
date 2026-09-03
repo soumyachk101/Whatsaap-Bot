@@ -76,13 +76,6 @@ const detectMediaFileType = async (filePath) => {
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping, prefix, evv } = msgInfoObj;
 
-	let queueResult;
-	try {
-		queueResult = await downloadQueue.acquire(from);
-	} catch (qErr) {
-		return sendMessageWTyping(from, { text: "❌ Server busy. Try again later." }, { quoted: msg });
-	}
-
 	let inputQuery = evv ? evv.trim() : "";
 	if (!inputQuery && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
 		const quoted = msg.message.extendedTextMessage.contextInfo.quotedMessage;
@@ -126,8 +119,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(from, { text: "❌ Invalid URL. Please send a valid https:// link." }, { quoted: msg });
 	}
 
+	let acquired = false;
 	let downloadedPaths = [];
 	try {
+		await downloadQueue.acquire(from);
+		acquired = true;
+
 		downloadedPaths = await downloadViaCobalt(targetUrl, null, false);
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Could not download media from link.");
@@ -205,12 +202,16 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			: `❌ Download failed. Please try again later.`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
-		// Wait 8s to ensure Baileys finishes streaming file to WhatsApp servers before unlinking
-		await new Promise((res) => setTimeout(res, 8000));
-		for (const p of downloadedPaths) {
-			if (fs.existsSync(p)) memoryManager.safeUnlink(p);
+		if (downloadedPaths.length > 0) {
+			// Wait 8s to ensure Baileys finishes streaming file to WhatsApp servers before unlinking
+			await new Promise((res) => setTimeout(res, 8000));
+			for (const p of downloadedPaths) {
+				if (fs.existsSync(p)) memoryManager.safeUnlink(p);
+			}
 		}
-		downloadQueue.release();
+		if (acquired) {
+			downloadQueue.release();
+		}
 	}
 };
 

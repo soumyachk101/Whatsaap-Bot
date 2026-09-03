@@ -21,9 +21,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return sendMessageWTyping(from, { text: `❌ Invalid result. Check your expression.` }, { quoted: msg });
 
 		const formatted = Number.isInteger(result) ? result.toLocaleString() : result.toPrecision(10).replace(/\.?0+$/, "");
-		sendMessageWTyping(from, { text: `🧮 *Calculator*\n\n\`${expr}\`\n= *${formatted}*` }, { quoted: msg });
+		return await sendMessageWTyping(from, { text: `🧮 *Calculator*\n\n\`${expr}\`\n= *${formatted}*` }, { quoted: msg });
 	} catch {
-		sendMessageWTyping(from, { text: `❌ Invalid expression: \`${expr}\`` }, { quoted: msg });
+		return await sendMessageWTyping(from, { text: `❌ Invalid expression: \`${expr}\`` }, { quoted: msg });
 	}
 };
 

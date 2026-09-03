@@ -156,8 +156,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					}
 
 					const stickerBuffer = await WSF.setMetadata(packName, authorName, ran);
-					// Use sendMessageWTyping with file path for async/efficient sending
-					await sendMessageWTyping(from, { sticker: ran }, { quoted: msg });
+					await sendMessageWTyping(from, { sticker: Buffer.from(stickerBuffer) }, { quoted: msg });
 				} catch (wsError) {
 					console.error("Sticker creation error:", wsError);
 					// Fallback to file reading if buffer method fails

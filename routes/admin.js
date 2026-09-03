@@ -371,6 +371,7 @@ router.patch("/api/admin/maintenance-mode", requireAdmin, async (req, res) => {
 	if (typeof maintenanceMode !== "boolean") return res.status(400).json({ error: "maintenanceMode must be a boolean" });
 	try {
 		await bot.updateOne({ _id: "bot" }, { $set: { maintenanceMode } });
+		clearBotCache();
 		res.json({ ok: true, maintenanceMode });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -409,6 +410,7 @@ router.patch("/api/admin/commands/:cmd", requireAdmin, async (req, res) => {
 		} else {
 			await bot.updateOne({ _id: "bot" }, { $pullAll: { disabledGlobally: allKeys } });
 		}
+		clearBotCache();
 		res.json({ ok: true });
 	} catch (err) {
 		res.status(500).json({ error: err.message });

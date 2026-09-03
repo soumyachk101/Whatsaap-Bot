@@ -173,7 +173,7 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 		? [
 				"--no-playlist",
 				"--extractor-args",
-				"youtube:player_client=android",
+				"youtube:player_client=ios,android,web",
 				"--max-filesize",
 				"70M",
 				"-f",
@@ -188,7 +188,7 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 		: [
 				"--no-playlist",
 				"--extractor-args",
-				"youtube:player_client=android",
+				"youtube:player_client=ios,android,web",
 				"--max-filesize",
 				"90M",
 				"-f",
@@ -202,7 +202,20 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 
 	const env = { ...process.env };
 	const ffmpegDir = ffmpegPath ? path.dirname(ffmpegPath) : "";
-	const pathList = [ffmpegDir, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", env.PATH].filter(Boolean);
+	const userHome = process.env.HOME || "";
+	const pathList = [
+		ffmpegDir,
+		"/opt/homebrew/bin",
+		"/usr/local/bin",
+		"/usr/bin",
+		"/bin",
+		userHome ? `${userHome}/.local/bin` : null,
+		userHome ? `${userHome}/Library/Python/3.9/bin` : null,
+		userHome ? `${userHome}/Library/Python/3.10/bin` : null,
+		userHome ? `${userHome}/Library/Python/3.11/bin` : null,
+		userHome ? `${userHome}/Library/Python/3.12/bin` : null,
+		env.PATH,
+	].filter(Boolean);
 	env.PATH = pathList.join(path.delimiter);
 
 	let lastErr;
@@ -211,8 +224,8 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 			await new Promise((resolve, reject) => {
 				const opts = { timeout: 90000, env };
 				if (signal) opts.signal = signal;
-				const child = execFile("yt-dlp", ytdlpArgs, opts, (err) => {
-					if (err) return reject(err);
+				const child = execFile("yt-dlp", ytdlpArgs, opts, (err, stdout, stderr) => {
+					if (err) return reject(new Error(stderr ? stderr.trim() : err.message));
 					resolve();
 				});
 				if (signal) {
@@ -329,18 +342,15 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 	const baseApiUrl = process.env.COBALT_API_URL || "https://cobalt-engine1.onrender.com";
 	const apiKey = process.env.COBALT_API_KEY;
 
-	// Deduplicated instance list
+	// Deduplicated working instance list
 	const instanceSet = new Set([
 		baseApiUrl,
 		"https://cobaltapi.cjs.nz",
-		"https://api.cobalt.tools",
-		"https://cobalt.deno.dev",
 	]);
-	// Always add the primary if not already present
 	if (!instanceSet.has("https://cobalt-engine1.onrender.com")) {
 		instanceSet.add("https://cobalt-engine1.onrender.com");
 	}
-	const instances = [...instanceSet];
+	const instances = [...instanceSet].filter(Boolean);
 
 	// Try instances with retry + parallel racing
 	let lastError = null;
@@ -361,14 +371,14 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 			headers["Authorization"] = `Api-Key ${apiKey}`;
 		}
 
-		// Retry each instance up to 2 times
+		// Retry each instance up to 2 times with 10s timeout
 		for (let attempt = 1; attempt <= 2; attempt++) {
 			if (signal?.aborted) throw new Error("Download cancelled");
 
 			try {
 				const response = await axios.post(apiUrl, payload, {
 					headers,
-					timeout: 15000,
+					timeout: 10000,
 					signal: signal,
 					maxContentLength: 50 * 1024 * 1024,
 					maxBodyLength: 50 * 1024 * 1024,
@@ -566,8 +576,7 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 			}
 		}
 	} catch (err) {
-		if (err.code) throw err; // CobaltDownloadError
-		if (err.isFinal) throw new CobaltDownloadError(err.errorCode, err.message);
+		console.warn(`[Cobalt] All instances failed (${err.code || err.message}). Attempting fallbacks...`);
 		lastError = err;
 	}
 
