@@ -1,7 +1,7 @@
 import fs from "fs";
 import yts from "yt-search";
+import { downloadViaCobalt, CobaltDownloadError, isSafeUrl } from "../../../functions/cobaltHelper.js";
 import memoryManager from "../../../functions/memoryUtils.js";
-import { downloadViaCobalt, CobaltDownloadError } from "../../../functions/cobaltHelper.js";
 import downloadQueue from "../../../functions/downloadQueue.js";
 
 const findSongURL = async (name) => {

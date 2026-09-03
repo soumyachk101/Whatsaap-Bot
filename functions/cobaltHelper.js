@@ -587,5 +587,4 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 	throw new CobaltDownloadError(errorCode, `Failed to download: ${url}`);
 };
 
-export { isSafeUrl } from "./cobaltHelper.js";
-export { isSafeUrl } from "./cobaltHelper.js";
+export { isSafeUrl };

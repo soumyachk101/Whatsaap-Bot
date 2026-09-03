@@ -67,6 +67,10 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.get("/", (_req, res) => {
+	res.redirect("/admin/");
+});
+
+app.get("/qr", (_req, res) => {
 	res.render("index");
 });
 

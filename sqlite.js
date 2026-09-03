@@ -178,27 +178,7 @@ class Collection {
 		target[lastKey] = (Number(target[lastKey]) || 0) + value;
 	}
 
-	find(query = {}, options = {}) {
-		const mongoResult = this._mongoOpSync(() => {
-			const cursor = mongoDbInstance.collection(this.tableName).find(query, options);
-			return {
-				toArray: async () => await cursor.toArray(),
-				limit: (n) => ({
-					toArray: async () => await cursor.limit(n).toArray(),
-				}),
-				sort: (sortObj) => ({
-					toArray: async () => await cursor.sort(sortObj).toArray(),
-					skip: (s) => ({
-						limit: (l) => ({
-							toArray: async () => await cursor.sort(sortObj).skip(s).limit(l).toArray(),
-						}),
-					}),
-				}),
-			};
-		});
-		if (mongoResult) return mongoResult;
-
-		// SQLite Fallback
+	_sqliteFind(query = {}) {
 		let rows;
 		if (query._id && query._id.$in && Array.isArray(query._id.$in) && query._id.$in.length > 0) {
 			const placeholders = query._id.$in.map(() => "?").join(",");
@@ -219,7 +199,64 @@ class Collection {
 		if (Object.keys(query).length > 0) {
 			results = results.filter(item => this._matchItem(item, query));
 		}
+		return results;
+	}
 
+	find(query = {}, options = {}) {
+		const mongoResult = this._mongoOpSync(() => {
+			const cursor = mongoDbInstance.collection(this.tableName).find(query, options);
+			return {
+				toArray: async () => {
+					try {
+						return await cursor.toArray();
+					} catch (err) {
+						console.warn(`⚠️ [Mongo ${this.tableName}] cursor.toArray failed, falling back to SQLite:`, err.message);
+						return this._sqliteFind(query);
+					}
+				},
+				limit: (n) => ({
+					toArray: async () => {
+						try {
+							return await cursor.limit(n).toArray();
+						} catch (err) {
+							console.warn(`⚠️ [Mongo ${this.tableName}] cursor.limit.toArray failed, falling back to SQLite:`, err.message);
+							return this._sqliteFind(query).slice(0, n);
+						}
+					},
+				}),
+				sort: (sortObj) => ({
+					toArray: async () => {
+						try {
+							return await cursor.sort(sortObj).toArray();
+						} catch (err) {
+							console.warn(`⚠️ [Mongo ${this.tableName}] cursor.sort.toArray failed, falling back to SQLite:`, err.message);
+							const res = this._sqliteFind(query);
+							const field = Object.keys(sortObj)[0];
+							const dir = sortObj[field];
+							return res.sort((a, b) => ((a[field] ?? 0) > (b[field] ?? 0) ? 1 : -1) * dir);
+						}
+					},
+					skip: (s) => ({
+						limit: (l) => ({
+							toArray: async () => {
+								try {
+									return await cursor.sort(sortObj).skip(s).limit(l).toArray();
+								} catch (err) {
+									const res = this._sqliteFind(query);
+									const field = Object.keys(sortObj)[0];
+									const dir = sortObj[field];
+									return res.sort((a, b) => ((a[field] ?? 0) > (b[field] ?? 0) ? 1 : -1) * dir).slice(s, s + l);
+								}
+							},
+						}),
+					}),
+				}),
+			};
+		});
+		if (mongoResult) return mongoResult;
+
+		// SQLite Fallback
+		const results = this._sqliteFind(query);
 		return {
 			toArray: async () => results,
 			limit: (n) => {
@@ -239,9 +276,11 @@ class Collection {
 					skip: (s) => {
 						const skipped = results.slice(s);
 						return {
-							limit: (l) => ({ toArray: async () => skipped.slice(0, l) })
+							limit: (l) => ({
+								toArray: async () => skipped.slice(0, l),
+							}),
 						};
-					}
+					},
 				};
 			},
 		};

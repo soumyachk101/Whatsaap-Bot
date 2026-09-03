@@ -15,7 +15,14 @@ export function useWebSocket() {
           }
         })
         .catch(() => {
-          if (isMounted) setStatus('disconnected')
+          fetch('/api/status')
+            .then(r => r.json())
+            .then(res => {
+              if (isMounted) setStatus(res && res.connected ? 'connected' : 'disconnected')
+            })
+            .catch(() => {
+              if (isMounted) setStatus('disconnected')
+            })
         })
     }
 

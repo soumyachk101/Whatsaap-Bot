@@ -2,7 +2,7 @@ import fs from "fs";
 import yts from "yt-search";
 import { fileTypeFromFile } from "file-type";
 import memoryManager from "../../functions/memoryUtils.js";
-import { downloadViaCobalt, CobaltDownloadError } from "../../functions/cobaltHelper.js";
+import { downloadViaCobalt, CobaltDownloadError, isSafeUrl } from "../../functions/cobaltHelper.js";
 import { isValidVideoFile } from "../../functions/fileUtils.js";
 import downloadQueue from "../../functions/downloadQueue.js";
 

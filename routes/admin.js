@@ -17,8 +17,13 @@ export function requireAdmin(req, res, next) {
 
 // ── Public bot status (no auth — used by index.ejs to poll connection state) ──
 router.get("/api/status", (req, res) => {
+	const isConnected = !!(
+		req.app.locals.botConnected ||
+		req.app.locals.sock?.user ||
+		req.app.locals.sock?.authState?.creds?.me
+	);
 	res.json({
-		connected: !!req.app.locals.botConnected,
+		connected: isConnected,
 	});
 });
 
@@ -211,6 +216,11 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 router.get("/api/admin/bot/health", requireAdmin, (req, res) => {
 	try {
 		const mem = process.memoryUsage();
+		const isConnected = !!(
+			req.app.locals.botConnected ||
+			req.app.locals.sock?.user ||
+			req.app.locals.sock?.authState?.creds?.me
+		);
 		res.json({
 			uptime: Math.floor(process.uptime()),
 			memory: {
@@ -219,7 +229,7 @@ router.get("/api/admin/bot/health", requireAdmin, (req, res) => {
 				rss: mem.rss,
 				external: mem.external,
 			},
-			connected: !!(req.app.locals.sock && req.app.locals.sock.user),
+			connected: isConnected,
 			nodeVersion: process.version,
 			pid: process.pid,
 			platform: process.platform,
