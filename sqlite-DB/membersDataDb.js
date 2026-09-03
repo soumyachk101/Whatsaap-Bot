@@ -29,9 +29,9 @@ const createMembersData = async (jid, name) => {
 	}
 };
 
-// Fast In-Memory Cache for Member Data (30s TTL)
+// Fast In-Memory Cache for Member Data (5 min TTL)
 const memberCache = new Map();
-const CACHE_TTL = 30_000;
+const CACHE_TTL = 300_000;
 
 const getMemberData = async (jid) => {
 	const cached = memberCache.get(jid);

@@ -2,9 +2,9 @@ import db from "../sqlite.js";
 
 const group = db.db().collection("Groups");
 
-// Fast In-Memory Cache for Group Data (30s TTL)
+// Fast In-Memory Cache for Group Data (5 min TTL)
 const groupCache = new Map();
-const CACHE_TTL = 30_000;
+const CACHE_TTL = 300_000;
 
 const defaultGroupDoc = (groupJid, groupMetadata = {}) => ({
 	_id: groupJid,

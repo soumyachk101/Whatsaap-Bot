@@ -18,18 +18,16 @@ const events = async (sock, startSock, cache) => {
 					);
 
 					for (const msg of validMessages) {
-						try {
-							await getCommand(sock, msg, cache);
-						} catch (err) {
+						getCommand(sock, msg, cache).catch((err) => {
 							console.error("Error processing message:", err);
-							console.error("Message key:", msg.key);
-						}
+							console.error("Message key:", msg?.key);
+						});
 					}
 				}
 			}
 
 			if (event["connection.update"]) {
-				await getConnectionUpdate(startSock, event["connection.update"]);
+				await getConnectionUpdate(sock, startSock, event["connection.update"]);
 			}
 
 			if (event["group-participants.update"]) {

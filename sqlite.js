@@ -66,16 +66,21 @@ class Collection {
 	async _mongoOp(op) {
 		if (!mongoDbInstance) return null;
 		try {
-			return await op();
+			const res = await Promise.race([
+				op(),
+				new Promise((_, reject) => setTimeout(() => reject(new Error("Mongo operation timeout (2500ms)")), 2500))
+			]);
+			return res;
 		} catch (err) {
 			console.error(`[Mongo ${this.tableName} error]`, err.message);
 			if (
 				err.name === "MongoNetworkError" ||
 				err.name === "MongoServerSelectionError" ||
 				err.name === "MongoTopologyClosedError" ||
-				err.message?.includes("connection closed")
+				err.message?.includes("connection closed") ||
+				err.message?.includes("timeout")
 			) {
-				console.warn("⚠️ Mongo network error. Switching to SQLite fallback.");
+				console.warn("⚠️ Mongo slow/network error. Switching to SQLite fallback.");
 				mongoDbInstance = null;
 			}
 			return null;

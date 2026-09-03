@@ -3,7 +3,7 @@ import db from "../sqlite.js";
 const bot = db.db().collection("AuthTable");
 
 const botCache = new Map();
-const CACHE_TTL = 30_000;
+const CACHE_TTL = 300_000;
 
 const createBotData = async () => {
 	try {

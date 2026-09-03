@@ -24,6 +24,17 @@ const validateUrl = (url) => {
 };
 
 /**
+ * Custom Error for Cobalt API issues
+ */
+export class CobaltDownloadError extends Error {
+	constructor(code, message) {
+		super(message || code);
+		this.name = "CobaltDownloadError";
+		this.code = code;
+	}
+}
+
+/**
  * Validate that a URL is a safe HTTP/HTTPS link (existing, with hostname check)
  */
 const isValidHttpUrl = (url) => {
@@ -34,17 +45,6 @@ const isValidHttpUrl = (url) => {
 		return false;
 	}
 };
-
-/**
- * Custom Error for Cobalt API issues
- */
-export class CobaltDownloadError extends Error {
-	constructor(code, message) {
-		super(message || code);
-		this.name = "CobaltDownloadError";
-		this.code = code;
-	}
-}
 
 /**
  * Validate downloaded file by magic bytes / file signature
@@ -111,38 +111,6 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 		? path.join(outputDir, `ytdlp_${Date.now()}_${crypto.randomUUID().split("-")[0]}${ext}`)
 		: memoryManager.generateTempFileName(ext);
 
-	const args = audioOnly
-		? [
-				"--no-playlist",
-				"--max-filesize",
-				"70M",
-				"-f",
-				"140/ba/b",
-				"--extract-audio",
-				"--audio-format",
-				"mp3",
-				"-o",
-				tempFile,
-				url,
-		 ]
-		: [
-				"--no-playlist",
-				"--max-filesize",
-				"90M",
-				"-f",
-				"18/best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best",
-				"--merge-output-format",
-				"mp4",
-				"-o",
-				tempFile,
-				url,
-		 ];
-
-	const env = { ...process.env };
-	const ffmpegDir = ffmpegPath ? path.dirname(ffmpegPath) : "";
-	const pathList = [ffmpegDir, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", env.PATH].filter(Boolean);
-	env.PATH = pathList.join(path.delimiter);
-
 	const ytdlpArgs = audioOnly
 		? [
 				"--no-playlist",
@@ -173,6 +141,11 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 				tempFile,
 				url,
 			];
+
+	const env = { ...process.env };
+	const ffmpegDir = ffmpegPath ? path.dirname(ffmpegPath) : "";
+	const pathList = [ffmpegDir, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", env.PATH].filter(Boolean);
+	env.PATH = pathList.join(path.delimiter);
 
 	let lastErr;
 	for (let attempt = 1; attempt <= 2; attempt++) {
@@ -246,7 +219,12 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 
 			await pipeline(downloadReq.data, fileStream);
 		} catch (dlErr) {
-			if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
+			if (fileStream && !fileStream.destroyed) {
+				fileStream.destroy();
+			}
+			if (fs.existsSync(tempFile)) {
+				memoryManager.safeUnlink(tempFile);
+			}
 			console.warn(`[SnapSave] Failed to download item:`, dlErr.message);
 			continue;
 		}
@@ -270,6 +248,10 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
  * Download media via Cobalt API with fallback to yt-dlp & SnapSave
  */
 export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false, signal = null) => {
+	if (!validateUrl(url)) {
+		throw new CobaltDownloadError("invalid_url", "Invalid URL. Only http/https links are supported.");
+	}
+
 	// Validate URL first
 	if (!url || !isValidHttpUrl(url)) {
 		throw new CobaltDownloadError("invalid_url", "Please provide a valid HTTP/HTTPS URL.");
@@ -480,8 +462,13 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 						clearInterval(stallInterval);
 					}
 				} catch (dlErr) {
-					if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
-					console.warn(`[Cobalt] Stream error for ${itemUrl}:`, dlErr.message);
+					if (fileStream && !fileStream.destroyed) {
+						fileStream.destroy();
+					}
+					if (fs.existsSync(tempFile)) {
+						memoryManager.safeUnlink(tempFile);
+					}
+					console.warn(`[Cobalt] Stream download error for ${itemUrl}:`, dlErr.message);
 					continue;
 				}
 

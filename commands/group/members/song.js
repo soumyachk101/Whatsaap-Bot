@@ -2,6 +2,7 @@ import fs from "fs";
 import yts from "yt-search";
 import memoryManager from "../../../functions/memoryUtils.js";
 import { downloadViaCobalt, CobaltDownloadError } from "../../../functions/cobaltHelper.js";
+import downloadQueue from "../../../functions/downloadQueue.js";
 
 const USER_COOLDOWN = 10000;
 const userLastDownload = new Map();
@@ -54,6 +55,19 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	if (!checkUserCooldown(from)) {
 		return sendMessageWTyping(from, { text: "⏳ Please wait 10 seconds before another download." }, { quoted: msg });
+	}
+
+	let queueResult;
+	try {
+		queueResult = await downloadQueue.acquire(from);
+		if (queueResult.queued) {
+			await sendMessageWTyping(from, { text: `⏳ You're #${queueResult.position} in queue. Please wait...` }, { quoted: msg });
+		}
+	} catch (qErr) {
+		if (qErr.message?.startsWith("cooldown:")) {
+			return sendMessageWTyping(from, { text: `⏳ Please wait ${qErr.message.split(":")[1]}s before another download.` }, { quoted: msg });
+		}
+		return sendMessageWTyping(from, { text: "❌ Server busy. Try again later." }, { quoted: msg });
 	}
 
 	let songQuery = evv ? evv.trim() : "";
@@ -143,6 +157,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			await new Promise(resolve => setTimeout(resolve, 3000));
 			if (fs.existsSync(fileDown)) memoryManager.safeUnlink(fileDown);
 		}
+		downloadQueue.release();
 	}
 };
 
