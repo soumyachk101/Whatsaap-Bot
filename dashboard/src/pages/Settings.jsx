@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react'
 import GlassCard from '../components/GlassCard.jsx'
 import {
- getStats, setMaintenanceMode,
+ getStats,
 } from '../lib/api.js'
 import { useToast } from '../App.jsx'
+
+const SETTINGS_KEY = 'bot-settings'
+
+const DEFAULTS = {
+ botName: 'WhatsApp Bot',
+ prefix: '.',
+ ownerNumber: '9198xxxxxxx',
+ autoRead: true,
+ antiLink: true,
+ antiBadwords: true,
+ welcomeMsg: 'Welcome to the group, @user!',
+}
 
 export default function Settings() {
  const toast = useToast()
@@ -11,35 +23,53 @@ export default function Settings() {
  const [saving, setSaving] = useState(false)
  const [stats, setStats] = useState(null)
 
- const [botName, setBotName] = useState('WhatsApp Bot')
- const [prefix, setPrefix] = useState('.')
- const [ownerNumber, setOwnerNumber] = useState('9198xxxxxxx')
- const [autoRead, setAutoRead] = useState(true)
- const [antiLink, setAntiLink] = useState(true)
- const [antiBadwords, setAntiBadwords] = useState(true)
- const [welcomeMsg, setWelcomeMsg] = useState('Welcome to the group, @user!')
+ const [botName, setBotName] = useState(DEFAULTS.botName)
+ const [prefix, setPrefix] = useState(DEFAULTS.prefix)
+ const [ownerNumber, setOwnerNumber] = useState(DEFAULTS.ownerNumber)
+ const [autoRead, setAutoRead] = useState(DEFAULTS.autoRead)
+ const [antiLink, setAntiLink] = useState(DEFAULTS.antiLink)
+ const [antiBadwords, setAntiBadwords] = useState(DEFAULTS.antiBadwords)
+ const [welcomeMsg, setWelcomeMsg] = useState(DEFAULTS.welcomeMsg)
 
  useEffect(() => {
  getStats().then(s => { setStats(s); setLoading(false) }).catch(() => setLoading(false))
  }, [])
 
+ useEffect(() => {
+ try {
+ const saved = localStorage.getItem(SETTINGS_KEY)
+ if (saved) {
+ const data = JSON.parse(saved)
+ if (data.botName) setBotName(data.botName)
+ if (data.prefix) setPrefix(data.prefix)
+ if (data.ownerNumber) setOwnerNumber(data.ownerNumber)
+ if (typeof data.autoRead === 'boolean') setAutoRead(data.autoRead)
+ if (typeof data.antiLink === 'boolean') setAntiLink(data.antiLink)
+ if (typeof data.antiBadwords === 'boolean') setAntiBadwords(data.antiBadwords)
+ if (data.welcomeMsg) setWelcomeMsg(data.welcomeMsg)
+ }
+ } catch { /* ignore corrupt storage */ }
+ }, [])
+
  const handleSave = async () => {
  setSaving(true)
  try {
- await setMaintenanceMode(false)
+ const settings = { botName, prefix, ownerNumber, autoRead, antiLink, antiBadwords, welcomeMsg }
+ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
  toast('Settings saved successfully', true)
  } catch { toast('Error saving settings', false) }
  finally { setSaving(false) }
  }
 
  const handleReset = () => {
- setBotName('WhatsApp Bot')
- setPrefix('.')
- setOwnerNumber('9198xxxxxxx')
- setAutoRead(true)
- setAntiLink(true)
- setAntiBadwords(true)
- setWelcomeMsg('Welcome to the group, @user!')
+ setBotName(DEFAULTS.botName)
+ setPrefix(DEFAULTS.prefix)
+ setOwnerNumber(DEFAULTS.ownerNumber)
+ setAutoRead(DEFAULTS.autoRead)
+ setAntiLink(DEFAULTS.antiLink)
+ setAntiBadwords(DEFAULTS.antiBadwords)
+ setWelcomeMsg(DEFAULTS.welcomeMsg)
+ localStorage.removeItem(SETTINGS_KEY)
  toast('Settings reset to defaults', true)
  }
 

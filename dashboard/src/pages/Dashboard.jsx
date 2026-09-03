@@ -9,36 +9,9 @@ import {
 import { useToast } from '../App.jsx'
 import { useWebSocket } from '../hooks/useWebSocket.js'
 import * as Icons from '../components/Icons.jsx'
+import StatCard from '../components/StatCard.jsx'
 
-// ── Stat Card Component ────────────────────────────────────────────────────
-function StatCard({ title, value, subtext, icon, accent, delay = 0 }) {
- const colors = {
- violet: { bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)', glow: 'rgba(139,92,246,0.2)', text: '#a78bfa' },
- indigo: { bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.2)', glow: 'rgba(99,102,241,0.2)', text: '#a5b4fc' },
- emerald: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', glow: 'rgba(16,185,129,0.2)', text: '#34d399' },
- blue: { bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.2)', glow: 'rgba(59,130,246,0.2)', text: '#60a5fa' },
- amber: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', glow: 'rgba(245,158,11,0.2)', text: '#fbbf24' },
- rose: { bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.2)', glow: 'rgba(244,63,94,0.2)', text: '#fb7185' },
- cyan: { bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.2)', glow: 'rgba(6,182,212,0.2)', text: '#22d3ee' },
- }
- const c = colors[accent] || colors.indigo
-
- return (
- <div className="stat-card page-enter" style={{ animationDelay: `${delay}ms` }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent, ${c.border}, transparent)` }} />
- <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
- <div className="stat-icon" style={{ background: c.bg, border: `1px solid ${c.border}`, boxShadow: `0 4px 12px ${c.glow}` }}>
- <span style={{ color: c.text }}>{icon}</span>
- </div>
- </div>
- <div className="stat-value" style={{ fontSize: '1.65rem' }}>{value ?? '—'}</div>
- <div className="stat-label">{title}</div>
- {subtext && <div className="stat-sub"><span style={{ width: 5, height: 5, borderRadius: '50%', background: c.text, opacity: 0.5, flexShrink: 0 }} />{subtext}</div>}
- </div>
- )
-}
-
-// ── Chart Tooltip ──────────────────────────────────────────────────────────
+// ── Chart Tooltip
 const CustomTooltip = ({ active, payload, label }) => {
  if (active && payload && payload.length) {
  return (
@@ -388,7 +361,7 @@ export default function Dashboard() {
  {/* ── Header ─────────────────────────────────────────────────── */}
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
  <div>
- <h1 className="section-title text-gradient" style={{ fontSize: '1.5rem' }}>
+ <h1 className="section-title text-gradient-animated" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
  Bot Control Center
  </h1>
  <p className="section-subtitle">Monitor, configure, and manage your WhatsApp bot engine</p>
@@ -401,10 +374,10 @@ export default function Dashboard() {
 
  {/* ── Stat Cards ─────────────────────────────────────────────── */}
  <div className="grid grid-cols-4">
- <StatCard title="Total Groups" value={stats?.groupCount?.toLocaleString()} subtext="Registered groups" icon={<Icons.IconGlobe size={18} />} accent="violet" delay={50} />
- <StatCard title="Total Members" value={stats?.memberCount?.toLocaleString()} subtext="Unique participants" icon={<Icons.IconUsers size={18} />} accent="indigo" delay={100} />
- <StatCard title="Total Messages" value={analytics?.totalMessages?.toLocaleString()} subtext="All-time volume" icon={<Icons.IconMessage size={18} />} accent="emerald" delay={150} />
- <StatCard title="Uptime" value={stats ? fmtUptime(stats.uptime) : '0s'} subtext="Continuous process time" icon={<Icons.IconClock size={18} />} accent="blue" delay={200} />
+ <StatCard title="Total Groups" value={stats?.groupCount?.toLocaleString()} subtext="Registered groups" icon={Icons.IconGlobe} accent="violet" delay={50} />
+ <StatCard title="Total Members" value={stats?.memberCount?.toLocaleString()} subtext="Unique participants" icon={Icons.IconUsers} accent="indigo" delay={100} />
+ <StatCard title="Total Messages" value={analytics?.totalMessages?.toLocaleString()} subtext="All-time volume" icon={Icons.IconMessage} accent="emerald" delay={150} />
+ <StatCard title="Uptime" value={stats ? fmtUptime(stats.uptime) : '0s'} subtext="Continuous process time" icon={Icons.IconClock} accent="blue" delay={200} />
  </div>
 
  {/* ── Maintenance Mode ───────────────────────────────────────── */}
@@ -429,8 +402,8 @@ export default function Dashboard() {
  <ActionButtons
  actionLoading={actionLoading}
  onReconnect={handleReconnect}
- onClearAuth={onClearAuth}
- onRestart={onRestart}
+ onClearAuth={handleClearAuth}
+ onRestart={handleRestart}
  />
 
  {/* ── Activity Chart ─────────────────────────────────────────── */}

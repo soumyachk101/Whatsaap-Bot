@@ -353,3 +353,101 @@ export function IconWrench({ size = 18 }) {
  </svg>
  )
 }
+
+export function IconPalette({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <circle cx="12" cy="12" r="10" />
+ <circle cx="12" cy="8" r="1.8" fill="currentColor" stroke="none" />
+ <circle cx="8" cy="13" r="1.8" fill="currentColor" stroke="none" />
+ <circle cx="16" cy="13" r="1.8" fill="currentColor" stroke="none" />
+ <circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none" />
+ </svg>
+ )
+}
+
+export function IconLink({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+ <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+ </svg>
+ )
+}
+
+export function IconHand({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <path d="M18 11V6a2 2 0 0 0-4 0v1" />
+ <path d="M14 10V5a2 2 0 0 0-4 0v5" />
+ <path d="M10 10.5V7a2 2 0 0 0-4 0v8" />
+ <path d="M18 11a2 2 0 1 1 4 0v5a8 8 0 0 1-16 0v-1.5a2 2 0 0 1 4 0V11" />
+ </svg>
+ )
+}
+
+export function IconGamepad({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <line x1="6" y1="12" x2="10" y2="12" />
+ <line x1="8" y1="10" x2="8" y2="14" />
+ <line x1="15" y1="13" x2="15.01" y2="13" />
+ <line x1="18" y1="11" x2="18.01" y2="11" />
+ <rect x="2" y="6" width="20" height="12" rx="2" />
+ </svg>
+ )
+}
+
+export function IconMusic({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <path d="M9 18V5l12-2v13" />
+ <circle cx="6" cy="18" r="3" />
+ <circle cx="18" cy="16" r="3" />
+ </svg>
+ )
+}
+
+export function IconCurrency({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <circle cx="12" cy="12" r="10" />
+ <path d="M12 6v12" />
+ <path d="M8 10a4 4 0 0 1 8 0" />
+ <path d="M8 14a4 4 0 0 1 8 0" />
+ </svg>
+ )
+}
+
+export function IconSmile({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <circle cx="12" cy="12" r="10" />
+ <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+ <line x1="9" y1="9" x2="9.01" y2="9" />
+ <line x1="15" y1="9" x2="15.01" y2="9" />
+ </svg>
+ )
+}
+
+export function IconFileText({ size = 18 }) {
+ return (
+ <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+ <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+ <polyline points="14 2 14 8 20 8" />
+ <line x1="16" y1="13" x2="8" y2="13" />
+ <line x1="16" y1="17" x2="8" y2="17" />
+ </svg>
+ )
+}
+
+// Re-export everything as a named export map for convenience
+export default {
+	IconDashboard, IconCommands, IconGroups, IconMembers, IconAnalytics, IconBroadcast,
+	IconHealth, IconLogout, IconShield, IconActivity, IconZap, IconGlobe, IconRefresh,
+	IconSettings, IconPhone, IconSend, IconLock, IconUnlock, IconMessage, IconUsers,
+	IconClock, IconCpu, IconTrash, IconSearch, IconCopy, IconAlert, IconWifi, IconBarChart,
+	IconX, IconCheck, IconChevronDown, IconWhatsApp, IconMenu, IconTrendingUp, IconServer,
+	IconWrench, IconPalette, IconLink, IconHand, IconGamepad, IconMusic, IconCurrency,
+	IconSmile, IconFileText,
+}

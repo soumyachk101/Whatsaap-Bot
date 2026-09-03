@@ -70,7 +70,7 @@ export default function App() {
 
  // In dev: base is '/', in prod: base is '/admin/'
  const base = import.meta.env.BASE_URL
- const basename = base === '/' ? '' : base.replace(/\/$/, '')
+ const basename = base.replace(/\/$/, '')
 
  return (
  <AuthCtx.Provider value={{ auth, setAuth }}>

@@ -73,9 +73,9 @@ function GroupCard({ grp, allCommands, onUpdate, onAddBlock, onRemoveBlock }) {
 								<span style={{ fontSize: '0.73rem', fontWeight: 600, color: isChecked ? 'var(--text-main)' : 'var(--text-muted)' }}>{item.label}</span>
 								<div style={{ fontSize: '0.62rem', color: 'var(--text-faint)' }}>{item.desc}</div>
 							</div>
-							<label className="toggle-switch">
+							<label className="toggle" style={{ cursor: 'pointer' }}>
 								<input type="checkbox" checked={isChecked} onChange={(e) => handleToggle(item.field, e.target.checked)} disabled={loading} />
-								<span className="slider" />
+								<div className="toggle-track"><div className="toggle-thumb" /></div>
 							</label>
 						</div>
 					);

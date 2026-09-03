@@ -66,7 +66,11 @@ app.set("view engine", "ejs");
 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.get(["/", "/login"], (_req, res) => {
+app.get("/", (_req, res) => {
+	res.redirect("/admin");
+});
+
+app.get("/login", (_req, res) => {
 	res.redirect("/admin/login");
 });
 
