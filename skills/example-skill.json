@@ -1,0 +1,16 @@
+{
+ "name": "hello-world",
+ "version": "1.0.0",
+ "description": "A simple greeting skill that responds with a friendly hello",
+ "author": "WhatsApp Bot OG",
+ "scope": "public",
+ "commands": [
+ {
+ "name": "helloskill",
+ "description": "Say hello with a random greeting",
+ "usage": "helloskill"
+ }
+ ],
+ "dependencies": [],
+ "handler": "async (sock, msg, from, args, msgInfoObj) => {\n const { sendMessageWTyping } = msgInfoObj;\n const greetings = [\n \"Hello there! 👋\",\n \"Hey! How's it going? 😊\",\n \"Greetings, friend! 🤖\",\n \"Hi! Nice to see you! ✨\",\n \"Hello, world! 🌍\"\n ];\n const pick = greetings[Math.floor(Math.random() * greetings.length)];\n return sendMessageWTyping(from, { text: pick }, { quoted: msg });\n }"
+}
