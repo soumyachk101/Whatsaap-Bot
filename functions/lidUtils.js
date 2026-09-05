@@ -100,19 +100,23 @@ export function extractPhoneNumber(jid, groupMetadata = null, sock = null) {
 	if (typeof jid !== "string") return jid;
 	if (!jid) return "";
 
-	// If it's a LID and groupMetadata or sock is provided, attempt resolution
-	if (jid.includes("@lid") && (groupMetadata || sock)) {
+	// If it's a LID, attempt resolution to get real phone number
+	if (jid.includes("@lid")) {
 		const identity = resolveMemberIdentity(jid, groupMetadata, sock);
 		if (identity.phoneNumber) return identity.phoneNumber;
+		// A LID is an internal identifier, never return raw LID digits as a phone number
+		return "";
 	}
 
+	let clean = jid.trim();
 	// Handle colon format (device specifiers)
-	if (jid?.includes(":")) {
-		return jid.split(":")[0];
+	if (clean.includes(":")) {
+		clean = clean.split(":")[0];
 	}
 
 	// Extract the part before @
-	return jid.split("@")[0];
+	const numPart = clean.includes("@") ? clean.split("@")[0] : clean;
+	return numPart.replace(/\D/g, "");
 }
 
 /**

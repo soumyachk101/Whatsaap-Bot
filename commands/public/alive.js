@@ -38,16 +38,17 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const statusBadge = responseTime < 500 ? "🟢" : responseTime < 2000 ? "🟡" : "🔴";
 		const statusLabel = responseTime < 500 ? "EXCELLENT" : responseTime < 2000 ? "GOOD" : "SLOW";
 
-		// Resolve real identity (both LID and PN) so mention renders blue and clickable
+		const userName = updateName || msg.pushName || "";
 		const identity = resolveMemberIdentity(senderJid, groupMetadata, sock);
 		const displayNumber = senderPhone || identity.phoneNumber || extractPhoneNumber(senderJid);
-		const mentions = identity.allJids.length > 0 ? identity.allJids : (senderJid ? [senderJid] : []);
+		const greetingUser = userName ? `*${userName}*` : (displayNumber ? `@${displayNumber}` : "Friend");
+		const mentions = displayNumber ? identity.allJids : [];
 
 		const response =
 `🎾 *ENGINE STATUS*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${sectionHeader("👤", "Greetings")} @${displayNumber}
+${sectionHeader("👤", "Greetings")} ${greetingUser}
 
 ${sectionHeader("📡", "Performance")}
 ${statCard([

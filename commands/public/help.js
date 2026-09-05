@@ -234,18 +234,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		);
 	}
 
-	const identity = resolveMemberIdentity(senderJid, groupMetadata, sock);
-	const targetPhone = senderPhone || identity.phoneNumber || extractPhoneNumber(senderJid);
 	const userName = updateName || (msg.pushName ? msg.pushName : "");
-
-	let greeting = "";
-	if (targetPhone && /^\d+$/.test(targetPhone)) {
-		greeting = `@${targetPhone}`;
-	} else if (userName) {
-		greeting = userName;
-	} else {
-		greeting = "Friend";
-	}
+	const greeting = userName ? `*${userName}*` : "Friend";
 
 	const menu = [
 		`╭━━『 *${botName}* 』━━╮`,
@@ -263,8 +253,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		`🌟 Bot Version: ${botVersion}`,
 	].join("\n");
 
-	const mentions = identity.allJids.length > 0 ? identity.allJids : (senderJid ? [senderJid] : []);
-	await sendMessageWTyping(from, { text: menu, mentions }, { quoted: msg });
+	await sendMessageWTyping(from, { text: menu }, { quoted: msg });
 };
 
 export default () => ({
