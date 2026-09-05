@@ -27,7 +27,7 @@ WORKDIR /app
 
 # Install root dependencies using npm
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit
+RUN npm install --no-audit --legacy-peer-deps
 
 # Ensure the expected path for youtube-dl-exec exists and link to the system yt-dlp
 RUN mkdir -p node_modules/youtube-dl-exec/bin && \
