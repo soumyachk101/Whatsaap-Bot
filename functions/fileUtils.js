@@ -8,11 +8,11 @@ import fileCache from "./fileCache.js";
 /**
  * Read file efficiently with memory management and caching
  * @param {string} filePath - Path to the file
- * @param {number} maxSize - Maximum file size in bytes (default 50MB)
+ * @param {number} maxSize - Maximum file size in bytes (default 200MB)
  * @param {boolean} useCache - Whether to use cache (default true for media files)
  * @returns {Promise<Buffer>} File buffer
  */
-async function readFileEfficiently(filePath, maxSize = 50 * 1024 * 1024, useCache = true) {
+async function readFileEfficiently(filePath, maxSize = 200 * 1024 * 1024, useCache = true) {
 	// Check cache first
 	if (useCache) {
 		const cached = fileCache.get(filePath);
@@ -107,13 +107,13 @@ function isValidAudioFile(filePath) {
 		// Just check basic file properties rather than strict signatures
 		const fileSizeMB = stats.size / 1024 / 1024;
 
-		// Audio files should be at least 10KB and less than 100MB
+		// Audio files should be at least 10KB and less than 200MB
 		if (stats.size < 10 * 1024) {
 			console.warn(`Audio validation failed: File too small (${stats.size} bytes) - ${filePath}`);
 			return false;
 		}
 
-		if (fileSizeMB > 100) {
+		if (fileSizeMB > 200) {
 			console.warn(`Audio validation failed: File too large (${fileSizeMB.toFixed(2)}MB) - ${filePath}`);
 			return false;
 		}

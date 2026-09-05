@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import yts from "yt-search";
 import { fileTypeFromFile } from "file-type";
 import memoryManager from "../../functions/memoryUtils.js";
@@ -136,10 +137,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const stats = await fs.promises.stat(filePath);
 			const fileSizeMB = stats.size / (1024 * 1024);
 
-			if (fileSizeMB > 95) {
+			if (fileSizeMB > 200) {
 				await sendMessageWTyping(
 					from,
-					{ text: `⚠️ File too large for WhatsApp (${fileSizeMB.toFixed(1)}MB). Limit: 95MB. Skipping.` },
+					{ text: `⚠️ File too large for WhatsApp (${fileSizeMB.toFixed(1)}MB). Limit: 200MB. Skipping.` },
 					{ quoted: msg }
 				);
 				memoryManager.safeUnlink(filePath);
@@ -200,9 +201,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					fallbackStats = { size: 0 };
 				}
 				const fallbackMB = fallbackStats.size / (1024 * 1024);
-				if (fallbackMB > 50) {
-					console.warn(`[Universal DL] Buffer fallback skipped: ${fallbackMB.toFixed(1)}MB exceeds 50MB limit.`);
-					await sendMessageWTyping(from, { text: `⚠️ File too large for direct upload (${fallbackMB.toFixed(1)}MB). Please try again later.` }, { quoted: msg });
+				if (fallbackMB > 200) {
+					console.warn(`[Universal DL] Buffer fallback skipped: ${fallbackMB.toFixed(1)}MB exceeds 200MB limit.`);
+					await sendMessageWTyping(from, { text: `⚠️ File too large for direct upload (${fallbackMB.toFixed(1)}MB). Limit: 200MB. Please try again later.` }, { quoted: msg });
 					continue;
 				}
 				try {
@@ -218,9 +219,19 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 						await sock.sendMessage(from, { document: readStream, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
 					}
 					memoryManager.markFileSent(filePath);
-				} catch (bufErr) {
-					console.error("[Universal DL] Stream fallback error:", bufErr.message);
-					await sendMessageWTyping(from, { text: "❌ Failed to upload media file. Please try again later." }, { quoted: msg });
+				} catch (fallbackErr) {
+					console.error("[Universal DL] Media send failed, trying document fallback (up to 200MB/2GB):", fallbackErr.message);
+					try {
+						await sock.sendMessage(from, {
+							document: { url: filePath },
+							fileName: path.basename(filePath) || `media.${mediaInfo.ext || "mp4"}`,
+							mimetype: mediaInfo.mime || "application/octet-stream"
+						}, { quoted: msg });
+						memoryManager.markFileSent(filePath);
+					} catch (docErr) {
+						console.error("[Universal DL] Document fallback also failed:", docErr.message);
+						await sendMessageWTyping(from, { text: "❌ Failed to upload media file. Please try again later." }, { quoted: msg });
+					}
 				}
 			}
 			await new Promise((res) => setTimeout(res, 500));

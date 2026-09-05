@@ -627,7 +627,7 @@ const getCommand = async (sock, msg, cache) => {
 		// Log command execution for dashboard stats & activity
 		logCommandEvent(command, senderJid, isGroup ? (groupData?.grpName || from) : null);
 
-		const COMMAND_TIMEOUT_MS = isMediaCmd ? 120000 : 35000;
+		const COMMAND_TIMEOUT_MS = isMediaCmd ? 240000 : 35000;
 		const abortController = new AbortController();
 		msgInfoObj.signal = abortController.signal;
 

@@ -108,8 +108,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 
 		const fileSizeMB = stats.size / 1024 / 1024;
-		if (fileSizeMB > 50) {
-			throw new Error(`Audio file too large: ${fileSizeMB.toFixed(2)}MB (max 50MB)`);
+		if (fileSizeMB > 200) {
+			throw new Error(`Audio file too large: ${fileSizeMB.toFixed(2)}MB (max 200MB)`);
 		}
 
 		try {
@@ -125,18 +125,31 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			);
 			memoryManager.markFileSent(fileDown);
 		} catch (sendErr) {
-			console.error("[Song] Send with URL failed, trying buffer fallback:", sendErr.message);
-			const buf = fs.readFileSync(fileDown);
+			console.error("[Song] Send with URL failed, trying buffer/stream fallback:", sendErr.message);
 			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-			await sock.sendMessage(
-				from,
-				{
-					audio: buf,
-					mimetype: mime,
-					ptt: false,
-				},
-				{ quoted: msg }
-			);
+			if (fileSizeMB <= 35) {
+				const buf = fs.readFileSync(fileDown);
+				await sock.sendMessage(
+					from,
+					{
+						audio: buf,
+						mimetype: mime,
+						ptt: false,
+					},
+					{ quoted: msg }
+				);
+			} else {
+				const readStream = memoryManager.createOptimizedReadStream(fileDown);
+				await sock.sendMessage(
+					from,
+					{
+						audio: readStream,
+						mimetype: mime,
+						ptt: false,
+					},
+					{ quoted: msg }
+				);
+			}
 			memoryManager.markFileSent(fileDown);
 		}
 	} catch (err) {

@@ -245,7 +245,7 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 				...(isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
 				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 				"--max-filesize",
-				"70M",
+				"200M",
 				"-f",
 				isYouTube ? "140/ba/b" : "bestaudio/best",
 				"--extract-audio",
@@ -261,7 +261,7 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 				...(isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
 				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 				"--max-filesize",
-				"90M",
+				"200M",
 				"-f",
 				isYouTube ? "18/best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best" : "best[height<=720][ext=mp4]/best[ext=mp4]/best",
 				"--merge-output-format",
@@ -364,8 +364,8 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 			const downloadReq = await axios.get(mediaUrl, {
 				responseType: "stream",
 				headers: item.headers || { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
-				timeout: 25000,
-				maxContentLength: 100 * 1024 * 1024,
+				timeout: 45000,
+				maxContentLength: 200 * 1024 * 1024,
 				signal: signal,
 			});
 
@@ -635,9 +635,9 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 				try {
 					const downloadReq = await axios.get(itemUrl, {
 						responseType: "stream",
-						timeout: 60000,
+						timeout: 90000,
 						signal: streamController.signal,
-						maxContentLength: 100 * 1024 * 1024,
+						maxContentLength: 200 * 1024 * 1024,
 						headers: {
 							"User-Agent":
 								"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
