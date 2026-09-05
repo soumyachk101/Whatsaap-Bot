@@ -22,11 +22,57 @@ const messageCache = new NodeCache({
 });
 
 export const groupMetadataCache = new NodeCache({
-	stdTTL: 3600, // 1 hour cache
-	checkperiod: 120,
-	maxKeys: 500,
+	stdTTL: 86400, // 24 hours cache (invalidated on participant changes)
+	checkperiod: 600,
+	maxKeys: 2000,
 	useClones: false,
 });
+
+const pendingGroupMetaFetches = new Map();
+
+/**
+ * Thread-safe deduplicated group metadata fetcher with cache
+ */
+export const getOrFetchGroupMetadata = async (sock, jid, force = false) => {
+	if (!jid || !jid.endsWith("@g.us")) return null;
+
+	if (!force) {
+		const cached = groupMetadataCache.get(jid);
+		if (cached && Array.isArray(cached.participants) && cached.participants.length > 0) {
+			return cached;
+		}
+	}
+
+	if (pendingGroupMetaFetches.has(jid)) {
+		return await pendingGroupMetaFetches.get(jid);
+	}
+
+	const fetchPromise = (async () => {
+		try {
+			if (!sock || typeof sock.groupMetadata !== "function") {
+				return groupMetadataCache.get(jid) || null;
+			}
+			const meta = await Promise.race([
+				sock.groupMetadata(jid),
+				new Promise((_, reject) =>
+					setTimeout(() => reject(new Error("Group metadata timeout")), 4000)
+				),
+			]);
+			if (meta && Array.isArray(meta.participants)) {
+				groupMetadataCache.set(jid, meta);
+				return meta;
+			}
+		} catch (err) {
+			return groupMetadataCache.get(jid) || null;
+		} finally {
+			pendingGroupMetaFetches.delete(jid);
+		}
+		return groupMetadataCache.get(jid) || null;
+	})();
+
+	pendingGroupMetaFetches.set(jid, fetchPromise);
+	return await fetchPromise;
+};
 
 // Store interval references at module level to prevent accumulation on reconnect
 let cacheCleanupInterval = null;
@@ -92,7 +138,11 @@ const socket = async () => {
 
 		getMessage,
 		cachedGroupMetadata: async (jid) => {
-			return groupMetadataCache.get(jid);
+			let meta = groupMetadataCache.get(jid);
+			if (!meta || !Array.isArray(meta.participants) || meta.participants.length === 0) {
+				meta = await getOrFetchGroupMetadata(sock, jid);
+			}
+			return meta;
 		},
 		markOnlineOnConnect: true,
 		syncFullHistory: false,

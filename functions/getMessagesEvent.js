@@ -12,7 +12,7 @@ import { commandsPublic, commandsMembers, commandsAdmins, commandsOwners, comman
 import { getBotData } from "../sqlite-DB/botDataDb.js";
 import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
-import { groupMetadataCache } from "./getSocket.js";
+import { groupMetadataCache, getOrFetchGroupMetadata } from "./getSocket.js";
 import { extractPhoneNumber, isLID, resolveMemberIdentity } from "./lidUtils.js";
 import { logCommandEvent, logMessageEvent } from "./botLogger.js";
 
@@ -292,22 +292,13 @@ const getCommand = async (sock, msg, cache) => {
 		let groupMetadata = null;
 		if (isGroup) {
 			groupMetadata = groupMetadataCache.get(from) || (typeof cache?.get === "function" ? cache.get(from + ":groupMetadata") : null);
-			if (!groupMetadata) {
-				groupMetadata = { participants: [], subject: from };
-				// Background fetch to refresh cache without blocking command execution
-				Promise.race([
-					sock.groupMetadata(from),
-					new Promise((_, reject) =>
-						setTimeout(() => reject(new Error("Group metadata fetch timeout")), 5000)
-					),
-				]).then((m) => {
-					if (m) {
-						groupMetadataCache.set(from, m);
-						if (typeof cache?.set === "function") {
-							cache.set(from + ":groupMetadata", m, 60 * 60);
-						}
-					}
-				}).catch(() => {});
+			if (!groupMetadata || !Array.isArray(groupMetadata.participants) || groupMetadata.participants.length === 0) {
+				groupMetadata = await getOrFetchGroupMetadata(sock, from);
+				if (!groupMetadata) {
+					groupMetadata = { participants: [], subject: from };
+				} else if (typeof cache?.set === "function") {
+					cache.set(from + ":groupMetadata", groupMetadata, 86400);
+				}
 			}
 		}
 
@@ -343,7 +334,7 @@ const getCommand = async (sock, msg, cache) => {
 		logMessageEvent(updateId, isGroup ? from : null);
 
 		// Asynchronous non-blocking background database stats tracking
-		(async () => {
+		setImmediate(async () => {
 			try {
 				await createMembersData(updateId, updateName);
 				if (senderJid !== updateId) {
@@ -401,7 +392,7 @@ const getCommand = async (sock, msg, cache) => {
 			} catch (e) {
 				console.error("[background stats tracking error]", e.message);
 			}
-		})();
+		});
 
 		if (!isCmd && (type == "stickerMessage" || type == "documentMessage")) return;
 

@@ -1,13 +1,22 @@
 import { member } from "../../sqlite-DB/membersDataDb.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping, prefix, command, isGroup, groupMetadata, senderJid } = msgInfoObj;
+	const { sendMessageWTyping, prefix, command, isGroup, groupMetadata, senderJid, groupAdmins = [], botNumber = [] } = msgInfoObj;
 
 	// Confessions only make sense in groups
 	if (!isGroup) {
 		return sendMessageWTyping(
 			from,
 			{ text: `❌ Confessions only work in groups.` },
+			{ quoted: msg }
+		);
+	}
+
+	const isBotAdmin = groupAdmins.includes(botNumber[0]) || groupAdmins.includes(botNumber[1]);
+	if (!isBotAdmin) {
+		return sendMessageWTyping(
+			from,
+			{ text: `❌ The bot must be a *Group Admin* to delete your trigger message and protect your anonymity!` },
 			{ quoted: msg }
 		);
 	}

@@ -48,40 +48,26 @@ class MessageQueue {
 			});
 
 			queue.sort((a, b) => a.priority - b.priority);
-
-			if (!this.processing.get(chatId)) {
-				this.processQueue(chatId);
-			}
+			this.processQueue(chatId);
 		});
 	}
 
-	async processQueue(chatId) {
-		if (this.processing.get(chatId)) return;
-		this.processing.set(chatId, true);
-
+	processQueue(chatId) {
 		const queue = this.queues.get(chatId);
-		if (!queue) {
-			this.processing.set(chatId, false);
-			return;
-		}
+		if (!queue || queue.length === 0) return;
 
-		try {
-			while (queue.length > 0) {
-				// Wait if total active sends across all chats exceeds global limit
-				while (this.totalActiveSends >= this.maxConcurrent) {
-					await new Promise((resolve) => setTimeout(resolve, 10));
-				}
+		while (
+			queue.length > 0 &&
+			(this.activeSendsByChat.get(chatId) || 0) < this.perChatMax &&
+			this.totalActiveSends < this.maxConcurrent
+		) {
+			const message = queue.shift();
+			if (!message) break;
 
-				const message = queue.shift();
-				if (!message) break;
+			this.totalActiveSends++;
+			this.activeSendsByChat.set(chatId, (this.activeSendsByChat.get(chatId) || 0) + 1);
 
-				// Wait if this chat already has too many active sends
-				while ((this.activeSendsByChat.get(chatId) || 0) >= this.perChatMax) {
-					await new Promise((resolve) => setTimeout(resolve, 10));
-				}
-
-				this.totalActiveSends++;
-				this.activeSendsByChat.set(chatId, (this.activeSendsByChat.get(chatId) || 0) + 1);
+			(async () => {
 				try {
 					const sendPromise = message.sendFunction();
 					const timeoutPromise = new Promise((_, reject) =>
@@ -96,14 +82,9 @@ class MessageQueue {
 					this.totalActiveSends--;
 					const current = this.activeSendsByChat.get(chatId) || 0;
 					this.activeSendsByChat.set(chatId, Math.max(0, current - 1));
+					this.processQueue(chatId);
 				}
-			}
-		} finally {
-			this.processing.set(chatId, false);
-			// Re-trigger if any message arrived while loop was concluding
-			if (queue.length > 0) {
-				this.processQueue(chatId);
-			}
+			})();
 		}
 	}
 

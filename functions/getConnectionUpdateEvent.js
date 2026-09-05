@@ -4,6 +4,9 @@ import { clearSQLiteAuthState } from "./useSQLiteAuthState.js";
 import sendToTelegram from "./telegramLogger.js";
 import { groupMetadataCache } from "./getSocket.js";
 
+let lastPrewarmTime = 0;
+const PREWARM_COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes cooldown between bulk fetches
+
 const getConnectionUpdate = async (sock, startSock, events) => {
 	const update = events;
 	const { connection, lastDisconnect, qr } = update;
@@ -71,8 +74,10 @@ const getConnectionUpdate = async (sock, startSock, events) => {
 			`📱 Successfully connected to WhatsApp.`
 		);
 
-		// Background pre-warm group metadata cache for instant (0ms) response times
-		if (sock && typeof sock.groupFetchAllParticipating === "function") {
+		// Background pre-warm group metadata cache with cooldown and stabilized delay
+		const now = Date.now();
+		if (sock && typeof sock.groupFetchAllParticipating === "function" && (now - lastPrewarmTime > PREWARM_COOLDOWN_MS)) {
+			lastPrewarmTime = now;
 			setTimeout(async () => {
 				try {
 					console.log("⚡ Pre-warming group metadata cache...");
@@ -84,9 +89,13 @@ const getConnectionUpdate = async (sock, startSock, events) => {
 					}
 					console.log(`✅ Cached metadata for ${count} groups! (0ms lookups active)`);
 				} catch (err) {
-					console.warn("⚠️ Background group metadata pre-warm skipped:", err.message);
+					if (err.message && err.message.includes("rate-overlimit")) {
+						console.log("ℹ️ WhatsApp bulk rate-limit active. Group metadata will load on-demand instantly.");
+					} else {
+						console.warn("⚠️ Background group metadata pre-warm skipped:", err.message);
+					}
 				}
-			}, 1500);
+			}, 8000); // 8s delay gives WhatsApp connection time to stabilize
 		}
 	}
 

@@ -98,12 +98,20 @@ class Collection {
 
 		// SQLite Fallback
 		const id = query._id || query.id;
-		if (id && Object.keys(query).length === 1) {
+		if (id) {
 			const row = sqliteDb.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`).get(id);
 			if (!row) return null;
-			if (this.tableName === 'AuthTable') return { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]'), plugins: JSON.parse(row.plugins || '{}') };
+			if (this.tableName === 'AuthState') {
+				return { _id: row.id, value: row.value };
+			}
+			if (this.tableName === 'AuthTable') {
+				const item = { _id: row.id, ...row, disabledGlobally: JSON.parse(row.disabledGlobally || '[]'), plugins: JSON.parse(row.plugins || '{}') };
+				if (Object.keys(query).length > 1 && !this._matchItem(item, query)) return null;
+				return item;
+			}
 			const data = JSON.parse(row.data);
 			data._id = row.id;
+			if (Object.keys(query).length > 1 && !this._matchItem(data, query)) return null;
 			return data;
 		}
 		const results = (await (this.find(query)).toArray());
@@ -184,11 +192,30 @@ class Collection {
 	}
 
 	_sqliteFind(query = {}) {
+		if (this.tableName === 'AuthState') {
+			let rows;
+			if (query._id && query._id.$in && Array.isArray(query._id.$in) && query._id.$in.length > 0) {
+				const placeholders = query._id.$in.map(() => "?").join(",");
+				const stmt = sqliteDb.prepare(`SELECT * FROM AuthState WHERE id IN (${placeholders})`);
+				rows = stmt.all(...query._id.$in);
+			} else if (query._id && typeof query._id === 'string') {
+				const stmt = sqliteDb.prepare(`SELECT * FROM AuthState WHERE id = ?`);
+				rows = stmt.all(query._id);
+			} else {
+				const stmt = sqliteDb.prepare(`SELECT * FROM AuthState`);
+				rows = stmt.all();
+			}
+			return rows.map(r => ({ _id: r.id, value: r.value }));
+		}
+
 		let rows;
 		if (query._id && query._id.$in && Array.isArray(query._id.$in) && query._id.$in.length > 0) {
 			const placeholders = query._id.$in.map(() => "?").join(",");
 			const stmt = sqliteDb.prepare(`SELECT * FROM ${this.tableName} WHERE id IN (${placeholders})`);
 			rows = stmt.all(...query._id.$in);
+		} else if (query._id && typeof query._id === 'string') {
+			const stmt = sqliteDb.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`);
+			rows = stmt.all(query._id);
 		} else {
 			const stmt = sqliteDb.prepare(`SELECT * FROM ${this.tableName}`);
 			rows = stmt.all();
@@ -459,7 +486,17 @@ class Collection {
 			}
 		}
 
-		if (this.tableName === 'AuthTable') {
+		if (this.tableName === 'AuthState') {
+			let val = update.$set?.value !== undefined ? update.$set.value : (update.value !== undefined ? update.value : JSON.stringify(update));
+			if (typeof val !== 'string') val = JSON.stringify(val);
+			let res = sqliteDb.prepare(`UPDATE AuthState SET value = ? WHERE id = ?`).run(val, id);
+			let changes = res.changes;
+			if (changes === 0 && options.upsert) {
+				res = sqliteDb.prepare(`INSERT INTO AuthState (id, value) VALUES (?, ?)`).run(id, val);
+				changes = res.changes;
+			}
+			return { matchedCount: changes };
+		} else if (this.tableName === 'AuthTable') {
 			const { _id, ...fields } = data;
 			const keys = Object.keys(fields);
 			let changes = 0;
@@ -491,7 +528,11 @@ class Collection {
 
 		// SQLite Fallback
 		const { _id, ...data } = doc;
-		if (this.tableName === 'AuthTable') {
+		if (this.tableName === 'AuthState') {
+			let val = data.value !== undefined ? data.value : JSON.stringify(data);
+			if (typeof val !== 'string') val = JSON.stringify(val);
+			sqliteDb.prepare(`INSERT OR REPLACE INTO AuthState (id, value) VALUES (?, ?)`).run(_id, val);
+		} else if (this.tableName === 'AuthTable') {
 			 sqliteDb.prepare("INSERT OR REPLACE INTO AuthTable (id, youtube_session, disabledGlobally) VALUES (?, ?, ?)")
 				.run(_id, data.youtube_session || "", JSON.stringify(data.disabledGlobally || []));
 		} else {
@@ -505,6 +546,16 @@ class Collection {
 		if (mongoResult !== null) return mongoResult;
 
 		// SQLite Fallback
+		if (this.tableName === 'AuthState') {
+			const id = query._id || query.id;
+			if (id) {
+				const res = sqliteDb.prepare(`DELETE FROM AuthState WHERE id = ?`).run(id);
+				return { deletedCount: res.changes };
+			}
+			const res = sqliteDb.prepare(`DELETE FROM AuthState`).run();
+			return { deletedCount: res.changes };
+		}
+
 		if (!query || Object.keys(query).length === 0) {
 			const res = sqliteDb.prepare(`DELETE FROM ${this.tableName}`).run();
 			return { deletedCount: res.changes };
@@ -531,6 +582,37 @@ class Collection {
 		let matchedCount = 0;
 		let modifiedCount = 0;
 		let deletedCount = 0;
+
+		if (this.tableName === 'AuthState') {
+			const runTx = sqliteDb.transaction((operations) => {
+				for (const op of operations) {
+					if (op.updateOne) {
+						const filter = op.updateOne.filter;
+						const id = filter._id || filter.id;
+						if (!id) continue;
+						const val = op.updateOne.update.$set?.value !== undefined ? op.updateOne.update.$set.value : (op.updateOne.update.value !== undefined ? op.updateOne.update.value : JSON.stringify(op.updateOne.update));
+						const strVal = typeof val === 'string' ? val : JSON.stringify(val);
+						let res = sqliteDb.prepare(`UPDATE AuthState SET value = ? WHERE id = ?`).run(strVal, id);
+						if (res.changes === 0 && op.updateOne.upsert) {
+							res = sqliteDb.prepare(`INSERT INTO AuthState (id, value) VALUES (?, ?)`).run(id, strVal);
+						}
+						matchedCount += res.changes;
+					} else if (op.deleteOne) {
+						const id = op.deleteOne.filter?._id || op.deleteOne.filter?.id;
+						if (id) {
+							const res = sqliteDb.prepare(`DELETE FROM AuthState WHERE id = ?`).run(id);
+							deletedCount += res.changes;
+						}
+					}
+				}
+			});
+			try {
+				runTx(ops);
+				return { matchedCount, modifiedCount, deletedCount };
+			} catch (err) {
+				console.error(`[bulkWrite error on AuthState]`, err.message);
+			}
+		}
 
 		for (const op of ops) {
 			if (op.updateOne) {
