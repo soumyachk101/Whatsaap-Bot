@@ -174,6 +174,7 @@ function handleNewSock(sock) {
 onNewSock(handleNewSock);
 
 app.locals.reconnect = () => startSock("manual-reconnect");
+app.locals.getLastQR = () => lastQR;
 
 // ── WebSocket server ──────────────────────────────────────────────────────────
 wss.on("connection", async (ws, req) => {

@@ -96,8 +96,12 @@ export default function Plugins() {
  {filtered.map((plugin, i) => (
  <div key={plugin.id} className="plugin-card anim-scale-in" style={{ animationDelay: `${i * 40}ms` }}>
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
- <div className="plugin-icon" style={{ background: plugin.bg || 'rgba(255,255,255,0.03)', border: `1px solid ${plugin.border || 'rgba(255,255,255,0.06)'}` }}>
- {plugin.icon && <plugin.icon size={22} color={plugin.color || '#818cf8'} />}
+ <div className="plugin-icon" style={{ background: plugin.bg || 'rgba(255,255,255,0.03)', border: `1px solid ${plugin.border || 'rgba(255,255,255,0.06)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+ {typeof plugin.icon === 'function' ? (
+ <plugin.icon size={22} color={plugin.color || '#818cf8'} />
+ ) : (
+ <span>{plugin.icon || '🧩'}</span>
+ )}
  </div>
  <span className={`plugin-badge ${plugin.enabled ? 'badge-emerald' : 'badge-zinc'}`}>
  {plugin.enabled ? 'Active' : 'Inactive'}

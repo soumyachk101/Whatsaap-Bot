@@ -199,11 +199,13 @@ export default function QRPage() {
 
  {qrData && (
  <>
- {/* eslint-disable-next-line react/no-danger */}
- <div
- dangerouslySetInnerHTML={{ __html: qrData }}
- style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
- />
+						{qrData?.startsWith?.('<svg') ? (
+							<div dangerouslySetInnerHTML={{ __html: qrData }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }} />
+						) : qrData?.startsWith?.('data:image') ? (
+							<img src={qrData} alt="WhatsApp QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+						) : (
+							<div dangerouslySetInnerHTML={{ __html: qrData }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+						)}
  <div style={{
  position: 'absolute',
  top: 8,

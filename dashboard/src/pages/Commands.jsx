@@ -20,37 +20,51 @@ export default function Commands() {
  const [search, setSearch] = useState('')
 
  useEffect(() => {
- getCommands()
- .then(d => setAll([
- ...(d.publicCommands || []).map(c => ({ ...c, type: 'public' })),
- ...(d.groupCommands || []).map(c => ({ ...c, type: 'group' })),
- ...(d.adminCommands || []).map(c => ({ ...c, type: 'admin' })),
- ...(d.ownerCommands || []).map(c => ({ ...c, type: 'owner' })),
- ]))
- .catch(() => toast('Failed to load commands', false))
- .finally(() => setLoading(false))
- }, [])
+		getCommands()
+			.then(d => {
+				const normalize = (list, type) => (list || []).map(c => {
+					const cmdArr = Array.isArray(c.cmd) ? c.cmd : (c.cmd ? [c.cmd] : ['unknown'])
+					return {
+						...c,
+						type,
+						cmd: cmdArr,
+						primaryCmd: cmdArr[0] || 'unknown',
+						desc: c.desc || c.description || ''
+					}
+				})
+				setAll([
+					...normalize(d.publicCommands, 'public'),
+					...normalize(d.groupCommands, 'group'),
+					...normalize(d.adminCommands, 'admin'),
+					...normalize(d.ownerCommands, 'owner'),
+				])
+			})
+			.catch(() => toast('Failed to load commands', false))
+			.finally(() => setLoading(false))
+	}, [])
 
- const rows = useMemo(() => {
- const q = search.toLowerCase()
- return all.filter(c => {
- if (filter !== 'all' && c.type !== filter) return false
- if (q && !c.cmd.join(' ').toLowerCase().includes(q) && !(c.desc || '').toLowerCase().includes(q)) return false
- return true
- })
- }, [all, filter, search])
+	const rows = useMemo(() => {
+		const q = search.toLowerCase()
+		return all.filter(c => {
+			if (filter !== 'all' && c.type !== filter) return false
+			const cmdStr = (c.cmd || []).join(' ').toLowerCase()
+			if (q && !cmdStr.includes(q) && !(c.desc || '').toLowerCase().includes(q)) return false
+			return true
+		})
+	}, [all, filter, search])
 
- async function handleToggle(cmd, aliases, currentlyDisabled) {
- const newDisabled = !currentlyDisabled
- setAll(prev => prev.map(c => c.cmd.some(k => aliases.includes(k)) ? { ...c, disabledGlobally: newDisabled } : c))
- try {
- await toggleCommand(cmd, newDisabled, aliases)
- toast(newDisabled ? `Disabled: #${cmd}` : `Enabled: #${cmd}`)
- } catch (err) {
- setAll(prev => prev.map(c => c.cmd.some(k => aliases.includes(k)) ? { ...c, disabledGlobally: currentlyDisabled } : c))
- toast(err.message, false)
- }
- }
+	async function handleToggle(cmd, aliases, currentlyDisabled) {
+		const newDisabled = !currentlyDisabled
+		const safeAliases = Array.isArray(aliases) ? aliases : [cmd]
+		setAll(prev => prev.map(c => (c.cmd || []).some(k => safeAliases.includes(k)) ? { ...c, disabledGlobally: newDisabled } : c))
+		try {
+			await toggleCommand(cmd, newDisabled, safeAliases)
+			toast(newDisabled ? `Disabled: #${cmd}` : `Enabled: #${cmd}`)
+		} catch (err) {
+			setAll(prev => prev.map(c => (c.cmd || []).some(k => safeAliases.includes(k)) ? { ...c, disabledGlobally: currentlyDisabled } : c))
+			toast(err.message, false)
+		}
+	}
 
  return (
  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -116,24 +130,25 @@ export default function Commands() {
  </tr>
  </thead>
  <tbody>
- {rows.map(c => {
- const style = TYPE_STYLES[c.type] || TYPE_STYLES.public
- return (
- <tr key={c.cmd[0]}>
- <td style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: '#f1f5f9', fontSize: '0.8rem' }}>
- {c.cmd.map(a => `#${a}`).join(', ')}
- </td>
- <td><span className={`badge ${style.cls}`}>{style.label}</span></td>
- <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{c.desc || '—'}</td>
- <td style={{ textAlign: 'right' }}>
- <label className="toggle-switch" style={{ verticalAlign: 'middle' }}>
- <input type="checkbox" checked={!c.disabledGlobally} onChange={() => handleToggle(c.cmd[0], c.cmd, c.disabledGlobally)} />
- <span className="slider" />
- </label>
- </td>
- </tr>
- )
- })}
+ 					{rows.map((c, i) => {
+						const style = TYPE_STYLES[c.type] || TYPE_STYLES.public
+						const primary = c.primaryCmd || c.cmd?.[0] || 'cmd'
+						return (
+							<tr key={`${primary}-${i}`}>
+								<td style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: '#f1f5f9', fontSize: '0.8rem' }}>
+									{(c.cmd || [primary]).map(a => `#${a}`).join(', ')}
+								</td>
+								<td><span className={`badge ${style.cls}`}>{style.label}</span></td>
+								<td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{c.desc || '—'}</td>
+								<td style={{ textAlign: 'right' }}>
+									<label className="toggle-switch" style={{ verticalAlign: 'middle' }}>
+										<input type="checkbox" checked={!c.disabledGlobally} onChange={() => handleToggle(primary, c.cmd, c.disabledGlobally)} />
+										<span className="slider" />
+									</label>
+								</td>
+							</tr>
+						)
+					})}
  </tbody>
  </table>
  ) : (

@@ -76,8 +76,13 @@ export default function QRCode() {
 									boxShadow: '0 0 40px rgba(99, 102, 241, 0.15)',
 								}}
 							>
-								{/* eslint-disable-next-line react/no-danger */}
-								<div dangerouslySetInnerHTML={{ __html: qrData }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+								{qrData?.startsWith?.('<svg') ? (
+									<div dangerouslySetInnerHTML={{ __html: qrData }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }} />
+								) : qrData?.startsWith?.('data:image') ? (
+									<img src={qrData} alt="WhatsApp QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+								) : (
+									<div dangerouslySetInnerHTML={{ __html: qrData }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+								)}
 							</div>
 							<div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', }}>
 								<span className={`status-dot ${connected ? 'online' : ''}`} style={{ background: connected ? '#10b981' : '#f59e0b', boxShadow: connected ? '0 0 8px rgba(16,185,129,0.5)' : '0 0 8px rgba(245,158,11,0.5)', width: 7, height: 7, borderRadius: '50%' }} />

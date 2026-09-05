@@ -54,9 +54,20 @@ export default class ErrorBoundary extends Component {
 							{this.state.error?.message || 'An unexpected error occurred in this section.'}
 						</p>
 					</div>
-					<button className="btn btn-primary" onClick={this.handleReset} style={{ marginTop: '0.5rem' }}>
-						Try Again
-					</button>
+					<div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+						<button className="btn btn-secondary" onClick={this.handleReset}>
+							Try Again
+						</button>
+						<button
+							className="btn btn-primary"
+							onClick={() => {
+								this.setState({ hasError: false, error: null })
+								window.location.href = window.location.pathname.startsWith('/admin') ? '/admin/' : '/'
+							}}
+						>
+							Back to Control Center
+						</button>
+					</div>
 				</div>
 			)
 		}

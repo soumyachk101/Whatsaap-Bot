@@ -90,6 +90,33 @@ export default function Analytics() {
 
  useEffect(() => { fetch() }, [])
 
+ const {
+  topGroups = [],
+  topMembers = [],
+  typeBreakdown = {},
+  totalMessages = 0,
+  activeGroups = 0,
+  blockedMembers = 0,
+  totalGroups = 0,
+  totalMembers = 0
+ } = data || {}
+
+ const radarData = useMemo(() => {
+  if (topGroups && topGroups.length >= 3) {
+   return topGroups.slice(0, 6).map((g) => ({
+    subject: (g.name || 'Group').length > 14 ? (g.name || 'Group').slice(0, 12) + '…' : (g.name || 'Group'),
+    messages: g.messages || 0,
+   }))
+  }
+  return [
+   { subject: 'Text', messages: typeBreakdown?.text || 0 },
+   { subject: 'Images', messages: typeBreakdown?.image || 0 },
+   { subject: 'Videos', messages: typeBreakdown?.video || 0 },
+   { subject: 'Stickers', messages: typeBreakdown?.sticker || 0 },
+   { subject: 'PDFs', messages: typeBreakdown?.pdf || 0 },
+  ]
+ }, [topGroups, typeBreakdown])
+
  if (loading) {
  return (
  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', gap: '1.25rem' }}>
@@ -110,17 +137,6 @@ export default function Analytics() {
 
  if (!data) return null
 
- const {
-  topGroups = [],
-  topMembers = [],
-  typeBreakdown = {},
-  totalMessages = 0,
-  activeGroups = 0,
-  blockedMembers = 0,
-  totalGroups = 0,
-  totalMembers = 0
- } = data || {}
-
  const mediaTotal = (typeBreakdown.image || 0) + (typeBreakdown.video || 0) + (typeBreakdown.sticker || 0) + (typeBreakdown.pdf || 0)
  const textTotal = typeBreakdown.text || 0
  const textPct = totalMessages ? Math.round((textTotal / totalMessages) * 100) : 0
@@ -133,22 +149,6 @@ export default function Analytics() {
  { name: 'Stickers', value: typeBreakdown.sticker || 0, color: '#34d399', gradId: 'emeraldG', icon: <Icons.IconZap size={18} /> },
  { name: 'Documents', value: typeBreakdown.pdf || 0, color: '#22d3ee', gradId: 'cyanG', icon: <Icons.IconServer size={18} /> },
  ].filter(d => d.value > 0)
-
- const radarData = useMemo(() => {
-  if (topGroups && topGroups.length >= 3) {
-   return topGroups.slice(0, 6).map((g) => ({
-    subject: (g.name || 'Group').length > 14 ? (g.name || 'Group').slice(0, 12) + '…' : (g.name || 'Group'),
-    messages: g.messages || 0,
-   }))
-  }
-  return [
-   { subject: 'Text', messages: typeBreakdown?.text || 0 },
-   { subject: 'Images', messages: typeBreakdown?.image || 0 },
-   { subject: 'Videos', messages: typeBreakdown?.video || 0 },
-   { subject: 'Stickers', messages: typeBreakdown?.sticker || 0 },
-   { subject: 'PDFs', messages: typeBreakdown?.pdf || 0 },
-  ]
- }, [topGroups, typeBreakdown])
 
  const SvgDefs = () => (
  <svg style={{ height: 0, width: 0, position: 'absolute' }}>

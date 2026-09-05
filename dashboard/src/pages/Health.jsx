@@ -110,8 +110,14 @@ export default function Health() {
  if (error) return <div className="card" style={{ padding: '1.5rem', color: '#fb7185', borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.04)', textAlign: 'center' }}>{error}</div>
  if (!data) return null
 
- const { memory, uptime, connected, nodeVersion, pid, platform } = data
- const heapPct = Math.round(memory.heapUsed / memory.heapTotal * 100)
+ const { memory = {}, uptime = 0, connected = false, nodeVersion = '—', pid = '—', platform = '—' } = data || {}
+ const mem = {
+  heapUsed: memory?.heapUsed || 0,
+  heapTotal: memory?.heapTotal || 1,
+  rss: memory?.rss || 0,
+  external: memory?.external || 0,
+ }
+ const heapPct = Math.round((mem.heapUsed / (mem.heapTotal || 1)) * 100)
 
  return (
  <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -135,10 +141,10 @@ export default function Health() {
  <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>Memory Utilization</h3>
  </div>
  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
- <MetricBox label="Heap Used" value={fmtBytes(memory.heapUsed)} sub={`${heapPct}% capacity`} pct={heapPct} />
- <MetricBox label="Heap Total" value={fmtBytes(memory.heapTotal)} />
- <MetricBox label="RSS" value={fmtBytes(memory.rss)} sub="Resident Set" />
- <MetricBox label="External" value={fmtBytes(memory.external)} />
+ <MetricBox label="Heap Used" value={fmtBytes(mem.heapUsed)} sub={`${heapPct}% capacity`} pct={heapPct} />
+ <MetricBox label="Heap Total" value={fmtBytes(mem.heapTotal)} />
+ <MetricBox label="RSS" value={fmtBytes(mem.rss)} sub="Resident Set" />
+ <MetricBox label="External" value={fmtBytes(mem.external)} />
  </div>
  </div>
 

@@ -6,6 +6,7 @@ import { cmdToText } from "../functions/getAddCommands.js";
 import { clearSQLiteAuthState } from "../functions/useSQLiteAuthState.js";
 import { getLogs, getRecentActivities, getActivityOverview, getCommandsRun, logSystemEvent } from "../functions/botLogger.js";
 import mdClient from "../sqlite.js";
+import QRCode from "qrcode";
 
 const router = Router();
 
@@ -343,6 +344,40 @@ router.post("/api/admin/request-pair", requireAdmin, async (req, res) => {
 
 		const code = await sock.requestPairingCode(clean);
 		res.json({ ok: true, code });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+// ── API: Get Current QR Code / Pairing Status ─────────────────────────────────
+router.get(["/api/admin/pair", "/api/admin/bot/pair"], async (req, res) => {
+	try {
+		const isConnected = !!(
+			req.app.locals.botConnected ||
+			req.app.locals.sock?.user ||
+			req.app.locals.sock?.authState?.creds?.me
+		);
+		const rawQR = req.app.locals.getLastQR ? req.app.locals.getLastQR() : null;
+		let qrSvg = null;
+		if (rawQR) {
+			try {
+				qrSvg = await QRCode.toString(rawQR, { type: "svg", margin: 1 });
+			} catch (_) {}
+		}
+		res.json({
+			connected: isConnected,
+			qr: qrSvg || rawQR,
+			rawQr: rawQR,
+		});
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+router.post("/api/admin/pair/refresh", async (req, res) => {
+	try {
+		if (req.app.locals.reconnect) req.app.locals.reconnect();
+		res.json({ ok: true, message: "Reconnecting bot socket..." });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}

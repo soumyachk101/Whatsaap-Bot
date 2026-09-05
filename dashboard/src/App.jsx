@@ -81,7 +81,7 @@ export default function App() {
  <BrowserRouter basename={basename}>
  <Routes>
 				<Route path="/login" element={<Login />} />
-				<Route path="/qr" element={<QRPage />} />
+				<Route path="/qr-standalone" element={<QRPage />} />
 				<Route path="/*" element={
 					<AuthGuard>
 						<Layout>
