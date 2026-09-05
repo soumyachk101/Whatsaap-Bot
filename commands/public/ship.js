@@ -1,4 +1,5 @@
 // Compatibility / love meter — viral group fun feature
+import { resolveMemberIdentity, extractPhoneNumber } from "../../functions/lidUtils.js";
 
 const COMMENTS = [
 	{ min: 95, txt: "💍 *Made for each other!* Dil le gaya re!" },
@@ -31,13 +32,13 @@ const getComment = (score) => {
 };
 
 const buildBar = (score) => {
-	const total = 20;
+	const total = 10;
 	const filled = Math.round((score / 100) * total);
-	return "▓".repeat(filled) + "░".repeat(total - filled);
+	return "❤️".repeat(filled) + "🖤".repeat(total - filled);
 };
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping, prefix, command } = msgInfoObj;
+	const { senderJid, sendMessageWTyping, groupMetadata, prefix, command } = msgInfoObj;
 
 	const mentionedJids =
 		msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
@@ -86,9 +87,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const comment = getComment(score);
 	const bar = buildBar(score);
 
-	// Extract display numbers
-	const numA = userA.split("@")[0].split(":")[0];
-	const numB = userB.split("@")[0].split(":")[0];
+	// Extract display numbers and all equivalent JIDs
+	const idA = resolveMemberIdentity(userA, groupMetadata, sock);
+	const idB = resolveMemberIdentity(userB, groupMetadata, sock);
+	const numA = idA.phoneNumber || extractPhoneNumber(userA);
+	const numB = idB.phoneNumber || extractPhoneNumber(userB);
+	const mentions = [...new Set([...idA.allJids, ...idB.allJids])];
 
 	const text =
 		`💘 *Love Meter* 💘\n\n` +
@@ -100,7 +104,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	return sendMessageWTyping(
 		from,
-		{ text, mentions: [userA, userB] },
+		{ text, mentions: mentions.length > 0 ? mentions : [userA, userB] },
 		{ quoted: msg }
 	);
 };

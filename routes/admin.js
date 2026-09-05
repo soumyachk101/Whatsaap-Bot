@@ -378,7 +378,7 @@ router.post("/api/admin/request-pair", requireAdmin, async (req, res) => {
 });
 
 // ── API: Get Current QR Code / Pairing Status ─────────────────────────────────
-router.get(["/api/admin/pair", "/api/admin/bot/pair"], async (req, res) => {
+router.get(["/api/admin/pair", "/api/admin/bot/pair"], requireAdmin, async (req, res) => {
 	try {
 		const isConnected = !!(
 			req.app.locals.botConnected ||
@@ -402,7 +402,7 @@ router.get(["/api/admin/pair", "/api/admin/bot/pair"], async (req, res) => {
 	}
 });
 
-router.post("/api/admin/pair/refresh", async (req, res) => {
+router.post("/api/admin/pair/refresh", requireAdmin, async (req, res) => {
 	try {
 		if (req.app.locals.reconnect) req.app.locals.reconnect();
 		res.json({ ok: true, message: "Reconnecting bot socket..." });

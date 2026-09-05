@@ -1,7 +1,8 @@
 import { group } from "../../../sqlite-DB/groupDataDb.js";
+import { resolveMemberIdentity, extractPhoneNumber } from "../../../functions/lidUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { isGroup, sendMessageWTyping } = msgInfoObj;
+	const { isGroup, sendMessageWTyping, groupMetadata } = msgInfoObj;
 
 	if (!isGroup) {
 		return sendMessageWTyping(from, { text: "❌ Chat analysis command can only be used inside groups." }, { quoted: msg });
@@ -28,14 +29,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const stickerPct = Math.round((totalSticker / totalMsgs) * 100) || 0;
 		const pdfPct = Math.round((totalPdf / totalMsgs) * 100) || 0;
 
-		const sorted = [...items].sort((a, b) => (b.count || 0) - (a.count || 0));
-		const topUser = sorted[0];
-		const topUserJid = topUser?.id || "";
+		const engagementLevel =
+			totalMsgs > 5000 ? "🔥 Super Active (Very High Activity)" :
+			totalMsgs > 1000 ? "⚡ Moderate (Consistent Conversations)" : "🌱 Low (Slow Activity)";
 
-		let engagementLevel = "Low Activity 💤";
-		if (totalMsgs > 5000) engagementLevel = "Ultra Active 🔥⚡";
-		else if (totalMsgs > 1000) engagementLevel = "Highly Active 🔥";
-		else if (totalMsgs > 200) engagementLevel = "Moderately Active 💬";
+		const topUser = items.length > 0 ? [...items].sort((a, b) => (b.count || 0) - (a.count || 0))[0] : null;
+		const topUserJid = topUser?.id || "";
 
 		let text = `📊 *CHAT ANALYTICS & INSIGHTS* 📊\n` +
 			       `━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -52,8 +51,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		const mentions = [];
 		if (topUser) {
-			if (topUserJid.includes("@")) mentions.push(topUserJid);
-			const topName = topUserJid.includes("@") ? `@${topUserJid.split("@")[0]}` : (topUser.name || "User");
+			const idObj = resolveMemberIdentity(topUserJid, groupMetadata, sock);
+			const phone = idObj.phoneNumber || extractPhoneNumber(topUserJid);
+			if (idObj.allJids.length > 0) {
+				for (const aj of idObj.allJids) mentions.push(aj);
+			} else if (topUserJid.includes("@")) {
+				mentions.push(topUserJid);
+			}
+			const topName = phone ? `@${phone}` : (topUser.name || "User");
 			text += `👑 *Top Contributor:* ${topName} (${(topUser.count || 0).toLocaleString()} msgs)\n`;
 		}
 

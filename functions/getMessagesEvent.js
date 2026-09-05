@@ -13,7 +13,7 @@ import { getBotData } from "../sqlite-DB/botDataDb.js";
 import { downloadMediaMessage } from "baileys";
 import { checkNSFW } from "./nsfwFilter.js";
 import { groupMetadataCache } from "./getSocket.js";
-import { extractPhoneNumber, isLID } from "./lidUtils.js";
+import { extractPhoneNumber, isLID, resolveMemberIdentity } from "./lidUtils.js";
 import { logCommandEvent, logMessageEvent } from "./botLogger.js";
 
 const parseNumberEnv = (envVal) => {
@@ -56,7 +56,7 @@ const getCommand = async (sock, msg, cache) => {
 		const messageKeys = Object.keys(msg.message);
 		if (messageKeys.length === 0) return;
 
-		const sendMessageWTyping = async (to, msgObj, messageOptions) => {
+		const sendMessageWTyping = async (to, msgObj, messageOptions = {}) => {
 			try {
 				if (!to || !msgObj) return;
 				if (!sock || !sock.user) return;
@@ -64,6 +64,71 @@ const getCommand = async (sock, msg, cache) => {
 				const mediaTypes = ["sticker", "image", "audio", "video", "document"];
 				const messageType = Object.keys(msgObj)[0];
 				const isGroupChat = to.endsWith("@g.us");
+				const currentGroupMetadata = isGroupChat
+					? (groupMetadataCache.get(to) || groupMetadata || null)
+					: null;
+
+				// ── Auto-Normalize & Enrich Mentions ─────────────────────
+				const collectedMentions = new Set();
+
+				// 1. Mentions from msgObj
+				if (Array.isArray(msgObj.mentions)) {
+					for (const m of msgObj.mentions) if (m) collectedMentions.add(m);
+				}
+				if (Array.isArray(msgObj.contextInfo?.mentionedJid)) {
+					for (const m of msgObj.contextInfo.mentionedJid) if (m) collectedMentions.add(m);
+				}
+
+				// 2. Mentions from messageOptions
+				if (Array.isArray(messageOptions?.mentions)) {
+					for (const m of messageOptions.mentions) if (m) collectedMentions.add(m);
+				}
+				if (Array.isArray(messageOptions?.contextInfo?.mentionedJid)) {
+					for (const m of messageOptions.contextInfo.mentionedJid) if (m) collectedMentions.add(m);
+				}
+
+				// 3. Scan message text or caption for @\d{7,16} tags
+				const textContent =
+					(typeof msgObj.text === "string" ? msgObj.text : "") ||
+					(typeof msgObj.caption === "string" ? msgObj.caption : "") ||
+					(typeof msgObj.conversation === "string" ? msgObj.conversation : "");
+				if (textContent) {
+					const phoneTagMatches = textContent.match(/@(\d{7,16})/g);
+					if (phoneTagMatches) {
+						for (const tag of phoneTagMatches) {
+							const digits = tag.slice(1);
+							collectedMentions.add(`${digits}@s.whatsapp.net`);
+						}
+					}
+				}
+
+				// 4. Resolve all identities (pair PN and LID)
+				if (collectedMentions.size > 0) {
+					const enrichedMentions = new Set();
+					for (const jid of collectedMentions) {
+						if (!jid) continue;
+						const idObj = resolveMemberIdentity(jid, currentGroupMetadata, sock);
+						if (idObj.allJids && idObj.allJids.length > 0) {
+							for (const aj of idObj.allJids) enrichedMentions.add(aj);
+						} else {
+							const cleanJid = String(jid).includes(":")
+								? String(jid).split(":")[0] + (String(jid).includes("@") ? "@" + String(jid).split("@")[1] : "")
+								: String(jid);
+							if (cleanJid.includes("@")) {
+								enrichedMentions.add(cleanJid);
+							}
+						}
+					}
+
+					const finalMentionList = [...enrichedMentions];
+					if (finalMentionList.length > 0) {
+						msgObj.mentions = finalMentionList;
+						msgObj.contextInfo = {
+							...(msgObj.contextInfo || {}),
+							mentionedJid: finalMentionList,
+						};
+					}
+				}
 
 				if (mediaTypes.includes(messageType)) {
 					if (typeof msgObj[messageType] === "string") {
@@ -83,6 +148,13 @@ const getCommand = async (sock, msg, cache) => {
 							cachedGroupMetadata: isGroupChat ? (jid) => groupMetadataCache.get(jid) : undefined,
 							mediaUploadTimeoutMs: isGroupChat ? 1000 * 60 * 10 : 1000 * 60 * 5,
 						};
+
+						if (msgObj.contextInfo?.mentionedJid?.length) {
+							sendOptions.contextInfo = {
+								...(sendOptions.contextInfo || {}),
+								mentionedJid: msgObj.contextInfo.mentionedJid,
+							};
+						}
 
 						return await sock.sendMessage(to, msgObj, sendOptions);
 					} catch (err) {
@@ -245,17 +317,9 @@ const getCommand = async (sock, msg, cache) => {
 		const senderJid = msg.key.fromMe ? botJid : (isGroup ? (msg.key.participant || msg.participant) : msg.key.remoteJid);
 		if (!senderJid || !senderJid.includes("@")) return;
 
-		let senderPnJid = senderJid;
-		if (isGroup && groupMetadata?.participants) {
-			const p = groupMetadata.participants.find(
-				(item) => item.id === senderJid || item.lid === senderJid
-			);
-			if (p && p.id) {
-				senderPnJid = p.id;
-			}
-		}
-
-		const senderPhone = extractPhoneNumber(senderPnJid || senderJid);
+		const senderIdentity = resolveMemberIdentity(senderJid, groupMetadata, sock);
+		const senderPnJid = senderIdentity.pnJid || (senderJid.endsWith("@s.whatsapp.net") ? senderJid : "");
+		const senderPhone = senderIdentity.phoneNumber || extractPhoneNumber(senderPnJid || senderJid);
 		const senderNumber = senderPhone || (senderJid.includes(":") ? senderJid.split(":")[0] : senderJid.split("@")[0]);
 
 		const botIdentityJids = [...new Set([...botNumber, botJid, botLid].filter(Boolean))];
@@ -479,6 +543,8 @@ const getCommand = async (sock, msg, cache) => {
 			command,
 			isGroup,
 			senderJid,
+			senderPnJid,
+			senderPhone,
 			groupMetadata,
 			groupAdmins,
 			isGroupAdmin,

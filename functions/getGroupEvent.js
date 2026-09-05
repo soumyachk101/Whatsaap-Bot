@@ -1,13 +1,13 @@
 import sendToTelegram, { escapeHtml } from "./telegramLogger.js";
 import { fake_quoted } from "./getFakeQuoted.js";
 import { getGroupData, createGroupData } from "../sqlite-DB/groupDataDb.js";
-import { extractPhoneNumber, getPreferredJID } from "./lidUtils.js";
+import { extractPhoneNumber, getPreferredJID, resolveMemberIdentity } from "./lidUtils.js";
 import { groupMetadataCache } from "./getSocket.js";
 import { randomWelcome, randomGoodbye, sendWithTyping, premiumBox } from "./messageFormatter.js";
 
-const getPhone = (p) => {
+const getPhone = (p, groupMetadata = null, sock = null) => {
 	const raw = typeof p === "string" ? p : (p?.phoneNumber || p?.id || p?.jid || "");
-	return extractPhoneNumber(raw);
+	return extractPhoneNumber(raw, groupMetadata, sock);
 };
 
 const getGroupEvent = async (sock, events, cache) => {
@@ -47,27 +47,15 @@ const getGroupEvent = async (sock, events, cache) => {
 		if (groupDataDB.welcome !== "off" && Array.isArray(events.participants)) {
 			for (const member of events.participants) {
 				const memberJid = typeof member === "string" ? member : (member?.id || member?.jid || member?.phoneNumber || "");
-				const phoneNumber = getPhone(member);
+				const identity = resolveMemberIdentity(memberJid, groupMetadata, sock);
+				const phoneNumber = identity.phoneNumber || getPhone(member, groupMetadata, sock);
 				if (!phoneNumber) continue;
 
 				const mentionTag = `@${phoneNumber}`;
 				const displayName = member?.notify || member?.name || phoneNumber;
-
-				// Resolve preferred JID format
-				let mentionJid = "";
-				try {
-					mentionJid = await getPreferredJID(sock, memberJid);
-				} catch (_) {
-					mentionJid = memberJid;
-				}
-
-				const pnJid = `${phoneNumber}@s.whatsapp.net`;
-				const cleanMemberJid = memberJid.includes(":")
-					? memberJid.split(":")[0] + (memberJid.includes("@lid") ? "@lid" : "@s.whatsapp.net")
-					: memberJid;
-
-				// Mentions array must contain the PN JID that matches @phoneNumber in text
-				const mentionsList = [...new Set([pnJid, memberJid, cleanMemberJid, mentionJid].filter(Boolean))];
+				const mentionsList = identity.allJids.length > 0
+					? identity.allJids
+					: [`${phoneNumber}@s.whatsapp.net`];
 
 				// Pick and format welcome text
 				let welcomeText = "";
@@ -96,6 +84,7 @@ const getGroupEvent = async (sock, events, cache) => {
 					await sock.sendMessage(jid, {
 						text: welcomeText,
 						mentions: mentionsList,
+						contextInfo: { mentionedJid: mentionsList },
 					});
 				} catch (sendErr) {
 					console.error(`[getGroupEvent] Failed to send welcome message to ${jid}:`, sendErr.message);
@@ -136,7 +125,8 @@ const getGroupEvent = async (sock, events, cache) => {
 		if (goodbyeEnabled && Array.isArray(events.participants)) {
 			for (const member of events.participants) {
 				const memberJid = typeof member === "string" ? member : (member?.id || member?.jid || member?.phoneNumber || "");
-				const phoneNumber = getPhone(member);
+				const identity = resolveMemberIdentity(memberJid, groupMetadata, sock);
+				const phoneNumber = identity.phoneNumber || getPhone(member, groupMetadata, sock);
 				if (!phoneNumber) continue;
 
 				const mentionTag = `@${phoneNumber}`;
@@ -147,8 +137,7 @@ const getGroupEvent = async (sock, events, cache) => {
 				try {
 					dmJid = await getPreferredJID(sock, memberJid);
 				} catch (_) {
-					// Fallback: build PN JID from phone number
-					dmJid = memberJid.includes("@") ? memberJid : `${phoneNumber}@s.whatsapp.net`;
+					dmJid = identity.pnJid || (memberJid.includes("@") ? memberJid : `${phoneNumber}@s.whatsapp.net`);
 				}
 
 				// Build goodbye text for group message
@@ -172,12 +161,10 @@ const getGroupEvent = async (sock, events, cache) => {
 					goodbyeText = randomGoodbye(mentionTag, grpName);
 				}
 
-				// Mentions for group message (PN JID is what @phoneNumber resolves to)
-				const pnJid = `${phoneNumber}@s.whatsapp.net`;
-				const cleanMemberJid = memberJid.includes(":")
-					? memberJid.split(":")[0] + (memberJid.includes("@lid") ? "@lid" : "@s.whatsapp.net")
-					: memberJid;
-				const mentionsList = [...new Set([pnJid, memberJid, cleanMemberJid, dmJid].filter(Boolean))];
+				// Mentions for group message
+				const mentionsList = identity.allJids.length > 0
+					? identity.allJids
+					: [`${phoneNumber}@s.whatsapp.net`];
 
 				// Build DM goodbye text
 				const dmGoodbyeText = groupDataDB.goodbye && groupDataDB.goodbye.trim() !== "" && groupDataDB.goodbye !== "off"
@@ -204,6 +191,7 @@ const getGroupEvent = async (sock, events, cache) => {
 					await sock.sendMessage(jid, {
 						text: premiumGoodbye,
 						mentions: mentionsList,
+						contextInfo: { mentionedJid: mentionsList },
 					});
 				} catch (sendErr) {
 					console.error(`[getGroupEvent] Failed to send goodbye message to ${jid}:`, sendErr.message);

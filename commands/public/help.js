@@ -1,7 +1,8 @@
 import { cmdToText } from "../../functions/getAddCommands.js";
+import { resolveMemberIdentity, extractPhoneNumber } from "../../functions/lidUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	let { isGroup, sendMessageWTyping, updateName, senderJid, isOwner } = msgInfoObj;
+	let { isGroup, sendMessageWTyping, updateName, senderJid, senderPhone, groupMetadata, isOwner } = msgInfoObj;
 	let prefix = msgInfoObj.prefix || (process.env.PREFIX ? process.env.PREFIX.trim() : "#");
 	const botName = process.env.BOT_NAME || "DownloadBuddy";
 	const ownerName = process.env.OWNER_NAME || "Soumya Chakraborty";
@@ -233,8 +234,18 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		);
 	}
 
-	let userName = updateName || (msg.pushName ? msg.pushName : "");
-	let greeting = userName ? `@~${userName}` : (senderJid ? `@${senderJid.split("@")[0]}` : "Friend");
+	const identity = resolveMemberIdentity(senderJid, groupMetadata, sock);
+	const targetPhone = senderPhone || identity.phoneNumber || extractPhoneNumber(senderJid);
+	const userName = updateName || (msg.pushName ? msg.pushName : "");
+
+	let greeting = "";
+	if (targetPhone && /^\d+$/.test(targetPhone)) {
+		greeting = `@${targetPhone}`;
+	} else if (userName) {
+		greeting = userName;
+	} else {
+		greeting = "Friend";
+	}
 
 	const menu = [
 		`╭━━『 *${botName}* 』━━╮`,
@@ -252,7 +263,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		`🌟 Bot Version: ${botVersion}`,
 	].join("\n");
 
-	const mentions = senderJid ? [senderJid] : [];
+	const mentions = identity.allJids.length > 0 ? identity.allJids : (senderJid ? [senderJid] : []);
 	await sendMessageWTyping(from, { text: menu, mentions }, { quoted: msg });
 };
 

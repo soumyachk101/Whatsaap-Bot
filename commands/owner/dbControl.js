@@ -4,9 +4,14 @@ import { getBotData, bot } from "../../sqlite-DB/botDataDb.js";
 import { extractPhoneNumber } from "../../functions/lidUtils.js";
 
 const updateData = async (collection, id, data, value, sendMessageWTyping, from, msg) => {
-	if (value.match(/^[0-9]+$/)) value = Number(value);
-	if (value === "true") value = true;
-	if (value === "false") value = false;
+	if (value === undefined) {
+		return sendMessageWTyping(from, { text: "❌ Provide format: <field>:<value>" }, { quoted: msg });
+	}
+	if (typeof value === "string") {
+		if (/^[0-9]+$/.test(value)) value = Number(value);
+		else if (value === "true") value = true;
+		else if (value === "false") value = false;
+	}
 	await collection.updateOne({ _id: id }, { $set: { [data]: value } });
 	sendMessageWTyping(from, { text: "Command Executed" }, { quoted: msg });
 };
@@ -23,13 +28,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				id = from;
 				break;
 			case "member":
-				if (!msg.message.extendedTextMessage) {
+				if (!msg.message?.extendedTextMessage?.contextInfo?.participant) {
 					return sendMessageWTyping(from, { text: "*Reply On User's Message.*" }, { quoted: msg });
 				}
 				collection = member;
 				getDataFunc = getMemberData;
-				// Normalize to PN-based JID for DB consistency
-				id = extractPhoneNumber(msg.message.extendedTextMessage.contextInfo.participant);
+				const rawParticipant = msg.message.extendedTextMessage.contextInfo.participant;
+				const phoneNum = extractPhoneNumber(rawParticipant);
+				id = phoneNum ? `${phoneNum}@s.whatsapp.net` : rawParticipant;
 				break;
 			case "bot":
 				collection = bot;

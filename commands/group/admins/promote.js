@@ -14,9 +14,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(from, { text: "Mention or tag member." }, { quoted: msg });
 	}
 
+	const contextInfo = msg.message?.extendedTextMessage?.contextInfo;
 	const taggedJid =
-		msg.message.extendedTextMessage.contextInfo.participant ||
-		msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
+		contextInfo?.participant ||
+		contextInfo?.mentionedJid?.[0];
+
+	if (!taggedJid) {
+		return sendMessageWTyping(from, { text: "❌ Mention or tag a member, or reply to their message." }, { quoted: msg });
+	}
 	if (taggedJid === groupMetadata.owner) {
 		return sendMessageWTyping(from, { text: "❌ *Group Owner Tagged*" }, { quoted: msg });
 	}

@@ -1,6 +1,6 @@
 import { getGroupData, group } from "../../../sqlite-DB/groupDataDb.js";
 import { getMemberData, member } from "../../../sqlite-DB/membersDataDb.js";
-import { extractPhoneNumber } from "../../../functions/lidUtils.js";
+import { extractPhoneNumber, resolveMemberIdentity } from "../../../functions/lidUtils.js";
 import { config } from "dotenv";
 config();
 
@@ -12,29 +12,32 @@ const myNumber = [
 
 /**
  * Read current warning count for a member from both DB sources.
- * Returns the higher of the two (group memberWarnCount vs member warning[]).
+ * Checks all equivalent JIDs (LID, PN) so warnings stay consistent.
  */
-const readWarnCount = async (groupJid, memberJid) => {
+const readWarnCount = async (groupJid, memberJid, allJids = []) => {
 	let groupWarn = 0;
 	let memberWarn = 0;
+	const matchJids = [...new Set([memberJid, ...allJids].filter(Boolean))];
 
 	const gData = await getGroupData(groupJid);
 	if (gData?.memberWarnCount?.length) {
-		const gEntry = gData.memberWarnCount.find((e) => e.member === memberJid);
+		const gEntry = gData.memberWarnCount.find((e) => matchJids.includes(e.member));
 		if (gEntry) groupWarn = gEntry.count || 0;
 	}
 
-	const mData = await getMemberData(memberJid);
-	if (mData?.warning?.length) {
-		const mEntry = mData.warning.find((e) => e.group === groupJid);
-		if (mEntry) memberWarn = mEntry.count || 0;
+	for (const j of matchJids) {
+		const mData = await getMemberData(j);
+		if (mData?.warning?.length) {
+			const mEntry = mData.warning.find((e) => e.group === groupJid);
+			if (mEntry && mEntry.count > memberWarn) memberWarn = mEntry.count;
+		}
 	}
 
 	return Math.max(groupWarn, memberWarn);
 };
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	let { command, groupAdmins, sendMessageWTyping, botNumber, updateName } = msgInfoObj;
+	let { command, groupAdmins, sendMessageWTyping, botNumber, updateName, groupMetadata } = msgInfoObj;
 	let prefix = msgInfoObj.prefix || (process.env.PREFIX ? process.env.PREFIX.trim() : "#");
 
 	try {
@@ -76,15 +79,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return sendMessageWTyping(from, { text: helpText }, { quoted: msg });
 		}
 
-		const phoneNumber = extractPhoneNumber(taggedJid);
+		const targetIdentity = resolveMemberIdentity(taggedJid, groupMetadata, sock);
+		const phoneNumber = targetIdentity.phoneNumber || extractPhoneNumber(taggedJid);
+		const targetMentions = targetIdentity.allJids.length > 0 ? targetIdentity.allJids : [taggedJid];
+		const primaryId = targetIdentity.pnJid || taggedJid;
 		const adminName = updateName || msg.pushName || "Admin";
 
 		// ── Guards ────────────────────────────────────────────────
 		if (command !== "unwarn") {
-			if (taggedJid === botNumber[0] || taggedJid === botNumber[1]) {
+			const isBotTarget = targetMentions.some((j) => botNumber.includes(j));
+			if (isBotTarget) {
 				return sendMessageWTyping(from, { text: "🤖 _I cannot warn myself!_" }, { quoted: msg });
 			}
-			if (myNumber.includes(taggedJid)) {
+			const isOwnerTarget = targetMentions.some((j) => myNumber.includes(j)) || (phoneNumber && myNumber.some((m) => m.includes(phoneNumber)));
+			if (isOwnerTarget) {
 				return sendMessageWTyping(from, { text: "👑 _Owner or moderator cannot be warned._" }, { quoted: msg });
 			}
 		}
@@ -95,14 +103,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			await group.updateOne({ _id: from }, { $set: { memberWarnCount: [] } });
 		}
 
-		const memberData = await getMemberData(taggedJid);
+		const memberData = await getMemberData(primaryId);
 		if (memberData && (!memberData.warning || !Array.isArray(memberData.warning))) {
-			await member.updateOne({ _id: taggedJid }, { $set: { warning: [] } });
+			await member.updateOne({ _id: primaryId }, { $set: { warning: [] } });
 		}
 
 		// ── #warncount ────────────────────────────────────────────
 		if (command === "warncount") {
-			const currentCount = await readWarnCount(from, taggedJid);
+			const currentCount = await readWarnCount(from, taggedJid, targetIdentity.allJids);
 			const bars = "🔴".repeat(Math.min(currentCount, 3)) + "⚪".repeat(Math.max(0, 3 - currentCount));
 			const countBox = [
 				`╭━━『 *Warning Status* 』━━╮`,
@@ -120,7 +128,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				`💡 ${currentCount === 0 ? "User has a clean record in this group." : "3 warnings will result in an automatic removal."}`,
 			].join("\n");
 
-			return sendMessageWTyping(from, { text: countBox, mentions: [taggedJid] }, { quoted: msg });
+			return sendMessageWTyping(from, { text: countBox, mentions: targetMentions }, { quoted: msg });
 		}
 
 		// ── #warn ─────────────────────────────────────────────────
@@ -131,29 +139,29 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			}
 			const reason = reasonWords.join(" ").trim() || "Group rule violation";
 
-			const currentCount = await readWarnCount(from, taggedJid);
+			const currentCount = await readWarnCount(from, taggedJid, targetIdentity.allJids);
 			const newWarnCount = currentCount + 1;
 
 			// Increment in group DB
 			const groupResult = await group.updateOne(
-				{ _id: from, "memberWarnCount.member": taggedJid },
+				{ _id: from, "memberWarnCount.member": { $in: targetMentions } },
 				{ $inc: { "memberWarnCount.$.count": 1 } }
 			);
 			if (groupResult.matchedCount === 0) {
 				await group.updateOne(
 					{ _id: from },
-					{ $push: { memberWarnCount: { member: taggedJid, count: newWarnCount } } }
+					{ $push: { memberWarnCount: { member: primaryId, count: newWarnCount } } }
 				);
 			}
 
 			// Increment in member DB
 			const memberResult = await member.updateOne(
-				{ _id: taggedJid, "warning.group": from },
+				{ _id: primaryId, "warning.group": from },
 				{ $inc: { "warning.$.count": 1 } }
 			);
 			if (memberResult.matchedCount === 0) {
 				await member.updateOne(
-					{ _id: taggedJid },
+					{ _id: primaryId },
 					{ $push: { warning: { group: from, count: newWarnCount } } }
 				);
 			}
@@ -179,19 +187,19 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					: "💡 Note: 3 warnings will result in an automatic removal!",
 			].join("\n");
 
-			await sendMessageWTyping(from, { text: warnText, mentions: [taggedJid] }, { quoted: msg });
+			await sendMessageWTyping(from, { text: warnText, mentions: targetMentions }, { quoted: msg });
 
 			// Auto-kick on 3rd warning
 			if (newWarnCount >= 3) {
-				const isGroupAdmin = groupAdmins.includes(taggedJid);
-				const isBotAdmin = groupAdmins.includes(botNumber[0]) || groupAdmins.includes(botNumber[1]);
+				const isGroupAdmin = targetMentions.some((j) => groupAdmins.includes(j));
+				const isBotAdmin = groupAdmins.some((a) => botNumber.includes(a));
 
 				if (!isBotAdmin) {
 					await sendMessageWTyping(
 						from,
 						{
 							text: `╭━━『 *Auto-Kick Failed* 』━━╮\n\n❌ *I need Admin rights to remove @${phoneNumber}!*`,
-							mentions: [taggedJid],
+							mentions: targetMentions,
 						},
 						{ quoted: msg }
 					);
@@ -205,17 +213,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					);
 				} else {
 					try {
-						await sock.groupParticipantsUpdate(from, [taggedJid], "remove");
+						const kickJid = taggedJid.endsWith("@s.whatsapp.net")
+							? taggedJid
+							: (targetIdentity.allJids.find((j) => j.endsWith("@s.whatsapp.net")) || taggedJid);
+						await sock.groupParticipantsUpdate(from, [kickJid], "remove");
 
 						// Clear warnings after successful kick
-						await group.updateOne(
-							{ _id: from },
-							{ $pull: { memberWarnCount: { member: taggedJid } } }
-						);
-						await member.updateOne(
-							{ _id: taggedJid },
-							{ $pull: { warning: { group: from } } }
-						);
+						for (const j of targetMentions) {
+							await group.updateOne(
+								{ _id: from },
+								{ $pull: { memberWarnCount: { member: j } } }
+							);
+							await member.updateOne(
+								{ _id: j },
+								{ $pull: { warning: { group: from } } }
+							);
+						}
 
 						const kickText = [
 							`╭━━『 *Member Removed* 』━━╮`,
@@ -230,13 +243,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 							"╰━━━━━━━━━━━━━━━━━",
 						].join("\n");
 
-						await sendMessageWTyping(from, { text: kickText, mentions: [taggedJid] }, { quoted: msg });
+						await sendMessageWTyping(from, { text: kickText, mentions: targetMentions }, { quoted: msg });
 					} catch (kickErr) {
 						await sendMessageWTyping(
 							from,
 							{
 								text: `╭━━『 *Kick Failed* 』━━╮\n\n⚠️ Could not remove @${phoneNumber}: _${kickErr.message}_`,
-								mentions: [taggedJid],
+								mentions: targetMentions,
 							},
 							{ quoted: msg }
 						);
@@ -248,14 +261,16 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		// ── #unwarn ───────────────────────────────────────────────
 		if (command === "unwarn") {
-			await group.updateOne(
-				{ _id: from },
-				{ $pull: { memberWarnCount: { member: taggedJid } } }
-			);
-			await member.updateOne(
-				{ _id: taggedJid },
-				{ $pull: { warning: { group: from } } }
-			);
+			for (const j of targetMentions) {
+				await group.updateOne(
+					{ _id: from },
+					{ $pull: { memberWarnCount: { member: j } } }
+				);
+				await member.updateOne(
+					{ _id: j },
+					{ $pull: { warning: { group: from } } }
+				);
+			}
 
 			const clearedText = [
 				`╭━━『 *Warnings Reset* 』━━╮`,
@@ -273,7 +288,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				"✅ Clean record granted. Please follow group rules!",
 			].join("\n");
 
-			await sendMessageWTyping(from, { text: clearedText, mentions: [taggedJid] }, { quoted: msg });
+			await sendMessageWTyping(from, { text: clearedText, mentions: targetMentions }, { quoted: msg });
 			return;
 		}
 	} catch (err) {

@@ -14,9 +14,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		);
 	}
 
-	let participant = msg.message.extendedTextMessage
-		? msg.message.extendedTextMessage.contextInfo.participant
-		: evv.split(" ").join("");
+	let participant =
+		msg.message?.extendedTextMessage?.contextInfo?.participant ||
+		evv.split(" ").join("") ||
+		args[0] ||
+		"";
+
+	if (!participant) {
+		return sendMessageWTyping(
+			from,
+			{ text: "❌ Provide a number or reply to a member's message." },
+			{ quoted: msg }
+		);
+	}
+
 	if (participant.startsWith("@")) {
 		return sendMessageWTyping(
 			from,

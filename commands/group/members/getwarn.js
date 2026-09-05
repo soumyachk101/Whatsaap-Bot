@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config();
-import { extractPhoneNumber } from "../../../functions/lidUtils.js";
+import { extractPhoneNumber, resolveMemberIdentity } from "../../../functions/lidUtils.js";
 import { getGroupData } from "../../../sqlite-DB/groupDataDb.js";
 import { getMemberData } from "../../../sqlite-DB/membersDataDb.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	let { senderJid, sendMessageWTyping } = msgInfoObj;
+	let { senderJid, sendMessageWTyping, groupMetadata } = msgInfoObj;
 
 	const contextInfo =
 		msg.message?.extendedTextMessage?.contextInfo ||
@@ -26,22 +26,27 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	}
 
+	const targetIdentity = resolveMemberIdentity(taggedJid, groupMetadata, sock);
+	const targetMentions = targetIdentity.allJids.length > 0 ? targetIdentity.allJids : [taggedJid];
+	const phoneNumber = targetIdentity.phoneNumber || extractPhoneNumber(taggedJid);
+
 	const groupData = await getGroupData(from);
 	let groupWarn = 0;
 	if (groupData?.memberWarnCount?.length) {
-		const found = groupData.memberWarnCount.find((element) => element.member == taggedJid);
+		const found = groupData.memberWarnCount.find((element) => targetMentions.includes(element.member));
 		if (found) groupWarn = found.count || 0;
 	}
 
-	const memberData = await getMemberData(taggedJid);
 	let memberWarn = 0;
-	if (memberData?.warning?.length) {
-		const found = memberData.warning.find((element) => element.group == from);
-		if (found) memberWarn = found.count || 0;
+	for (const j of targetMentions) {
+		const memberData = await getMemberData(j);
+		if (memberData?.warning?.length) {
+			const found = memberData.warning.find((element) => element.group == from);
+			if (found && found.count > memberWarn) memberWarn = found.count;
+		}
 	}
 
 	const warnCount = Math.max(groupWarn, memberWarn);
-	const phoneNumber = extractPhoneNumber(taggedJid);
 	const bars = "🔴".repeat(Math.min(warnCount, 3)) + "⚪".repeat(Math.max(0, 3 - warnCount));
 
 	const warnMsg = [
@@ -60,7 +65,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		`💡 ${warnCount === 0 ? "No warnings on record in this group!" : "3 warnings will result in an automatic removal."}`,
 	].join("\n");
 
-	await sendMessageWTyping(from, { text: warnMsg, mentions: [taggedJid] }, { quoted: msg });
+	await sendMessageWTyping(from, { text: warnMsg, mentions: targetMentions }, { quoted: msg });
 };
 
 export default () => ({

@@ -92,13 +92,21 @@ export function getPNFromLID(sock, lid) {
 /**
  * Extract phone number from any JID format (LID or PN)
  * @param {string} jid - The JID to extract from
+ * @param {object} [groupMetadata] - Optional group metadata for LID resolution
+ * @param {object} [sock] - Optional socket for signalRepository LID mapping
  * @returns {string} The phone number without domain
  */
-export function extractPhoneNumber(jid) {
+export function extractPhoneNumber(jid, groupMetadata = null, sock = null) {
 	if (typeof jid !== "string") return jid;
 	if (!jid) return "";
 
-	// Handle colon format (some special cases)
+	// If it's a LID and groupMetadata or sock is provided, attempt resolution
+	if (jid.includes("@lid") && (groupMetadata || sock)) {
+		const identity = resolveMemberIdentity(jid, groupMetadata, sock);
+		if (identity.phoneNumber) return identity.phoneNumber;
+	}
+
+	// Handle colon format (device specifiers)
 	if (jid?.includes(":")) {
 		return jid.split(":")[0];
 	}
@@ -220,6 +228,112 @@ export async function isSameUser(sock, jid1, jid2) {
 	}
 }
 
+/**
+ * Resolves a member JID (whether LID, PN, or raw number) to its real phone number,
+ * PN JID (@s.whatsapp.net), LID JID (@lid), and all equivalent JIDs for reliable mentions.
+ * @param {string} jid - Any JID or phone number
+ * @param {object} [groupMetadata] - WhatsApp group metadata with participants
+ * @param {object} [sock] - WhatsApp socket instance with signalRepository mapping
+ * @returns {{ phoneNumber: string, pnJid: string, lidJid: string, allJids: string[] }}
+ */
+export function resolveMemberIdentity(jid, groupMetadata = null, sock = null) {
+	if (!jid) return { phoneNumber: "", pnJid: "", lidJid: "", allJids: [] };
+
+	const stripDevice = (str) => {
+		if (!str || typeof str !== "string") return "";
+		return str.includes(":")
+			? str.split(":")[0] + (str.includes("@") ? "@" + str.split("@")[1] : "")
+			: str;
+	};
+
+	let raw = stripDevice(String(jid).trim());
+	let pnJid = "";
+	let lidJid = "";
+
+	if (raw.endsWith("@s.whatsapp.net")) {
+		pnJid = raw;
+	} else if (raw.endsWith("@lid")) {
+		lidJid = raw;
+	}
+
+	const rawIsLid = raw.endsWith("@lid");
+	const cleanDigits = (s) => String(s || "").replace(/\D/g, "").slice(-10);
+	const targetDigits = !rawIsLid ? cleanDigits(raw) : "";
+
+	// Try finding matching participant in groupMetadata
+	if (groupMetadata?.participants && Array.isArray(groupMetadata.participants)) {
+		const p = groupMetadata.participants.find((item) => {
+			if (!item) return false;
+			const itemId = stripDevice(item.id);
+			const itemLid = stripDevice(item.lid);
+			const itemJid = stripDevice(item.jid);
+			const itemPn = stripDevice(item.pn);
+
+			// Match by LID
+			if (rawIsLid) {
+				if (itemLid === raw || itemId === raw || itemJid === raw) return true;
+				const rawLidNum = raw.split("@")[0].replace(/\D/g, "");
+				const itemLidNum = (itemLid || (itemId && itemId.endsWith("@lid") ? itemId : "")).split("@")[0].replace(/\D/g, "");
+				if (rawLidNum && itemLidNum && rawLidNum === itemLidNum) return true;
+				return false;
+			}
+
+			// Match by PN / JID
+			if (itemId === raw || itemPn === raw || itemJid === raw) return true;
+			const pDigits = cleanDigits(itemPn) || cleanDigits(itemId && itemId.endsWith("@s.whatsapp.net") ? itemId : "");
+			return Boolean(targetDigits && pDigits && targetDigits === pDigits);
+		});
+
+		if (p) {
+			const pId = stripDevice(p.id);
+			const pLid = stripDevice(p.lid);
+			const pPn = stripDevice(p.pn);
+
+			if (pId.endsWith("@s.whatsapp.net")) pnJid = pId;
+			else if (pId.endsWith("@lid")) lidJid = pId;
+
+			if (pLid.endsWith("@lid")) lidJid = pLid;
+			if (pPn) {
+				pnJid = pPn.includes("@") ? pPn : `${pPn}@s.whatsapp.net`;
+			}
+		}
+	}
+
+	// Try socket LID mapping if available and needed
+	if (sock?.signalRepository?.lidMapping) {
+		try {
+			if (lidJid && !pnJid) {
+				const mappedPn = sock.signalRepository.lidMapping.getPNForLID(lidJid);
+				if (mappedPn) {
+					pnJid = mappedPn.includes("@") ? stripDevice(mappedPn) : `${mappedPn}@s.whatsapp.net`;
+				}
+			} else if (pnJid && !lidJid && typeof sock.signalRepository.lidMapping.getLIDForPN === "function") {
+				const cleanNumber = pnJid.replace("@s.whatsapp.net", "");
+				const mappedLid = sock.signalRepository.lidMapping.getLIDForPN(cleanNumber);
+				if (mappedLid && typeof mappedLid === "string") {
+					lidJid = stripDevice(mappedLid);
+				}
+			}
+		} catch (_) {}
+	}
+
+	// Extract clean digits for phone number
+	let phoneNumber = "";
+	if (pnJid) {
+		phoneNumber = pnJid.split("@")[0].replace(/\D/g, "");
+	} else if (!rawIsLid) {
+		phoneNumber = raw.split("@")[0].replace(/\D/g, "");
+	}
+
+	if (!pnJid && phoneNumber && phoneNumber.length >= 7) {
+		pnJid = `${phoneNumber}@s.whatsapp.net`;
+	}
+
+	const allJids = [...new Set([pnJid, lidJid, raw].map(stripDevice).filter((j) => j && j.includes("@")))];
+
+	return { phoneNumber, pnJid, lidJid, allJids };
+}
+
 export default {
 	isLID,
 	isPN,
@@ -234,4 +348,5 @@ export default {
 	getPreferredJID,
 	formatJIDForDisplay,
 	isSameUser,
+	resolveMemberIdentity,
 };

@@ -85,7 +85,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					`-vcodec`,
 					`libwebp`,
 					`-vf`,
-					`scale='min(220,iw)':min'(220,ih)':force_original_aspect_ratio=decrease,fps=15, pad=220:220:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`,
+					`scale='min(220,iw)':'min(220,ih)':force_original_aspect_ratio=decrease,fps=15, pad=220:220:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`,
 			  ];
 
 	const media = isTaggedImage ? getRandom(".png") : getRandom(".mp4");

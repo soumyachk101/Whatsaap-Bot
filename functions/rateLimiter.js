@@ -15,9 +15,12 @@ class RateLimiter {
 	cleanup() {}
 }
 
+const rateLimiter = new RateLimiter();
+
 // Cleanup old entries every minute
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
 	rateLimiter.cleanup();
 }, 60000);
+if (cleanupInterval.unref) cleanupInterval.unref();
 
-export default new RateLimiter();
+export default rateLimiter;

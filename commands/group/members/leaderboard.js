@@ -1,11 +1,12 @@
 import { group } from "../../../sqlite-DB/groupDataDb.js";
 import { member } from "../../../sqlite-DB/membersDataDb.js";
+import { resolveMemberIdentity, extractPhoneNumber } from "../../../functions/lidUtils.js";
 
 const more = String.fromCharCode(8206);
 const readMore = more.repeat(4001);
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { isGroup, sendMessageWTyping } = msgInfoObj;
+	const { isGroup, sendMessageWTyping, groupMetadata } = msgInfoObj;
 
 	try {
 		if (isGroup) {
@@ -27,15 +28,23 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			top10.forEach((m, idx) => {
 				const medal = medals[idx] || `*#${idx + 1}*`;
 				const jid = m.id || "";
-				if (jid.includes("@")) mentions.push(jid);
-				const userHandle = jid.includes("@") ? `@${jid.split("@")[0]}` : (m.name || "User");
+				const idObj = resolveMemberIdentity(jid, groupMetadata, sock);
+				const phone = idObj.phoneNumber || extractPhoneNumber(jid);
+				if (idObj.allJids.length > 0) {
+					for (const aj of idObj.allJids) mentions.push(aj);
+				} else if (jid.includes("@")) {
+					mentions.push(jid);
+				}
+				const userHandle = phone ? `@${phone}` : (m.name || "User");
 				text += `${medal} ${userHandle} - *${(m.count || 0).toLocaleString()}* msgs\n`;
 			});
 
 			if (sorted.length > 10) {
 				text += `\n${readMore}\n*📜 Extended Rankings:* \n`;
 				sorted.slice(10).forEach((m, idx) => {
-					text += `${idx + 11}. ${m.name || m.id.split("@")[0]} - ${(m.count || 0).toLocaleString()} msgs\n`;
+					const idObj = resolveMemberIdentity(m.id || "", groupMetadata, sock);
+					const phone = idObj.phoneNumber || extractPhoneNumber(m.id || "");
+					text += `${idx + 11}. ${m.name || (phone ? `+${phone}` : m.id)} - ${(m.count || 0).toLocaleString()} msgs\n`;
 				});
 			}
 

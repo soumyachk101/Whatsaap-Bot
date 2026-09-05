@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 config();
-import { extractPhoneNumber } from "../../../functions/lidUtils.js";
+import { extractPhoneNumber, resolveMemberIdentity } from "../../../functions/lidUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping, groupMetadata, type, content } = msgInfoObj;
@@ -18,6 +18,20 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const isTaggedVideo = type === "extendedTextMessage" && content.includes("videoMessage");
 
 	try {
+		const tags = (groupMetadata?.participants || []).map((i) => {
+			const idObj = resolveMemberIdentity(i.id, groupMetadata, sock);
+			const phone = idObj.phoneNumber || extractPhoneNumber(i.id);
+			return "👉🏻 @" + phone;
+		}).join("\n");
+
+		const allMentions = [];
+		for (const p of (groupMetadata?.participants || [])) {
+			if (p.id) allMentions.push(p.id);
+			if (p.lid) allMentions.push(p.lid);
+			if (p.pn) allMentions.push(p.pn.includes("@") ? p.pn : `${p.pn}@s.whatsapp.net`);
+		}
+		const mentions = [...new Set(allMentions.filter(Boolean))];
+
 		if (isMedia || isTaggedImage || isTaggedVideo) {
 			delete msg["message"]["conversation"];
 			let tempMess = Object.assign({}, msg.message);
@@ -25,8 +39,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			tempMess[Object.keys(tempMess)[0]]["caption"] = tempCaption.includes(prefix + "tagall")
 				? tempCaption.split(prefix + "tagall")[1].trim()
 				: tempCaption;
-			// Use extractPhoneNumber for LID/PN compatibility
-			const tags = groupMetadata.participants.map((i) => "👉🏻 @" + extractPhoneNumber(i.id)).join("\n");
+
 			const tt = await sock.sendMessage(from, {
 				forward: {
 					key: {
@@ -46,7 +59,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				from,
 				{
 					text: `👥 *Total Members:* ${groupMetadata.participants.length}\n\n${tags}`,
-					mentions: [...groupMetadata.participants.map((e) => e.id)],
+					mentions,
 				},
 				{ quoted: tt }
 			);
@@ -54,11 +67,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			let message = msg.message.conversation ?? "";
 			message = message.includes(prefix + "tagall") ? message.split(prefix + "tagall")[1].trim() : message;
 			message = message ? message + "\n\n" : `👥 *Total Members:* ${groupMetadata.participants.length}\n\n`;
-			// Use extractPhoneNumber for LID/PN compatibility
-			message += groupMetadata.participants.map((i) => "👉🏻 @" + extractPhoneNumber(i.id)).join("\n");
+			message += tags;
 			sendMessageWTyping(from, {
 				text: message,
-				mentions: [...groupMetadata.participants.map((e) => e.id)],
+				mentions,
 			});
 		}
 	} catch (err) {

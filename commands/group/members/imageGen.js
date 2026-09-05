@@ -109,7 +109,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await sendMessageWTyping(
 			from,
 			{
-				image: fileName,
+				image: { url: fileName },
 				caption: `✅ Generated with Gemini Imagen 4.0\n📝 Prompt: ${prompt}\n📐 Ratio: ${ratio}`,
 			},
 			{ quoted: msg }

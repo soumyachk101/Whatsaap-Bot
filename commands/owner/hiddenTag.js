@@ -1,23 +1,31 @@
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { prefix, sendMessageWTyping, groupMetadata, type, content } = msgInfoObj;
-	if (msg.message.extendedTextMessage) {
+	if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
 		let temp =
-			msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.extendedTextMessage?.text ||
-			msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
+			msg.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text ||
+			msg.message.extendedTextMessage.contextInfo.quotedMessage.conversation ||
 			msg.message?.conversation;
-		msg["message"] = msg.message.extendedTextMessage.contextInfo.quotedMessage;
-		msg["message"]["conversation"] = temp;
+		msg["message"] = { ...msg.message.extendedTextMessage.contextInfo.quotedMessage };
+		if (temp) msg["message"]["conversation"] = temp;
 	}
 	const isMedia = type === "imageMessage" || type === "videoMessage";
 	const isTaggedImage = type === "extendedTextMessage" && content.includes("imageMessage");
 	const isTaggedVideo = type === "extendedTextMessage" && content.includes("videoMessage");
 
 	try {
+		const allMentions = [];
+		for (const p of (groupMetadata?.participants || [])) {
+			if (p.id) allMentions.push(p.id);
+			if (p.lid) allMentions.push(p.lid);
+			if (p.pn) allMentions.push(p.pn.includes("@") ? p.pn : `${p.pn}@s.whatsapp.net`);
+		}
+		const mentions = [...new Set(allMentions.filter(Boolean))];
+
 		if (isMedia || isTaggedImage || isTaggedVideo) {
 			delete msg["message"]["conversation"];
 			let tempMess = Object.assign({}, msg.message);
 			tempMess[Object.keys(tempMess)[0]]["contextInfo"] = {
-				mentionedJid: [...groupMetadata.participants.map((e) => e.id)],
+				mentionedJid: mentions,
 			};
 			const tempCaption = tempMess[Object.keys(tempMess)[0]]["caption"];
 			tempMess[Object.keys(tempMess)[0]]["caption"] = tempCaption.includes(prefix + "hidetag")
@@ -36,8 +44,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					broadcast: msg.broadcast,
 					message: tempMess,
 				},
-				mentions: [...groupMetadata.participants.map((e) => e.id)],
-				contextInfo: { forwardingScore: 0, isForwarded: false },
+				mentions,
+				contextInfo: { forwardingScore: 0, isForwarded: false, mentionedJid: mentions },
 			});
 		} else {
 			let message = msg.message.conversation;
@@ -45,7 +53,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			message = message ? message : "Hidden Tag by DownloadWorld";
 			sendMessageWTyping(from, {
 				text: message,
-				mentions: [...groupMetadata.participants.map((e) => e.id)],
+				mentions,
 			});
 		}
 	} catch (err) {

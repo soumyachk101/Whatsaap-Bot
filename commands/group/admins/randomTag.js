@@ -1,25 +1,30 @@
-import { extractPhoneNumber } from "../../../functions/lidUtils.js";
+import { extractPhoneNumber, resolveMemberIdentity } from "../../../functions/lidUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping, botNumber } = msgInfoObj;
-	const groupMetadata = await sock.groupMetadata(from);
+	const { sendMessageWTyping, botNumber, groupMetadata: cachedMeta } = msgInfoObj;
 	let message = "";
 
 	try {
+		const groupMetadata = cachedMeta || await sock.groupMetadata(from);
 		if (msg.message.extendedTextMessage) {
-			console.log(msg.message.extendedTextMessage.quotedMessage);
-			message = msg.message.extendedTextMessage?.contextInfo?.quotedMessage?.conversation;
+			message = msg.message.extendedTextMessage?.contextInfo?.quotedMessage?.conversation || "";
 		}
 		if (args.length > 0) {
 			message = args.join(" ");
 		}
-		const mention = groupMetadata.participants.filter((p) => p.id != botNumber[0] && p.id != botNumber[1]);
+		const mention = (groupMetadata?.participants || []).filter((p) => !botNumber.includes(p.id));
+		if (!mention.length) {
+			return sendMessageWTyping(from, { text: "❌ No eligible members found to tag." }, { quoted: msg });
+		}
 		const random = Math.floor(Math.random() * mention.length);
-		// Use extractPhoneNumber for LID/PN compatibility
-		console.log(message, mention[random].id, extractPhoneNumber(mention[random].id));
-		message += " @" + extractPhoneNumber(mention[random].id);
-		if (!args[0]) sendMessageWTyping(from, { text: message, mentions: [mention[random].id] }, { quoted: msg });
-		else sendMessageWTyping(from, { text: message, mentions: [mention[random].id] });
+		const target = mention[random];
+		const idObj = resolveMemberIdentity(target.id, groupMetadata, sock);
+		const phone = idObj.phoneNumber || extractPhoneNumber(target.id);
+		const targetMentions = idObj.allJids.length > 0 ? idObj.allJids : [target.id];
+
+		message = (message ? message + " @" : "@") + phone;
+		if (!args[0]) sendMessageWTyping(from, { text: message, mentions: targetMentions }, { quoted: msg });
+		else sendMessageWTyping(from, { text: message, mentions: targetMentions });
 	} catch (err) {
 		console.error(err);
 		sendMessageWTyping(from, { text: err.toString() }, { quoted: msg });

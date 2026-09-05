@@ -175,6 +175,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				memoryManager.markFileSent(filePath);
 			} catch (sendErr) {
 				console.error("[Universal DL] Send error, trying stream-based buffer fallback:", sendErr.message);
+				let stats;
+				try {
+					stats = await fs.promises.stat(filePath);
+				} catch (_) {
+					stats = { size: 0 };
+				}
 				const fileSizeMB = stats.size / (1024 * 1024);
 				if (fileSizeMB > 50) {
 					console.warn(`[Universal DL] Buffer fallback skipped: ${fileSizeMB.toFixed(1)}MB exceeds 50MB limit.`);

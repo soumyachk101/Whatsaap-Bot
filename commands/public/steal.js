@@ -12,9 +12,16 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	if (type === "extendedTextMessage" && content.includes("stickerMessage")) {
 		let packName = "SOUMYA";
 		let authorName = "DownloadWorld";
-		if (args.includes("pack")) packName = args.join(" ").split("pack ")[1].split("author")[0];
+		const fullArgs = args.join(" ");
+		if (args.includes("pack")) {
+			const afterPack = fullArgs.split(/\bpack\s+/i)[1];
+			if (afterPack) packName = afterPack.split(/\bauthor\b/i)[0].trim() || packName;
+		}
 
-		if (args.includes("author")) authorName = args.join(" ").split("author ")[1].split("pack")[0];
+		if (args.includes("author")) {
+			const afterAuthor = fullArgs.split(/\bauthor\s+/i)[1];
+			if (afterAuthor) authorName = afterAuthor.split(/\bpack\b/i)[0].trim() || authorName;
+		}
 
 		const downloadFilePath = msg.message.extendedTextMessage.contextInfo.quotedMessage.stickerMessage;
 		const stream = await downloadContentFromMessage(downloadFilePath, "sticker");
