@@ -15,6 +15,8 @@ import {
 	BotIcon,
 	ErrorIcon,
 	WarningIcon,
+	RefreshIcon,
+	PowerIcon,
 } from '../components/Icons.jsx'
 
 // ── Mini Sparkline ──────────────────────────────────────────────────────
