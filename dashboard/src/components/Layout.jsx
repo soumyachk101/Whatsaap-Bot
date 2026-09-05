@@ -54,7 +54,7 @@ export default function Layout({ children }) {
  }
 
  const connected = wsStatus === 'connected'
- const allNav = [...NAV_MAIN, ...NAV_SYSTEM]
+ const allNav = [...NAV_MAIN, ...NAV_SYSTEM, ...NAV_TOOLS]
  const activeLabel = allNav.find(n => n.to === location.pathname)?.label || 'Control Center'
 
  return (

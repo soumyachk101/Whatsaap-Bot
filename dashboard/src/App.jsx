@@ -15,6 +15,7 @@ import Logs from './pages/Logs.jsx'
 import Settings from './pages/Settings.jsx'
 import Plugins from './pages/Plugins.jsx'
 import QRPage from './pages/QRPage.jsx'
+import QRCode from './pages/QRCode.jsx'
 import { setOnUnauthorized } from './lib/api.js'
 
 // ── Contexts ───────────────────────────────────────────────────────────────────
@@ -79,31 +80,32 @@ export default function App() {
  <ToastCtx.Provider value={showToast}>
  <BrowserRouter basename={basename}>
  <Routes>
- <Route path="/login" element={<Login />} />
- <Route path="/qr" element={<QRPage />} />
- <Route path="/" element={
- <AuthGuard>
- <Layout>
- <ErrorBoundary>
- <Routes>
- <Route index element={<Home />} />
- <Route path="dashboard" element={<Dashboard />} />
- <Route path="commands" element={<Commands />} />
- <Route path="groups" element={<Groups />} />
- <Route path="members" element={<Members />} />
- <Route path="analytics" element={<Analytics />} />
- <Route path="broadcast" element={<Broadcast />} />
- <Route path="health" element={<Health />} />
- <Route path="logs" element={<Logs />} />
- <Route path="settings" element={<Settings />} />
- <Route path="plugins" element={<Plugins />} />
- <Route path="*" element={<Navigate to="/" replace />} />
- </Routes>
- </ErrorBoundary>
- </Layout>
- </AuthGuard>
- } />
- </Routes>
+				<Route path="/login" element={<Login />} />
+				<Route path="/qr" element={<QRPage />} />
+				<Route path="/*" element={
+					<AuthGuard>
+						<Layout>
+							<ErrorBoundary>
+								<Routes>
+									<Route index element={<Home />} />
+									<Route path="dashboard" element={<Dashboard />} />
+									<Route path="commands" element={<Commands />} />
+									<Route path="groups" element={<Groups />} />
+									<Route path="members" element={<Members />} />
+									<Route path="analytics" element={<Analytics />} />
+									<Route path="broadcast" element={<Broadcast />} />
+									<Route path="health" element={<Health />} />
+									<Route path="logs" element={<Logs />} />
+									<Route path="settings" element={<Settings />} />
+									<Route path="plugins" element={<Plugins />} />
+									<Route path="qr" element={<QRCode />} />
+									<Route path="*" element={<Navigate to="/" replace />} />
+								</Routes>
+							</ErrorBoundary>
+						</Layout>
+					</AuthGuard>
+				} />
+			</Routes>
  </BrowserRouter>
  <Toast toasts={toasts} />
  </ToastCtx.Provider>
