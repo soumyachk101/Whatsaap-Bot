@@ -10,15 +10,88 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { publicCommands, groupCommands, adminCommands, ownerCommands } = await cmdToText();
 	const allCommands = [...publicCommands, ...groupCommands, ...adminCommands, ...ownerCommands];
 
+	const prefMap = {
+		a: "alive",
+		fb: "facebook",
+		l: "lyrics",
+		tr: "translate",
+		un: "udemy",
+		ud: "urban",
+		bb: "broadcast",
+	};
+	const getCmdName = (c) => prefMap[c.cmd[0]] || c.cmd[0];
+
+	// Curated popular shortcuts / composition commands
+	const customShortcuts = {
+		download: ["d", "dl"],
+		facebook: ["fb"],
+		sticker: ["s"],
+		insta: ["i"],
+		song: ["play", "mp3"],
+		alive: ["a", "ping"],
+		translate: ["tr"],
+		weather: ["w"],
+		lyrics: ["l"],
+		urban: ["ud"],
+		udemy: ["un"],
+		search: ["yts"],
+		google: ["gs"],
+		remove: ["kick"],
+		broadcast: ["bb"],
+		delete: ["del"],
+		gemini: ["ai", "db"],
+		say: ["tts"],
+		crypto: ["coin", "price"],
+		level: ["lvl", "rank"],
+		leaderboard: ["top"],
+		tod: ["truth", "dare"],
+		removebg: ["bg"],
+		text: ["txt"],
+		attp: ["ts"],
+		idp: ["dp"],
+		tagall: ["all"],
+		imagine: ["gen"],
+		password: ["pass"],
+		note: ["notes"],
+		todo: ["task"],
+		calc: ["calculate"],
+		analysis: ["chatstats"],
+		daystats: ["daily"],
+		epicgames: ["epic"],
+		confess: ["anon"],
+		poll: ["vote"],
+		reddit: ["red"],
+		ship: ["love"],
+		birthday: ["bday"],
+	};
+
+	const formatItem = (c) => {
+		const name = getCmdName(c);
+		const rawAliases = Array.isArray(c.cmd) ? c.cmd : [];
+		const predefined = customShortcuts[name];
+		const shortcuts = predefined || rawAliases
+			.map((a) => a.toLowerCase())
+			.filter((a) => a !== name.toLowerCase() && a.length <= 4)
+			.sort((x, y) => x.length - y.length || x.localeCompare(y))
+			.slice(0, 2);
+
+		const shortcutText = shortcuts.length > 0
+			? ` _(${shortcuts.map((s) => `${prefix}${s}`).join(", ")})_`
+			: "";
+		return `│ ➜ ${prefix}${name}${shortcutText}`;
+	};
+
 	// ─── Single Command Lookup: #help <command> ─────────────────────────
 	if (args.length > 0) {
 		const targetCmd = args[0].toLowerCase().replace(/^[#./!]/, "");
 		const found = allCommands.find((c) => Array.isArray(c.cmd) && c.cmd.includes(targetCmd));
 
 		if (found) {
-			const prefMap = { a: "alive", fb: "facebook", l: "lyrics", tr: "translate", un: "udemy", ud: "urban", bb: "broadcast" };
-			const cmdName = found.cmd.find(a => a.toLowerCase() === targetCmd) || prefMap[found.cmd[0]] || found.cmd[0];
-			const aliases = found.cmd.filter(a => a.toLowerCase() !== cmdName.toLowerCase()).map((a) => `${prefix}${a}`).join(", ");
+			const cmdName = found.cmd.find((a) => a.toLowerCase() === targetCmd) || prefMap[found.cmd[0]] || found.cmd[0];
+			const aliases = found.cmd
+				.filter((a) => a.toLowerCase() !== cmdName.toLowerCase())
+				.map((a) => `${prefix}${a}`)
+				.join(", ");
 			const desc = found.desc || "No description available.";
 			const usage = found.usage ? `${prefix}${found.usage}` : `${prefix}${cmdName}`;
 
@@ -33,7 +106,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				...(aliases ? [`│ 🏷️ *Aliases:* ${aliases}`] : []),
 				"╰━━━━━━━━━━━━━━━━━",
 				"",
-				`💡 Type ${prefix}help to see all commands`,
+				`💡 Type .help or #help to see all commands`,
 				`🌟 Bot Version: ${botVersion}`,
 			].join("\n");
 
@@ -44,7 +117,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				"",
 				`❌ Command \`${prefix}${targetCmd}\` was not found.`,
 				"",
-				`💡 Type \`${prefix}help\` to see all available commands.`,
+				`💡 Type \`.help\` or \`#help\` to see all available commands.`,
 			].join("\n");
 
 			return await sendMessageWTyping(from, { text: notFound }, { quoted: msg });
@@ -72,26 +145,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return "other";
 	};
 
-	const prefMap = {
-		a: "alive",
-		fb: "facebook",
-		l: "lyrics",
-		tr: "translate",
-		un: "udemy",
-		ud: "urban",
-		bb: "broadcast",
-	};
-	const getCmdName = (c) => prefMap[c.cmd[0]] || c.cmd[0];
-
 	const buckets = {
-		general: { title: "🧭 GENERAL COMMAND", cmds: [] },
-		ai: { title: "🤖 AI COMMAND", cmds: [] },
-		media: { title: "🎞️ MEDIA COMMAND", cmds: [] },
-		sticker: { title: "🎨 STICKER COMMAND", cmds: [] },
-		search: { title: "🔍 SEARCH COMMAND", cmds: [] },
-		fun: { title: "🎭 FUN COMMAND", cmds: [] },
-		utility: { title: "🔧 UTILITY COMMAND", cmds: [] },
-		other: { title: "📦 OTHER COMMAND", cmds: [] },
+		general: { title: "🧭 GENERAL COMMAND", items: [] },
+		ai: { title: "🤖 AI COMMAND", items: [] },
+		media: { title: "🎞️ MEDIA COMMAND", items: [] },
+		sticker: { title: "🎨 STICKER COMMAND", items: [] },
+		search: { title: "🔍 SEARCH COMMAND", items: [] },
+		fun: { title: "🎭 FUN COMMAND", items: [] },
+		utility: { title: "🔧 UTILITY COMMAND", items: [] },
+		other: { title: "📦 OTHER COMMAND", items: [] },
 	};
 
 	const seen = new Set();
@@ -101,10 +163,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		if (seen.has(name)) continue;
 		seen.add(name);
 		const cat = categorize(c);
-		buckets[cat].cmds.push(name);
+		buckets[cat].items.push({ name, line: formatItem(c) });
 	}
 
-	const adminCmds = [];
+	const adminItems = [];
 	if (isGroup) {
 		seen.clear();
 		for (const c of adminCommands) {
@@ -112,11 +174,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const name = getCmdName(c);
 			if (seen.has(name)) continue;
 			seen.add(name);
-			adminCmds.push(name);
+			adminItems.push({ name, line: formatItem(c) });
 		}
 	}
 
-	const ownerCmds = [];
+	const ownerItems = [];
 	if (isGroup || isOwner) {
 		seen.clear();
 		for (const c of ownerCommands) {
@@ -124,49 +186,49 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			const name = getCmdName(c);
 			if (seen.has(name)) continue;
 			seen.add(name);
-			ownerCmds.push(name);
+			ownerItems.push({ name, line: formatItem(c) });
 		}
 	}
 
 	const total =
-		Object.values(buckets).reduce((sum, b) => sum + b.cmds.length, 0) +
-		adminCmds.length +
-		ownerCmds.length;
+		Object.values(buckets).reduce((sum, b) => sum + b.items.length, 0) +
+		adminItems.length +
+		ownerItems.length;
 
 	const sections = [];
 	for (const key of ["general", "ai", "media", "sticker", "search", "fun", "utility", "other"]) {
 		const b = buckets[key];
-		if (b.cmds.length === 0) continue;
-		b.cmds.sort();
+		if (b.items.length === 0) continue;
+		b.items.sort((x, y) => x.name.localeCompare(y.name));
 		const lines = [
 			"┏━━━━━━━━━━━━━━━━━",
 			`┃ ${b.title}`,
 			"┗━━━━━━━━━━━━━━━━━",
-			...b.cmds.map((cmd) => `│ ➜ ${prefix}${cmd}`),
+			...b.items.map((i) => i.line),
 		];
 		sections.push(lines.join("\n"));
 	}
 
-	if (adminCmds.length > 0) {
-		adminCmds.sort();
+	if (adminItems.length > 0) {
+		adminItems.sort((x, y) => x.name.localeCompare(y.name));
 		sections.push(
 			[
 				"┏━━━━━━━━━━━━━━━━━",
 				"┃ 🛡️ ADMIN COMMAND",
 				"┗━━━━━━━━━━━━━━━━━",
-				...adminCmds.map((cmd) => `│ ➜ ${prefix}${cmd}`),
+				...adminItems.map((i) => i.line),
 			].join("\n")
 		);
 	}
 
-	if (ownerCmds.length > 0) {
-		ownerCmds.sort();
+	if (ownerItems.length > 0) {
+		ownerItems.sort((x, y) => x.name.localeCompare(y.name));
 		sections.push(
 			[
 				"┏━━━━━━━━━━━━━━━━━",
 				"┃ 👑 OWNER COMMAND",
 				"┗━━━━━━━━━━━━━━━━━",
-				...ownerCmds.map((cmd) => `│ ➜ ${prefix}${cmd}`),
+				...ownerItems.map((i) => i.line),
 			].join("\n")
 		);
 	}
@@ -179,14 +241,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		"",
 		`👋 Hello ${greeting}!`,
 		"",
-		`⚡ Prefix: ${prefix}`,
+		`⚡ Prefix: . or #`,
 		`📦 Total Commands: ${total}`,
 		`👑 Owner: ${ownerName}`,
 		"",
 		sections.join("\n\n"),
 		"╰━━━━━━━━━━━━━━━━━",
 		"",
-		`💡 Type ${prefix}help <command> for more info`,
+		`💡 Type .help or #help <command> for more info`,
 		`🌟 Bot Version: ${botVersion}`,
 	].join("\n");
 
