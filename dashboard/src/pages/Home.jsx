@@ -111,15 +111,37 @@ export default function Home() {
  }
 
  // Derive display values
- const uptime = stats?.uptime ? fmtUptime(stats.uptime) : '—'
- const messages = analytics?.totalMessages ?? stats?.messages ?? 0
- const commands = stats?.commandsRun ?? 0
- const groups = analytics?.totalGroups ?? stats?.groupCount ?? stats?.groups ?? 0
- const members = analytics?.totalMembers ?? stats?.memberCount ?? stats?.members ?? 0
- const errors = stats?.errors ?? 0
- const activityData = Array.isArray(analytics?.activity) && analytics.activity.length > 0
+	const uptime = stats?.uptime ? fmtUptime(stats.uptime) : '—'
+	const messages = analytics?.totalMessages ?? stats?.messages ?? 0
+	const commands = stats?.commandsRun ?? 0
+	const groups = analytics?.totalGroups ?? stats?.groupCount ?? stats?.groups ?? 0
+	const activeGroups = analytics?.activeGroups ?? groups
+	const members = analytics?.totalMembers ?? stats?.memberCount ?? stats?.members ?? 0
+	const activeSenders = analytics?.activeSenders ?? members
+	const errors = stats?.errors ?? 0
+	const activityData = Array.isArray(analytics?.activity) && analytics.activity.length > 0
 		? analytics.activity
 		: Array.from({ length: 20 }, () => 0)
+
+	// Real calculated percentages & trends
+	const last10Msgs = activityData.slice(10).reduce((a, b) => a + b, 0)
+	const prev10Msgs = activityData.slice(0, 10).reduce((a, b) => a + b, 0)
+	let msgTrend = analytics?.messageTrend
+	if (!msgTrend) {
+		if (last10Msgs > 0 || prev10Msgs > 0) {
+			if (prev10Msgs === 0) msgTrend = `+${last10Msgs}`
+			else {
+				const diff = Math.round(((last10Msgs - prev10Msgs) / prev10Msgs) * 100)
+				msgTrend = `${diff >= 0 ? '+' : ''}${diff}%`
+			}
+		} else {
+			msgTrend = '0/min'
+		}
+	}
+
+	const groupPct = analytics?.activeGroupsPct ?? (groups > 0 ? Math.round((activeGroups / groups) * 100) : 100)
+	const memberPct = analytics?.activeSendersPct ?? (members > 0 ? Math.round((activeSenders / members) * 100) : 0)
+	const warnPct = analytics?.warnedMembersPct ?? (members > 0 ? Math.round((warnings / members) * 100) : 0)
 
 	// Real recent activity from backend
 	const activities = useMemo(() => {
@@ -165,15 +187,71 @@ export default function Home() {
 				</div>
 			</div>
 
-			{/* ── Stat Cards Row ──────────────────────────────────────── */}
+			{/* ── Stat Cards Row (100% Real Live Metrics) ──────────────── */}
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.85rem' }}>
-				<StatCard title="Messages" value={messages} subtext="Total sent" icon={MessageIcon} accent="violet" delay={0} trend="+12%" />
-				<StatCard title="Groups" value={groups} subtext="Active groups" icon={GroupIcon} accent="indigo" delay={60} trend="+3" />
-				<StatCard title="Commands" value={commands} subtext="Executed" icon={ActivityIcon} accent="blue" delay={120} />
-				<StatCard title="Members" value={members} subtext="Across all groups" icon={UsersIcon} accent="emerald" delay={180} trend="+8%" />
-				<StatCard title="Uptime" value={uptime} subtext="Since last restart" icon={BotIcon} accent="cyan" delay={240} />
-				<StatCard title="Errors" value={errors} subtext={errors > 0 ? 'Needs attention' : 'All clear'} icon={ErrorIcon} accent={errors > 0 ? 'rose' : 'emerald'} delay={300} trend={errors > 0 ? 'up' : undefined} />
-				<StatCard title="Active Warnings" value={warnings} subtext={warnings > 0 ? 'Users warned' : 'All clear'} icon={WarningIcon} accent={warnings > 0 ? 'amber' : 'emerald'} delay={360} trend={warnings > 0 ? 'up' : undefined} />
+				<StatCard
+					title="Messages"
+					value={messages}
+					subtext={last10Msgs > 0 ? `${last10Msgs} in last 10m` : 'All-time volume'}
+					icon={MessageIcon}
+					accent="violet"
+					delay={0}
+					trend={msgTrend}
+				/>
+				<StatCard
+					title="Groups"
+					value={groups}
+					subtext={`${activeGroups} of ${groups} active`}
+					icon={GroupIcon}
+					accent="indigo"
+					delay={60}
+					trend={`+${groupPct}%`}
+				/>
+				<StatCard
+					title="Commands"
+					value={commands}
+					subtext="Session executions"
+					icon={ActivityIcon}
+					accent="blue"
+					delay={120}
+					trend={commands > 0 ? `+${commands}` : undefined}
+				/>
+				<StatCard
+					title="Members"
+					value={members}
+					subtext={`${activeSenders} active senders`}
+					icon={UsersIcon}
+					accent="emerald"
+					delay={180}
+					trend={`+${memberPct}%`}
+				/>
+				<StatCard
+					title="Uptime"
+					value={uptime}
+					subtext="Since last restart"
+					icon={BotIcon}
+					accent="cyan"
+					delay={240}
+					trend={isConnected ? 'online' : 'offline'}
+				/>
+				<StatCard
+					title="Errors"
+					value={errors}
+					subtext={errors > 0 ? `${errors} logged errors` : 'All clear'}
+					icon={ErrorIcon}
+					accent={errors > 0 ? 'rose' : 'emerald'}
+					delay={300}
+					trend={errors > 0 ? `+${errors}` : '0%'}
+				/>
+				<StatCard
+					title="Active Warnings"
+					value={warnings}
+					subtext={`${warnPct}% of user base`}
+					icon={WarningIcon}
+					accent={warnings > 0 ? 'amber' : 'emerald'}
+					delay={360}
+					trend={warnings > 0 ? `${warnPct}%` : '0%'}
+				/>
 			</div>
 
  {/* ── Main Grid: Activity + Quick Actions ─────────────────── */}

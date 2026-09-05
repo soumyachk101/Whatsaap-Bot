@@ -200,6 +200,27 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 		const activeGroups = groups.filter(g => g.isBotOn !== false).length;
 		const blockedMembers = members.filter(m => m.isBlock).length;
 		const warnedMembers = members.filter(m => Array.isArray(m.warning) && m.warning.length > 0).length;
+		const activeSenders = members.filter(m => (m.totalmsg || 0) > 0).length;
+		const totalGroups = groups.length;
+		const totalMembers = members.length;
+
+		const activeGroupsPct = totalGroups > 0 ? Math.round((activeGroups / totalGroups) * 100) : 0;
+		const activeSendersPct = totalMembers > 0 ? Math.round((activeSenders / totalMembers) * 100) : 0;
+		const warnedMembersPct = totalMembers > 0 ? Math.round((warnedMembers / totalMembers) * 100) : 0;
+		const blockedMembersPct = totalMembers > 0 ? Math.round((blockedMembers / totalMembers) * 100) : 0;
+
+		const activity = getActivityOverview();
+		const last10 = activity.slice(10).reduce((a, b) => a + b, 0);
+		const prev10 = activity.slice(0, 10).reduce((a, b) => a + b, 0);
+		let messageTrend = "0/min";
+		if (last10 > 0 || prev10 > 0) {
+			if (prev10 === 0) {
+				messageTrend = `+${last10}`;
+			} else {
+				const pctDiff = Math.round(((last10 - prev10) / prev10) * 100);
+				messageTrend = `${pctDiff >= 0 ? "+" : ""}${pctDiff}%`;
+			}
+		}
 
 		res.json({
 			topGroups,
@@ -207,11 +228,18 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 			typeBreakdown,
 			totalMessages,
 			activeGroups,
+			activeGroupsPct,
 			blockedMembers,
+			blockedMembersPct,
 			warnedMembers,
-			totalGroups: groups.length,
-			totalMembers: members.length,
-			activity: getActivityOverview(),
+			warnedMembersPct,
+			activeSenders,
+			activeSendersPct,
+			totalGroups,
+			totalMembers,
+			messageTrend,
+			last10MinMessages: last10,
+			activity,
 			recentActivity: getRecentActivities(),
 		});
 	} catch (err) {

@@ -123,15 +123,35 @@ export default function StatCard({ title, value, subtext, icon: Icon, accent = '
  display: 'flex', alignItems: 'center', gap: '0.4rem',
  marginTop: '0.5rem',
  }}>
- {trend && (
- <span style={{
- fontSize: '0.7rem', fontWeight: 600, padding: '2px 6px', borderRadius: 6,
- background: trend.startsWith('+') || trend === 'up' ? 'rgba(16,185,129,0.15)' : 'rgba(244,63,94,0.15)',
- color: trend.startsWith('+') || trend === 'up' ? '#34d399' : '#fb7185',
- }}>
- {trend.startsWith('+') || trend === 'up' ? '↑' : '↓'} {trend}
- </span>
- )}
+ {trend && (() => {
+						const isPos = trend.startsWith('+') || trend === 'up';
+						const isNeg = trend.startsWith('-') || trend === 'down';
+						const isWarn = accent === 'amber' || accent === 'rose';
+						const bg = isPos
+							? 'rgba(16,185,129,0.15)'
+							: isNeg
+								? 'rgba(244,63,94,0.15)'
+								: isWarn
+									? 'rgba(245,158,11,0.15)'
+									: 'rgba(99,102,241,0.15)';
+						const color = isPos
+							? '#34d399'
+							: isNeg
+								? '#fb7185'
+								: isWarn
+									? '#fbbf24'
+									: '#a5b4fc';
+						const arrow = isPos ? '↑ ' : isNeg ? '↓ ' : '';
+						return (
+							<span style={{
+								fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', borderRadius: 6,
+								background: bg, color: color, display: 'inline-flex', alignItems: 'center', gap: '2px',
+								lineHeight: 1.2
+							}}>
+								{arrow}{trend}
+							</span>
+						);
+					})()}
  {subtext && (
  <span style={{
  fontSize: '0.7rem', color: '#64748b', fontWeight: 400,
