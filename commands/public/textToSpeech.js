@@ -8,8 +8,8 @@ import { fileURLToPath } from "url";
 const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Use ffmpeg-static binary if available, fallback to system ffmpeg
-let ffmpegPath = "ffmpeg";
+// Use system / homebrew ffmpeg or static
+let ffmpegPath = process.env.FFMPEG_PATH || (fs.existsSync("/opt/homebrew/bin/ffmpeg") ? "/opt/homebrew/bin/ffmpeg" : "ffmpeg");
 try {
 	const mod = await import("ffmpeg-static");
 	if (mod.default) ffmpegPath = mod.default;
@@ -20,7 +20,7 @@ try {
  * WhatsApp ONLY plays ptt (voice notes) in audio/ogg; codecs=opus format.
  */
 async function convertToOpus(inputBuffer) {
-	const tmpDir = path.join(__dirname, "..", "tmp");
+	const tmpDir = path.join(__dirname, "..", "..", "temp");
 	if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
 	const id = Date.now() + "_" + Math.random().toString(36).slice(2, 8);

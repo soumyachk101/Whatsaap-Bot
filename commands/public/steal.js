@@ -3,13 +3,15 @@ import { downloadContentFromMessage } from "baileys";
 import WSF from "wa-sticker-formatter";
 
 import fs from "fs";
-const getRandom = (ext) => `${Math.floor(Math.random() * 10000)}${ext}`;
+import memoryManager from "../../functions/memoryUtils.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { evv, type, content, sendMessageWTyping, senderJid, command } = msgInfoObj;
+	const { evv, sendMessageWTyping, senderJid, command } = msgInfoObj;
 	const memberData = await getMemberData(senderJid);
 
-	if (type === "extendedTextMessage" && content.includes("stickerMessage")) {
+	const stickerMsg = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage;
+
+	if (stickerMsg) {
 		let packName = "SOUMYA";
 		let authorName = "DownloadWorld";
 		const fullArgs = args.join(" ");
@@ -23,41 +25,41 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (afterAuthor) authorName = afterAuthor.split(/\bpack\b/i)[0].trim() || authorName;
 		}
 
-		const downloadFilePath = msg.message.extendedTextMessage.contextInfo.quotedMessage.stickerMessage;
-		const stream = await downloadContentFromMessage(downloadFilePath, "sticker");
-		let buffer = Buffer.from([]);
-		for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-
-		const media = getRandom(".webp");
-		await fs.promises.writeFile(media, buffer);
-
-		const packOrAuthor = args.includes("pack") || args.includes("author");
-
-		let webpWithMetadata;
+		let media = null;
 		try {
-			webpWithMetadata =
-				command == "stealn"
-					? await WSF.setMetadata(undefined, undefined, media)
-					: await WSF.setMetadata(
-							packOrAuthor ? packName : evv ? evv : memberData?.customStealText || "SOUMYA",
-							packOrAuthor
-								? authorName
-								: evv
-								? ""
-								: memberData?.customStealText
-								? undefined
-								: "DownloadWorld",
-							media
-					  );
-			await sock.sendMessage(from, { sticker: Buffer.from(webpWithMetadata) }, { quoted: msg });
-		} catch (error) {
-			console.error("Error setting metadata:", error);
-			return sendMessageWTyping(from, { text: `❌ *Error setting metadata*` }, { quoted: msg });
+			const stream = await downloadContentFromMessage(stickerMsg, "sticker");
+			let buffer = Buffer.from([]);
+			for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+
+			media = memoryManager.generateTempFileName(".webp");
+			await fs.promises.writeFile(media, buffer);
+
+			const packOrAuthor = args.includes("pack") || args.includes("author");
+
+			let webpWithMetadata;
+			try {
+				webpWithMetadata =
+					command === "stealn"
+						? await WSF.setMetadata(undefined, undefined, media)
+						: await WSF.setMetadata(
+								packOrAuthor ? packName : evv ? evv : memberData?.customStealText || "SOUMYA",
+								packOrAuthor
+									? authorName
+									: evv
+									? ""
+									: memberData?.customStealText
+									? undefined
+									: "DownloadWorld",
+								media
+						  );
+				await sock.sendMessage(from, { sticker: Buffer.from(webpWithMetadata) }, { quoted: msg });
+			} catch (error) {
+				console.error("Error setting metadata:", error);
+				return sendMessageWTyping(from, { text: `❌ *Error setting metadata*` }, { quoted: msg });
+			}
+		} finally {
+			if (media) memoryManager.safeUnlink(media);
 		}
-
-		try {
-			fs.unlinkSync(media);
-		} catch {}
 	} else {
 		return sendMessageWTyping(from, { text: `❌ *Reply on Sticker*` }, { quoted: msg });
 	}

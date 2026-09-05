@@ -30,13 +30,13 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { senderJid, type, content, isGroup, sendMessageWTyping, evv } = msgInfoObj;
 	const memberData = await getMemberData(senderJid);
 
-	if (msg.message.extendedTextMessage) {
-		msg.message = msg.message.extendedTextMessage.contextInfo.quotedMessage;
-	}
+	const quotedMsg = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+	const targetMsg = quotedMsg ? { ...msg, message: quotedMsg } : msg;
+	const targetContent = targetMsg.message || {};
 
-	const isMedia = type === "imageMessage" || type === "videoMessage";
-	const isTaggedImage = type === "extendedTextMessage" && content.includes("imageMessage");
-	const isTaggedVideo = type === "extendedTextMessage" && content.includes("videoMessage");
+	const isImage = Boolean(targetContent.imageMessage);
+	const isVideo = Boolean(targetContent.videoMessage);
+	const isMedia = isImage || isVideo;
 
 	if (!isGroup) {
 		if (memberData.dmLimit <= 0) {
@@ -88,15 +88,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					`scale='min(220,iw)':'min(220,ih)':force_original_aspect_ratio=decrease,fps=15, pad=220:220:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`,
 			  ];
 
-	const media = isTaggedImage ? getRandom(".png") : getRandom(".mp4");
+	const media = isImage ? getRandom(".png") : getRandom(".mp4");
 
-	if (isMedia || isTaggedImage || isTaggedVideo) {
-		if (msg.message?.videoMessage?.seconds > 11) {
+	if (isMedia) {
+		if (targetContent.videoMessage?.seconds > 11) {
 			return sendMessageWTyping(from, { text: "Send less than 11 seconds." }, { quoted: msg });
 		}
 
 		try {
-			const buffer = await downloadMediaMessage(msg, "buffer", {});
+			const buffer = await downloadMediaMessage(targetMsg, "buffer", {});
 			if (!buffer || buffer.length === 0) {
 				return sendMessageWTyping(
 					from,

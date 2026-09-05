@@ -61,7 +61,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const mime = downloadPath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
 
 		try {
-			await sendMessageWTyping(
+			await sock.sendMessage(
 				from,
 				{
 					audio: { url: downloadPath },
@@ -70,10 +70,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				},
 				{ quoted: msg }
 			);
+			memoryManager.markFileSent(downloadPath);
 		} catch (sendErr) {
 			console.error("[MP3] Send with URL failed, trying buffer fallback:", sendErr.message);
 			const buf = fs.readFileSync(downloadPath);
-			await sendMessageWTyping(
+			await sock.sendMessage(
 				from,
 				{
 					audio: buf,
@@ -82,6 +83,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				},
 				{ quoted: msg }
 			);
+			memoryManager.markFileSent(downloadPath);
 		}
 	} catch (error) {
 		console.error("MP3 Download Error:", error);
@@ -91,8 +93,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
 		if (downloadPath) {
-			await new Promise(resolve => setTimeout(resolve, 8000));
-			if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
+			setTimeout(() => {
+				if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
+			}, 60000);
 		}
 		if (acquired) {
 			downloadQueue.release();

@@ -1,4 +1,9 @@
 import "dotenv/config";
+
+// Ensure Homebrew and standard system binary paths are available globally
+const standardBinPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
+process.env.PATH = Array.from(new Set([...standardBinPaths, ...(process.env.PATH || "").split(":")])).filter(Boolean).join(":");
+
 import startSock, { onNewSock } from "./connection.js";
 import getDate from "./functions/getDate.js";
 import memoryManager from "./functions/memoryUtils.js";

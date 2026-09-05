@@ -39,16 +39,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		// Prepare options for deleting the message
 		const options = {
 			remoteJid: from,
-			fromMe: false,
+			fromMe: Boolean(isBotMessage),
 			id: msg.message.extendedTextMessage.contextInfo.stanzaId,
 			participant: msg.message.extendedTextMessage.contextInfo.participant,
 		};
-
-		// If the message is from the bot, delete its own message
-		if (isBotMessage) {
-			options.remoteJid = botNumber[0];
-			options.fromMe = true;
-		}
 
 		// Send the delete message request
 		await sock.sendMessage(from, { delete: options });

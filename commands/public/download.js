@@ -125,7 +125,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await downloadQueue.acquire(from);
 		acquired = true;
 
-		downloadedPaths = await downloadViaCobalt(targetUrl, null, false, null, () => downloadQueue.heartbeat(from));
+		downloadedPaths = await downloadViaCobalt(targetUrl, null, false, msgInfoObj?.signal || null, () => downloadQueue.heartbeat(from));
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Could not download media from link.");
 		}
@@ -160,31 +160,49 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (!fs.existsSync(filePath)) continue;
 			memoryManager.markFileReady(filePath);
 			const mediaInfo = await detectMediaFileType(filePath);
+			const stats = await fs.promises.stat(filePath).catch(() => ({ size: 0 }));
+			const sizeMB = stats.size / (1024 * 1024);
 
 			try {
 				if (mediaInfo.detected === "video") {
-					await sock.sendMessage(from, { video: { url: filePath }, mimetype: "video/mp4" }, { quoted: msg });
+					if (sizeMB <= 35) {
+						// For files <= 35MB, buffer delivery is instantaneous and avoids Baileys stream ENOENT races
+						const videoBuf = fs.readFileSync(filePath);
+						await sock.sendMessage(from, { video: videoBuf, mimetype: "video/mp4" }, { quoted: msg });
+					} else {
+						await sock.sendMessage(from, { video: { url: filePath }, mimetype: "video/mp4" }, { quoted: msg });
+					}
 				} else if (mediaInfo.detected === "image") {
-					await sock.sendMessage(from, { image: { url: filePath } }, { quoted: msg });
+					if (sizeMB <= 15) {
+						const imgBuf = fs.readFileSync(filePath);
+						await sock.sendMessage(from, { image: imgBuf }, { quoted: msg });
+					} else {
+						await sock.sendMessage(from, { image: { url: filePath } }, { quoted: msg });
+					}
 				} else if (mediaInfo.detected === "audio") {
 					const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-					await sock.sendMessage(from, { audio: { url: filePath }, mimetype: mime, ptt: false }, { quoted: msg });
+					if (sizeMB <= 30) {
+						const audioBuf = fs.readFileSync(filePath);
+						await sock.sendMessage(from, { audio: audioBuf, mimetype: mime, ptt: false }, { quoted: msg });
+					} else {
+						await sock.sendMessage(from, { audio: { url: filePath }, mimetype: mime, ptt: false }, { quoted: msg });
+					}
 				} else {
 					await sock.sendMessage(from, { document: { url: filePath }, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
 				}
 				memoryManager.markFileSent(filePath);
 			} catch (sendErr) {
 				console.error("[Universal DL] Send error, trying stream-based buffer fallback:", sendErr.message);
-				let stats;
+				let fallbackStats;
 				try {
-					stats = await fs.promises.stat(filePath);
+					fallbackStats = await fs.promises.stat(filePath);
 				} catch (_) {
-					stats = { size: 0 };
+					fallbackStats = { size: 0 };
 				}
-				const fileSizeMB = stats.size / (1024 * 1024);
-				if (fileSizeMB > 50) {
-					console.warn(`[Universal DL] Buffer fallback skipped: ${fileSizeMB.toFixed(1)}MB exceeds 50MB limit.`);
-					await sendMessageWTyping(from, { text: `⚠️ File too large for direct upload (${fileSizeMB.toFixed(1)}MB). Please try again later.` }, { quoted: msg });
+				const fallbackMB = fallbackStats.size / (1024 * 1024);
+				if (fallbackMB > 50) {
+					console.warn(`[Universal DL] Buffer fallback skipped: ${fallbackMB.toFixed(1)}MB exceeds 50MB limit.`);
+					await sendMessageWTyping(from, { text: `⚠️ File too large for direct upload (${fallbackMB.toFixed(1)}MB). Please try again later.` }, { quoted: msg });
 					continue;
 				}
 				try {
@@ -212,7 +230,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const userMsg = err.message?.includes("cancelled") ? "❌ Download was cancelled."
 			: err.message?.includes("Invalid URL") ? "❌ Invalid URL provided."
 			: `❌ Download failed. Please try again later.`;
-		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
+		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg }).catch(() => {});
+		err.userNotified = true;
+		throw err;
 	} finally {
 		if (downloadedPaths.length > 0) {
 			// Wait 8s to ensure Baileys finishes streaming file to WhatsApp servers before unlinking

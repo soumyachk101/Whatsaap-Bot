@@ -69,9 +69,10 @@ class MessageQueue {
 
 			(async () => {
 				try {
+					const sendTimeoutMs = message.priority >= 2 ? 120000 : 35000;
 					const sendPromise = message.sendFunction();
 					const timeoutPromise = new Promise((_, reject) =>
-						setTimeout(() => reject(new Error("Message send timeout (25s)")), 25000)
+						setTimeout(() => reject(new Error(`Message send timeout (${sendTimeoutMs / 1000}s)`)), sendTimeoutMs)
 					);
 					const result = await Promise.race([sendPromise, timeoutPromise]);
 					message.resolve(result);

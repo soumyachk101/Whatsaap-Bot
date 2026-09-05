@@ -604,8 +604,20 @@ const getCommand = async (sock, msg, cache) => {
 			}
 		}
 
+		const MEDIA_COMMANDS = new Set([
+			"song", "play", "mp3", "mp4", "video", "yt", "yta", "ytv", "vs",
+			"download", "dl", "d", "fb", "facebook", "fbdl", "insta", "i",
+			"twitter", "tw", "x", "pin", "gen", "gen2", "genimg", "genimg2",
+			"imagen", "flashgen", "image", "toimg", "sticker", "s", "attp",
+			"textsticker", "ts", "transcribe", "tr2", "voice2text", "tts",
+			"say", "removebg", "bg"
+		]);
+
+		const isMediaCmd = MEDIA_COMMANDS.has(command);
+		const initialReaction = (command === "song" || command === "play" || command === "mp3" || command === "yta") ? "🎵" : "👀";
+
 		if (command != "") {
-			sock.sendMessage(from, { react: { text: "👀", key: msg.key } }).catch(err => console.error("[React Error]", err));
+			sock.sendMessage(from, { react: { text: initialReaction, key: msg.key } }).catch(err => console.error("[React Error]", err));
 			const globallyDisabled = botData?.disabledGlobally || [];
 			if (globallyDisabled.includes(command)) {
 				return sendMessageWTyping(from, { text: `🚫 This command is globally disabled.` }, { quoted: msg });
@@ -615,23 +627,36 @@ const getCommand = async (sock, msg, cache) => {
 		// Log command execution for dashboard stats & activity
 		logCommandEvent(command, senderJid, isGroup ? (groupData?.grpName || from) : null);
 
-		const COMMAND_TIMEOUT_MS = 30000;
+		const COMMAND_TIMEOUT_MS = isMediaCmd ? 120000 : 35000;
+		const abortController = new AbortController();
+		msgInfoObj.signal = abortController.signal;
+
 		const runHandler = async (handlerFn, label) => {
 			const t0 = Date.now();
 			try {
 				const result = await Promise.race([
 					handlerFn(),
 					new Promise((_, reject) =>
-						setTimeout(() => reject(new Error(`Command timeout: '${command}' (${label}) exceeded ${COMMAND_TIMEOUT_MS / 1000}s`)), COMMAND_TIMEOUT_MS)
+						setTimeout(() => {
+							abortController.abort();
+							reject(new Error(`Command timeout: '${command}' (${label}) exceeded ${COMMAND_TIMEOUT_MS / 1000}s`));
+						}, COMMAND_TIMEOUT_MS)
 					),
 				]);
 				const t1 = Date.now();
 				console.log(`[PROFILE] Command '${command}' (${label}) took ${t1 - t0}ms`);
+				// Success reaction
+				const successReaction = (command === "song" || command === "play" || command === "mp3" || command === "yta") ? "🎶" : "✅";
+				sock.sendMessage(from, { react: { text: successReaction, key: msg.key } }).catch(() => {});
 				return result;
 			} catch (err) {
+				abortController.abort();
+				// Failure reaction
+				sock.sendMessage(from, { react: { text: "❌", key: msg.key } }).catch(() => {});
 				if (err.message && err.message.includes("Command timeout")) {
 					console.error(`[WATCHDOG] ${err.message}`);
 					await sendMessageWTyping(from, { text: `⏱️ *Command Timeout*\n\nCommand '${command}' took too long to respond. Please try again.` }, { quoted: msg }).catch(() => {});
+					err.userNotified = true;
 				}
 				throw err;
 			}
@@ -670,7 +695,7 @@ const getCommand = async (sock, msg, cache) => {
 		console.error("📍 Error stack:", error.stack);
 		try {
 			const safeFrom = (from && typeof from === "string") ? from : (msg?.key?.remoteJid || "");
-			if (safeFrom && sock) {
+			if (safeFrom && sock && !error.userNotified) {
 				await sock.sendMessage(safeFrom, { text: `❌ *Error processing command:*\n_${error.message}_` }, { quoted: msg });
 			}
 		} catch (_) {}

@@ -11,23 +11,38 @@ import memoryManager from "./memoryUtils.js";
 import instanceHealth from "./instanceHealth.js";
 import ffmpegStatic from "ffmpeg-static";
 
-const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStatic || "ffmpeg";
+// Prepend standard system and homebrew paths to process.env.PATH
+const standardBinPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
+process.env.PATH = Array.from(new Set([...standardBinPaths, ...(process.env.PATH || "").split(":")])).filter(Boolean).join(":");
 
-// Binary availability flags — checked at module load time
-let ytDlpAvailable = true;
-let ffmpegAvailable = true;
+const findBinary = (name) => {
+	const candidates = [
+		name,
+		path.join("/opt/homebrew/bin", name),
+		path.join("/usr/local/bin", name),
+		path.join("/usr/bin", name),
+		path.join("/bin", name),
+	];
+	for (const candidate of candidates) {
+		try {
+			execFileSync(candidate, ["--version"], { stdio: "ignore" });
+			return candidate;
+		} catch {}
+	}
+	return null;
+};
 
-try {
-	execFileSync("yt-dlp", ["--version"], { stdio: "ignore" });
-} catch {
-	ytDlpAvailable = false;
+const ytDlpPath = findBinary("yt-dlp");
+const ytDlpAvailable = Boolean(ytDlpPath);
+
+const resolvedFfmpeg = process.env.FFMPEG_PATH || ffmpegStatic || findBinary("ffmpeg") || "ffmpeg";
+const ffmpegAvailable = Boolean(findBinary("ffmpeg") || ffmpegStatic);
+const ffmpegPath = resolvedFfmpeg;
+
+if (!ytDlpAvailable) {
 	console.warn("[BinaryCheck] yt-dlp not found on PATH; YouTube downloads will fall back to Cobalt.");
 }
-
-try {
-	execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
-} catch {
-	ffmpegAvailable = false;
+if (!ffmpegAvailable) {
 	console.warn("[BinaryCheck] ffmpeg not found on PATH; some yt-dlp conversions may fail.");
 }
 
@@ -180,6 +195,34 @@ const validateDownloadedFile = (filePath, expectedType = "auto") => {
 };
 
 /**
+ * Normalize Instagram URL: strip tracking query params, enforce https and www, fix /reels/ to /reel/
+ */
+export const normalizeInstagramUrl = (rawUrl) => {
+	try {
+		let clean = String(rawUrl || "").trim();
+		clean = clean.split("?")[0].split("&")[0];
+		if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+			clean = "https://" + clean;
+		} else if (clean.startsWith("http://")) {
+			clean = clean.replace("http://", "https://");
+		}
+		clean = clean.replace(/\/reels\//i, "/reel/");
+		const parsed = new URL(clean);
+		if (parsed.hostname === "instagram.com") {
+			parsed.hostname = "www.instagram.com";
+		}
+		let pathname = parsed.pathname;
+		if (!pathname.endsWith("/")) {
+			pathname += "/";
+		}
+		parsed.pathname = pathname;
+		return parsed.toString();
+	} catch {
+		return rawUrl;
+	}
+};
+
+/**
  * Fallback downloader using yt-dlp binary
  */
 export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false, signal = null) => {
@@ -191,16 +234,20 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 	// Mark as downloading so GC does not delete it mid-flight
 	memoryManager.markFileStatus(tempFile, "downloading");
 
+	const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
+	const isInstagram = url.includes("instagram.com");
+	const igCookie = process.env.INSTAGRAM_COOKIE || "";
+
 	const ytdlpArgs = audioOnly
 		? [
 				"--no-playlist",
-				"--extractor-args",
-				"youtube:player_client=android,web",
+				...(isYouTube ? ["--extractor-args", "youtube:player_client=android,web"] : []),
+				...(isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
 				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 				"--max-filesize",
 				"70M",
 				"-f",
-				"140/ba/b",
+				isYouTube ? "140/ba/b" : "bestaudio/best",
 				"--extract-audio",
 				"--audio-format",
 				"mp3",
@@ -210,13 +257,13 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 			]
 		: [
 				"--no-playlist",
-				"--extractor-args",
-				"youtube:player_client=android,web",
+				...(isYouTube ? ["--extractor-args", "youtube:player_client=android,web"] : []),
+				...(isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
 				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 				"--max-filesize",
 				"90M",
 				"-f",
-				"18/best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best",
+				isYouTube ? "18/best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best" : "best[height<=720][ext=mp4]/best[ext=mp4]/best",
 				"--merge-output-format",
 				"mp4",
 				"-o",
@@ -246,9 +293,9 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 	for (let attempt = 1; attempt <= 2; attempt++) {
 		try {
 			await new Promise((resolve, reject) => {
-				const opts = { timeout: 90000, env };
+				const opts = { timeout: 35000, env };
 				if (signal) opts.signal = signal;
-				const child = execFile("yt-dlp", ytdlpArgs, opts, (err, stdout, stderr) => {
+				const child = execFile(ytDlpPath || "yt-dlp", ytdlpArgs, opts, (err, stdout, stderr) => {
 					if (err) return reject(new Error(stderr ? stderr.trim() : err.message));
 					resolve();
 				});
@@ -274,7 +321,7 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 			lastErr = err;
 			if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
 			if (attempt < 2) {
-				await new Promise((r) => setTimeout(r, 2000));
+				await new Promise((r) => setTimeout(r, 1000));
 			}
 		}
 	}
@@ -285,8 +332,9 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
  * Fallback downloader for Instagram using snapsave-downloader
  */
 export const downloadWithSnapSave = async (url, outputDir = null, signal = null) => {
-	console.log(`[SnapSave Fallback] Fetching Instagram media for ${url}...`);
-	const res = await snapsave(url);
+	const normalizedUrl = normalizeInstagramUrl(url);
+	console.log(`[SnapSave Fallback] Fetching Instagram media for ${normalizedUrl}...`);
+	const res = await snapsave(normalizedUrl);
 	if (!res || !res.status || !Array.isArray(res.data) || res.data.length === 0) {
 		throw new Error("SnapSave returned no media data");
 	}
@@ -304,7 +352,7 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 			continue;
 		}
 
-		const isVideo = Boolean(item.url) || (item.filename && item.filename.endsWith(".mp4")) || mediaUrl.includes(".mp4");
+		const isVideo = Boolean(item.url) || (item.filename && item.filename.endsWith(".mp4")) || mediaUrl.includes(".mp4") || mediaUrl.includes("video");
 		const ext = isVideo ? ".mp4" : ".jpg";
 
 		const tempFile = outputDir
@@ -316,7 +364,7 @@ export const downloadWithSnapSave = async (url, outputDir = null, signal = null)
 			const downloadReq = await axios.get(mediaUrl, {
 				responseType: "stream",
 				headers: item.headers || { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
-				timeout: 30000,
+				timeout: 25000,
 				maxContentLength: 100 * 1024 * 1024,
 				signal: signal,
 			});
@@ -365,17 +413,35 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 	}
 
 	const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
-	if (isYouTube && ytDlpAvailable) {
-		try {
-			console.log(`[YouTube DL] Fetching directly via yt-dlp...`);
-			return await downloadWithYtDlp(url, outputDir, audioOnly, signal);
-		} catch (ytdlpErr) {
-			console.warn(`[YouTube DL] Direct yt-dlp attempt failed (${ytdlpErr.message}), falling back to Cobalt...`);
+	if (isYouTube) {
+		if (ytDlpAvailable) {
+			try {
+				console.log(`[YouTube DL] Fetching directly via yt-dlp...`);
+				return await downloadWithYtDlp(url, outputDir, audioOnly, signal);
+			} catch (ytdlpErr) {
+				console.error(`[YouTube DL] Direct yt-dlp failed: ${ytdlpErr.message}`);
+				throw new CobaltDownloadError("ytdlp_failed", `YouTube download failed: ${ytdlpErr.message}`);
+			}
+		} else {
+			console.warn(`[YouTube DL] yt-dlp not found on system, attempting Cobalt fallback...`);
 		}
 	}
 
 	const isInstagram = url.includes("instagram.com");
-	const isReelOrTv = isInstagram && (url.includes("/reel/") || url.includes("/tv/"));
+	const isReelOrTv = isInstagram && (url.includes("/reel/") || url.includes("/reels/") || url.includes("/tv/") || url.includes("/p/"));
+
+	// FAST PATH: For Instagram videos/reels, SnapSave is 10x faster (<1.5s) than querying sleeping/blocked Cobalt instances
+	if (isInstagram && !audioOnly) {
+		try {
+			console.log(`[Instagram Fast-Path] Downloading directly via SnapSave for ${url}...`);
+			const snapResult = await downloadWithSnapSave(url, outputDir, signal);
+			if (snapResult && snapResult.length > 0) {
+				return snapResult;
+			}
+		} catch (snapErr) {
+			console.warn(`[Instagram Fast-Path] SnapSave attempt failed (${snapErr.message}), falling back to Cobalt/yt-dlp...`);
+		}
+	}
 
 	const baseApiUrl = process.env.COBALT_API_URL || "https://cobalt-engine1.onrender.com";
 	const apiKey = process.env.COBALT_API_KEY;
@@ -409,14 +475,14 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 			headers["Authorization"] = `Api-Key ${apiKey}`;
 		}
 
-		// Retry each instance up to 2 times with 10s timeout
+		// Retry each instance up to 2 times with 6s timeout
 		for (let attempt = 1; attempt <= 2; attempt++) {
 			if (signal?.aborted) throw new Error("Download cancelled");
 
 			try {
 				const response = await axios.post(apiUrl, payload, {
 					headers,
-					timeout: 10000,
+					timeout: 6000,
 					signal: signal,
 					maxContentLength: 50 * 1024 * 1024,
 					maxBodyLength: 50 * 1024 * 1024,

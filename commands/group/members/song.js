@@ -114,7 +114,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		try {
 			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-			await sendMessageWTyping(
+			await sock.sendMessage(
 				from,
 				{
 					audio: { url: fileDown },
@@ -123,11 +123,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				},
 				{ quoted: msg }
 			);
+			memoryManager.markFileSent(fileDown);
 		} catch (sendErr) {
 			console.error("[Song] Send with URL failed, trying buffer fallback:", sendErr.message);
 			const buf = fs.readFileSync(fileDown);
 			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-			await sendMessageWTyping(
+			await sock.sendMessage(
 				from,
 				{
 					audio: buf,
@@ -136,6 +137,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				},
 				{ quoted: msg }
 			);
+			memoryManager.markFileSent(fileDown);
 		}
 	} catch (err) {
 		console.error("Song download error:", err);
@@ -145,8 +147,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
 		if (fileDown) {
-			await new Promise(resolve => setTimeout(resolve, 8000));
-			if (fs.existsSync(fileDown)) memoryManager.safeUnlink(fileDown);
+			setTimeout(() => {
+				if (fs.existsSync(fileDown)) memoryManager.safeUnlink(fileDown);
+			}, 60000);
 		}
 		if (acquired) {
 			downloadQueue.release();
