@@ -63,15 +63,26 @@ export default function Layout({ children }) {
 
  <aside className={`sidebar ${isMenuOpen ? 'open' : ''}`}>
 
- <div className="brand-logo">
- <div className="brand-icon">
- <Icons.IconZap size={22} />
- </div>
- <div>
- <div className="brand-name">WhatsApp Bot</div>
- <div className="brand-subtitle">Admin Engine v2.2</div>
- </div>
- </div>
+				<div className="brand-logo" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+					<img
+						src="/downloadbuddy.jpg"
+						alt="Bot Logo"
+						onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/favicon.png'; }}
+						style={{
+							width: 36,
+							height: 36,
+							borderRadius: '10px',
+							objectFit: 'cover',
+							border: '1.5px solid rgba(129, 140, 248, 0.4)',
+							boxShadow: '0 0 16px rgba(99, 102, 241, 0.3)',
+							flexShrink: 0,
+						}}
+					/>
+					<div>
+						<div className="brand-name">WhatsApp Bot</div>
+						<div className="brand-subtitle">Admin Engine v2.2</div>
+					</div>
+				</div>
 
  <div className="section-label">Core Management</div>
  <nav className="nav">
