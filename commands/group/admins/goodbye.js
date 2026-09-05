@@ -28,14 +28,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		if (isSingleArg && (subCmd === "reset" || subCmd === "default")) {
 			await setGroupGoodbye(from, "");
-			await sendMessageWTyping(from, goodbyeReset(), { quoted: msg });
+			await sendMessageWTyping(from, { text: goodbyeReset() }, { quoted: msg });
 		} else if (isSingleArg && (subCmd === "off" || subCmd === "disable")) {
 			await setGroupGoodbye(from, "off");
-			await sendMessageWTyping(from, goodbyeDisabled(), { quoted: msg });
+			await sendMessageWTyping(from, { text: goodbyeDisabled() }, { quoted: msg });
 		} else if (isSingleArg && (subCmd === "on" || subCmd === "enable")) {
 			const newStatus = byeMess === "off" ? "" : byeMess;
 			await setGroupGoodbye(from, newStatus);
-			await sendMessageWTyping(from, goodbyeEnabled(), { quoted: msg });
+			await sendMessageWTyping(from, { text: goodbyeEnabled() }, { quoted: msg });
 		} else if (isSingleArg && (subCmd === "preview" || subCmd === "test")) {
 			let previewText = "";
 			if (byeMess && byeMess !== "off") {
@@ -67,21 +67,21 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		} else if (subCmd === "set" && (args.length > 1 || quotedText)) {
 			const messageToSet = args.length > 1 ? evv.slice(args[0].length).trim() : quotedText;
 			await setGroupGoodbye(from, messageToSet);
-			await sendMessageWTyping(from, goodbyeSet(), { quoted: msg });
+			await sendMessageWTyping(from, { text: `✅ *Goodbye message set!*\n\n${messageToSet}\n\n_💡 Tip: Use \`${currentPrefix}goodbye preview\` to test._` }, { quoted: msg });
 		} else if (!args[0] && quotedText) {
 			await setGroupGoodbye(from, quotedText);
-			await sendMessageWTyping(from, goodbyeSet(), { quoted: msg });
+			await sendMessageWTyping(from, { text: `✅ *Goodbye message set!*\n\n${quotedText}\n\n_💡 Tip: Use \`${currentPrefix}goodbye preview\` to test._` }, { quoted: msg });
 		} else if (!args[0]) {
 			const status = byeMess === "off"
 				? "🚫 *Disabled*"
 				: byeMess && byeMess.trim() !== ""
-					? `✅ *Custom Message*`
+					? `✅ *Custom Message:*\n${byeMess}`
 					: "📝 *Default Random Templates*";
 
-			await sendMessageWTyping(from, goodbyeSettings(status, currentPrefix), { quoted: msg });
+			await sendMessageWTyping(from, { text: goodbyeSettings(status, currentPrefix) }, { quoted: msg });
 		} else {
 			await setGroupGoodbye(from, evv);
-			await sendMessageWTyping(from, goodbyeSet(), { quoted: msg });
+			await sendMessageWTyping(from, { text: `✅ *Goodbye message set!*\n\n${evv}\n\n_💡 Tip: Use \`${currentPrefix}goodbye preview\` to test._` }, { quoted: msg });
 		}
 	} catch (err) {
 		console.error("Goodbye command error:", err);

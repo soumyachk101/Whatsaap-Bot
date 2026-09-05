@@ -1,28 +1,34 @@
 import { cmdToText } from "../../../functions/getAddCommands.js";
-import {
-	box,
-	premiumBox,
-	brandedFooter,
-} from "../../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
-	let { prefix, sendMessageWTyping } = msgInfoObj;
+	let prefix = msgInfoObj.prefix || (process.env.PREFIX ? process.env.PREFIX.trim() : "#");
+	let { sendMessageWTyping } = msgInfoObj;
 	try {
 		const { adminCommands } = await cmdToText();
 
-		const formattedCmds = adminCommands.map((cmd) => {
+		const lines = adminCommands.map((cmd) => {
 			const primary = cmd.cmd[0];
 			const others = cmd.cmd.slice(1);
-			const aliasText = others.length > 0 ? ` (${others.map(a => `${prefix}${a}`).join(", ")})` : "";
-			return `◦ *${prefix}${primary}*${aliasText}\n └─ _${cmd.desc}_\n └─ _Usage: ${prefix}${cmd.usage}_`;
-		}).join("\n\n");
+			const aliasText = others.length > 0 ? ` _(${others.map((a) => `${prefix}${a}`).join(", ")})_` : "";
+			return `│ ➜ ${prefix}${primary}${aliasText}\n│    _${cmd.desc}_`;
+		});
 
-		const admin = premiumBox(
-			[formattedCmds, "", "♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️"],
-			"ADMIN COMMANDS", "🔐"
-		);
+		const text = [
+			"╭━━『 *Admin Commands* 🛡️ 』━━╮",
+			"",
+			`⚡ Prefix: . or #`,
+			`📦 Total: ${adminCommands.length}`,
+			"",
+			"┏━━━━━━━━━━━━━━━━━",
+			"┃ 🛡️ GROUP ADMIN COMMANDS",
+			"┗━━━━━━━━━━━━━━━━━",
+			...lines,
+			"╰━━━━━━━━━━━━━━━━━",
+			"",
+			`💡 Type \`${prefix}help <command>\` for detailed usage`,
+		].join("\n");
 
-		await sendMessageWTyping(from, { text: admin + brandedFooter() }, { quoted: msg });
+		await sendMessageWTyping(from, { text }, { quoted: msg });
 	} catch (err) {
 		console.error("Admin help error:", err);
 		sendMessageWTyping(from, { text: `❌ Error: ${err.message}` }, { quoted: msg });
@@ -30,7 +36,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 };
 
 export default () => ({
-	cmd: ["admin"],
+	cmd: ["admin", "adminhelp"],
 	desc: "Admin commands list",
 	usage: "admin",
 	handler,

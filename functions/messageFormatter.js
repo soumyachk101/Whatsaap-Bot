@@ -1,99 +1,43 @@
 // ──────────────────────────────────────────────────────────────
-// DownloadBuddy · Premium Message Formatter v2
-// Enhanced visual helpers with consistent premium styling,
-// improved box-drawing characters, and better visual hierarchy.
+// DownloadBuddy · Clean WhatsApp Message Formatter
+// Clean, natural formatting with zero truncation and no rigid double-line ASCII cages.
 // ──────────────────────────────────────────────────────────────
 
 const BOX_W = 32;
 
-// ── Unicode box primitives ────────────────────────────────────
-
-const topD = () => "╔" + "═".repeat(BOX_W) + "╗";
-const botD = () => "╚" + "═".repeat(BOX_W) + "╝";
-const midD = () => "╠" + "═".repeat(BOX_W) + "╣";
-
-const topT = () => "╔" + "─".repeat(BOX_W) + "╗";
-const botT = () => "╚" + "─".repeat(BOX_W) + "╯";
-
-const side = (text = "") => {
-	const t = text.length > BOX_W ? text.slice(0, BOX_W - 2) + ".." : text;
-	return "║" + t.padEnd(BOX_W) + "║";
-};
-
-const empty = () => "║" + " ".repeat(BOX_W) + "║";
-
-const center = (text) => {
-	const raw = text.replace(/[*_~`]/g, "").length;
-	const max = BOX_W;
-	const display = raw > max ? text.slice(0, max - 2) + ".." : text;
-	const padLeft = Math.floor((BOX_W - display.length) / 2);
-	const padRight = BOX_W - display.length - padLeft;
-	return "║" + " ".repeat(padLeft) + display + " ".repeat(padRight) + "║";
-};
-
-// ── Light box variants ────────────────────────────────────────
-
-const topL = () => "╓" + "─".repeat(BOX_W) + "╖";
-const botL = () => "╙" + "─".repeat(BOX_W) + "╜";
-const midL = () => "╟" + "─".repeat(BOX_W) + "╢";
-
-const sideL = (text = "") => {
-	const t = text.length > BOX_W ? text.slice(0, BOX_W - 2) + ".." : text;
-	return "║" + t.padEnd(BOX_W) + "║";
-};
-
-/* ── premiumBox ─────────────────────────────────────────────── */
-
 /**
- * @param {string|string[]} lines
- * @param {string|null} [title] – optional header
- * @param {string} [icon] – emoji prefix for title
- * @param {string|null} [footer] – optional footer line
- * @param {object} [opts] – optional settings
- * @param {string} [opts.variant] – 'default' | 'light' | 'success' | 'error' | 'warning'
- * @param {boolean} [opts.compact] – reduce padding for shorter messages
- * @param {string} [opts.footerIcon] – emoji for footer line
+ * Clean card formatter for WhatsApp messages.
+ * Never truncates text and never outputs rigid ASCII grid double-lines.
  */
 export const premiumBox = (lines, title, icon, footer, opts = {}) => {
-	const p = [];
-	const variant = opts.variant || "default";
-	const compact = opts.compact || false;
-
-	// Choose box style based on variant
-	let topFn = topD, botFn = botD, midFn = midD, sideFn = side;
-	if (variant === "light") { topFn = topL; botFn = botL; midFn = midL; sideFn = sideL; }
-
-	p.push(topFn());
+	const parts = [];
 
 	if (title) {
-		const display = icon ? `${icon} ${title}` : title;
-		p.push(center(display));
-		p.push(midFn());
+		const displayTitle = icon ? `${icon} *${title}*` : `*${title}*`;
+		parts.push(`╭━━『 ${displayTitle} 』━━╮`);
 	}
 
 	const arr = Array.isArray(lines) ? lines : [lines];
-	const padTop = compact ? 0 : 1;
-	const padBot = compact ? 0 : 1;
+	const cleaned = arr
+		.filter((l) => l !== null && l !== undefined)
+		.map((l) => String(l).trimEnd());
 
-	for (let i = 0; i < padTop; i++) p.push(empty());
-
-	for (const l of arr) {
-		p.push(l === "" ? empty() : sideFn(l));
+	const content = cleaned.join("\n").trim();
+	if (content) {
+		parts.push(content);
 	}
-
-	for (let i = 0; i < padBot; i++) p.push(empty());
 
 	if (footer) {
-		p.push(midFn());
 		const footerText = opts.footerIcon ? `${opts.footerIcon} ${footer}` : footer;
-		p.push(sideFn(footerText));
+		parts.push(`💡 _${footerText}_`);
 	}
 
-	p.push(botFn());
-	return p.join("\n");
+	return parts.join("\n\n").trim();
 };
 
 export const box = premiumBox;
+export const doubleBox = (lines, title, icon) => premiumBox(lines, title, icon);
+export const infoBox = (lines, title, icon) => premiumBox(lines, title, icon);
 
 // ── Separators ───────────────────────────────────────────────
 
@@ -199,54 +143,6 @@ export const compactBox = (text, icon = "") => {
 	return `┃${padded}┃`;
 };
 
-/**
- * Creates a double-bordered box for important announcements
- */
-export const doubleBox = (lines, title, icon) => {
-	const p = [];
-	p.push("╔" + "╦".repeat(BOX_W) + "╗");
-
-	if (title) {
-		const display = icon ? `${icon} ${title}` : title;
-		const padLeft = Math.floor((BOX_W - display.length) / 2);
-		const padRight = BOX_W - display.length - padLeft;
-		p.push("║" + " ".repeat(padLeft) + display + " ".repeat(padRight) + "║");
-		p.push("╠" + "╬".repeat(BOX_W) + "╣");
-	}
-
-	const arr = Array.isArray(lines) ? lines : [lines];
-	for (const l of arr) {
-		p.push(l === "" ? "║" + " ".repeat(BOX_W) + "║" : side(l));
-	}
-
-	p.push("╚" + "╩".repeat(BOX_W) + "╝");
-	return p.join("\n");
-};
-
-/**
- * Creates a highlighted info box (light variant)
- */
-export const infoBox = (lines, title, icon) => {
-	const p = [];
-	p.push(topL());
-
-	if (title) {
-		const display = icon ? `${icon} ${title}` : title;
-		p.push(center(display));
-		p.push(midL());
-	}
-
-	const arr = Array.isArray(lines) ? lines : [lines];
-	p.push(empty());
-	for (const l of arr) {
-		p.push(l === "" ? empty() : sideL(l));
-	}
-	p.push(empty());
-
-	p.push(botL());
-	return p.join("\n");
-};
-
 // ══════════════════════════════════════════════════════════════
 // PREMIUM TEMPLATES
 // ══════════════════════════════════════════════════════════════
@@ -254,35 +150,32 @@ export const infoBox = (lines, title, icon) => {
 // ── Welcome ──────────────────────────────────────────────────
 
 const WELCOME_TEMPLATES = [
-	(mention, group) => premiumBox([
-		`🎬 Welcome ${mention}!`,
+	(mention, group) => [
+		`╭━━『 *Welcome* 🎉 』━━╮`,
 		"",
-		`_Say hello and explore_`,
+		`👋 Hello ${mention}!`,
+		group ? `Welcome to *${group}*! 🚀` : "Welcome to the group! 🚀",
 		"",
-		`💡 ${formatCmd("#", "help")} for commands`
-	], "WELCOME", "🎉", null, { compact: true }),
+		"💡 Type `.help` or `#help` to explore commands!",
+	].join("\n"),
 
-	(mention, group) => premiumBox([
+	(mention, group) => [
+		`╭━━『 *Welcome Aboard* 🌟 』━━╮`,
+		"",
 		`🚀 Hey ${mention}, welcome aboard!`,
-		group ? `Enjoy *${group}*` : "",
+		group ? `Enjoy your stay in *${group}* ✨` : "Enjoy your stay! ✨",
 		"",
-		"_Sit back and enjoy the ride!_"
-	], "HELLO", "👋", null, { compact: true }),
+		"💡 Feel free to chat and have fun!",
+	].join("\n"),
 
-	(mention, group) => premiumBox([
-		`✨ A new star has arrived!`,
-		`🔥 Welcome ${mention}`,
-		group ? `in *${group}*` : "",
+	(mention, group) => [
+		`╭━━『 *New Member* 👋 』━━╮`,
 		"",
-		"🎉 _Say hi and let's go!_"
-	], "NEW MEMBER", "🌟", null, { compact: true }),
-
-	(mention, group) => premiumBox([
-		`☕ Welcome ${mention}!`,
-		group ? `Enjoy *${group}*` : "",
+		`✨ A new member has arrived!`,
+		`🔥 Welcome ${mention}${group ? ` to *${group}*` : ""}!`,
 		"",
-		`🪄 _Use ${formatCmd("#", "help")} to unlock magic_`
-	], "WELCOME", "🚀", null, { compact: true }),
+		"💡 Type `.help` or `#help` to see what I can do.",
+	].join("\n"),
 ];
 
 export const randomWelcome = (name, groupName = "") => {
@@ -291,33 +184,32 @@ export const randomWelcome = (name, groupName = "") => {
 };
 
 const GOODBYE_TEMPLATES = [
-	(mention, group) => premiumBox([
-		`👋 Goodbye ${mention}!`,
+	(mention, group) => [
+		`╭━━『 *Goodbye* 👋 』━━╮`,
 		"",
-		group ? `_We'll miss you in *${group}*!_` : "_We'll miss you!_",
-		"😔"
-	], "GOODBYE", "😢", null, { compact: true }),
+		`👋 Farewell ${mention}!`,
+		group ? `We will miss you in *${group}*! 😢` : "We will miss you! 😢",
+		"",
+		"✨ Wishing you all the best!",
+	].join("\n"),
 
-	(mention, group) => premiumBox([
-		`🚪 See you later, ${mention}!`,
-		group ? `_Thanks for being in *${group}*_` : "_Thanks for being here!_",
+	(mention, group) => [
+		`╭━━『 *Farewell* 🚪 』━━╮`,
 		"",
-		"🙌 _Come back soon!_"
-	], "GOODBYE", "👋", null, { compact: true }),
+		`🚶 ${mention} has left the group.`,
+		group ? `Departed from *${group}*` : "",
+		"",
+		"👋 Take care until next time!",
+	].join("\n"),
 
-	(mention, group) => premiumBox([
-		`🎬 Farewell ${mention}!`,
-		group ? `_Farewell from *${group}*_` : "",
+	(mention, group) => [
+		`╭━━『 *Goodbye* ✈️ 』━━╮`,
 		"",
-		"✨ _All the best!_"
-	], "GOODBYE", "😢", null, { compact: true }),
-
-	(mention, group) => premiumBox([
-		`👋 ${mention} left the chat`,
-		group ? `_Goodbye from *${group}*_` : "",
+		`✈️ Bon voyage, ${mention}!`,
+		group ? `Left *${group}*` : "",
 		"",
-		"🌟 _Wishing you well!_"
-	], "GOODBYE", "😢", null, { compact: true }),
+		"⭐ Wishing you good luck ahead!",
+	].join("\n"),
 ];
 
 export const randomGoodbye = (name, groupName = "") => {
@@ -560,59 +452,59 @@ export const welcomeReset = () => premiumBox([
 	"_Reset to default templates._ ✅"
 ], "RESET", "🔄", null, { variant: "success", compact: true });
 
-export const welcomeSettings = (status, prefix) => premiumBox([
-	`${keyValue("Status", status, toggleState(status === "enabled" || status === "on" ? "✅" : "😴"))}`,
+export const welcomeSettings = (status, prefix = "#") => [
+	"╭━━『 *Welcome Settings* 🎉 』━━╮",
 	"",
-	`⚙️ *Commands:*`,
-	bulletItem(`${formatCmd(prefix, "welcome <msg>")} — Set custom`, "📝"),
-	bulletItem(`${formatCmd(prefix, "welcome preview")} — Test`, "👁️"),
-	bulletItem(`${formatCmd(prefix, "welcome reset")} — Default`, "🔄"),
-	bulletItem(`${formatCmd(prefix, "welcome off/on")} — Toggle`, "🔘"),
+	`📊 *Status:* ${status}`,
 	"",
-	`💡 *Placeholders:*`,
-	formatPlaceholder("@user / {user}", "New member"),
-	formatPlaceholder("{group}", "Group name"),
-	formatPlaceholder("{name}", "Member name"),
-	formatPlaceholder("{desc}", "Group description")
-], "WELCOME SETTINGS", "⚙️", null, { variant: "light" });
+	"┏━━━━━━━━━━━━━━━━━",
+	"┃ ⚙️ COMMANDS",
+	"┗━━━━━━━━━━━━━━━━━",
+	`│ ➜ \`${prefix}welcome <message>\` — Set custom text`,
+	`│ ➜ \`${prefix}welcome preview\` — Test preview`,
+	`│ ➜ \`${prefix}welcome reset\` — Reset to default`,
+	`│ ➜ \`${prefix}welcome off\` — Turn off welcome`,
+	`│ ➜ \`${prefix}welcome on\` — Turn on welcome`,
+	"╰━━━━━━━━━━━━━━━━━",
+	"",
+	"💡 *Placeholders for custom message:*",
+	"• `@user` — Mentions the new member",
+	"• `{group}` — Group name",
+	"• `{name}` — Member name",
+	"• `{desc}` — Group description",
+].join("\n");
 
 // ── Goodbye Settings ─────────────────────────────────────────
 
-export const goodbyeSet = () => premiumBox([
-	"✅ *Goodbye Message Set!*",
-	"",
-	`_Use ${formatCmd("#", "goodbye preview")} to test._`
-], "SET", "✅", null, { variant: "success", compact: true });
+export const goodbyeSet = () => "✅ *Goodbye Message Set!*";
 
-export const goodbyeDisabled = () => premiumBox([
-	"_Goodbye disabled._",
-	"",
-	`_Use ${formatCmd("#", "goodbye on")} to enable._`
-], "DISABLED", "😴", null, { variant: "light", compact: true });
+export const goodbyeDisabled = () => "😴 *Goodbye messages disabled for this group.*";
 
-export const goodbyeEnabled = () => premiumBox([
-	"_Goodbye messages enabled!_ ✅"
-], "ENABLED", "✅", null, { variant: "success", compact: true });
+export const goodbyeEnabled = () => "✅ *Goodbye messages enabled!*";
 
-export const goodbyeReset = () => premiumBox([
-	"_Reset to default templates._ ✅"
-], "RESET", "🔄", null, { variant: "success", compact: true });
+export const goodbyeReset = () => "✅ *Goodbye message reset to default templates.*";
 
-export const goodbyeSettings = (status, prefix) => premiumBox([
-	`${keyValue("Status", status, toggleState(status === "enabled" || status === "on" ? "✅" : "😴"))}`,
+export const goodbyeSettings = (status, prefix = "#") => [
+	"╭━━『 *Goodbye Settings* 👋 』━━╮",
 	"",
-	`⚙️ *Commands:*`,
-	bulletItem(`${formatCmd(prefix, "goodbye <msg>")} — Set custom`, "📝"),
-	bulletItem(`${formatCmd(prefix, "goodbye preview")} — Test`, "👁️"),
-	bulletItem(`${formatCmd(prefix, "goodbye reset")} — Default`, "🔄"),
-	bulletItem(`${formatCmd(prefix, "goodbye off/on")} — Toggle`, "🔘"),
+	`📊 *Status:* ${status}`,
 	"",
-	`💡 *Placeholders:*`,
-	formatPlaceholder("@user / {user}", "Leaving member"),
-	formatPlaceholder("{group}", "Group name"),
-	formatPlaceholder("{name}", "Member name"),
-	formatPlaceholder("{desc}", "Group description")
-], "GOODBYE SETTINGS", "⚙️", null, { variant: "light" });
+	"┏━━━━━━━━━━━━━━━━━",
+	"┃ ⚙️ COMMANDS",
+	"┗━━━━━━━━━━━━━━━━━",
+	`│ ➜ \`${prefix}goodbye <message>\` — Set custom text`,
+	`│ ➜ \`${prefix}goodbye preview\` — Test preview`,
+	`│ ➜ \`${prefix}goodbye reset\` — Reset to default`,
+	`│ ➜ \`${prefix}goodbye off\` — Turn off goodbye`,
+	`│ ➜ \`${prefix}goodbye on\` — Turn on goodbye`,
+	"╰━━━━━━━━━━━━━━━━━",
+	"",
+	"💡 *Placeholders you can use:*",
+	"• `@user` — Tag the leaving member",
+	"• `{group}` — Group name",
+	"• `{name}` — Member name",
+	"• `{desc}` — Group description",
+].join("\n");
 
 // ── Block / Unblock ──────────────────────────────────────────
 
