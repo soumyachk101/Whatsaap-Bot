@@ -3,7 +3,7 @@ import { fake_quoted } from "./getFakeQuoted.js";
 import { getGroupData, createGroupData } from "../sqlite-DB/groupDataDb.js";
 import { extractPhoneNumber, getPreferredJID } from "./lidUtils.js";
 import { groupMetadataCache } from "./getSocket.js";
-import { randomWelcome, sendWithTyping } from "./messageFormatter.js";
+import { randomWelcome, randomGoodbye, sendWithTyping, premiumBox } from "./messageFormatter.js";
 
 const getPhone = (p) => {
 	const raw = typeof p === "string" ? p : (p?.phoneNumber || p?.id || p?.jid || "");
@@ -36,7 +36,7 @@ const getGroupEvent = async (sock, events, cache) => {
 			groupDataDB = await getGroupData(jid);
 		}
 		if (!groupDataDB || groupDataDB === -1) {
-			groupDataDB = { welcome: "", grpName: groupMetadata?.subject || "Group", is91Only: false };
+			groupDataDB = { welcome: "", goodbye: "", grpName: groupMetadata?.subject || "Group", is91Only: false };
 		}
 	}
 
@@ -130,6 +130,96 @@ const getGroupEvent = async (sock, events, cache) => {
 			`━━━━━━━━━━━━━━\n` +
 			`🏠 <b>Group:</b> ${escapeHtml(grpName)}\n` +
 			`👤 <b>Joined:</b> ${addedNumbers}`
+		);
+	} else if (events.action === "remove") {
+		const goodbyeEnabled = groupDataDB.goodbye !== "off";
+		if (goodbyeEnabled && Array.isArray(events.participants)) {
+			for (const member of events.participants) {
+				const memberJid = typeof member === "string" ? member : (member?.id || member?.jid || member?.phoneNumber || "");
+				const phoneNumber = getPhone(member);
+				if (!phoneNumber) continue;
+
+				const mentionTag = `@${phoneNumber}`;
+				const displayName = member?.notify || member?.name || phoneNumber;
+
+				// Resolve preferred JID format for DM (LID or PN)
+				let dmJid = "";
+				try {
+					dmJid = await getPreferredJID(sock, memberJid);
+				} catch (_) {
+					// Fallback: build PN JID from phone number
+					dmJid = memberJid.includes("@") ? memberJid : `${phoneNumber}@s.whatsapp.net`;
+				}
+
+				// Build goodbye text for group message
+				let goodbyeText = "";
+				if (groupDataDB.goodbye && groupDataDB.goodbye.trim() !== "" && groupDataDB.goodbye !== "off") {
+					let customText = groupDataDB.goodbye;
+					const hasUserPlaceholder = /@user|@member|\{user\}|\{member\}/i.test(customText);
+
+					customText = customText
+						.replace(/@user|@member|\{user\}|\{member\}/gi, mentionTag)
+						.replace(/\{group\}|\{groupname\}/gi, grpName)
+						.replace(/\{desc\}|\{description\}/gi, grpDesc)
+						.replace(/\{name\}/gi, displayName);
+
+					if (hasUserPlaceholder || customText.includes(mentionTag)) {
+						goodbyeText = customText;
+					} else {
+						goodbyeText = `${mentionTag}, ${customText}`;
+					}
+				} else {
+					goodbyeText = randomGoodbye(mentionTag, grpName);
+				}
+
+				// Mentions for group message (PN JID is what @phoneNumber resolves to)
+				const pnJid = `${phoneNumber}@s.whatsapp.net`;
+				const cleanMemberJid = memberJid.includes(":")
+					? memberJid.split(":")[0] + (memberJid.includes("@lid") ? "@lid" : "@s.whatsapp.net")
+					: memberJid;
+				const mentionsList = [...new Set([pnJid, memberJid, cleanMemberJid, dmJid].filter(Boolean))];
+
+				// Build DM goodbye text
+				const dmGoodbyeText = groupDataDB.goodbye && groupDataDB.goodbye.trim() !== "" && groupDataDB.goodbye !== "off"
+					? goodbyeText.replace(mentionTag, `@${phoneNumber}`)
+					: randomGoodbye(mentionTag);
+
+				// Send DM to the leaving user's inbox with graceful error handling
+				if (dmJid && dmJid !== memberJid) {
+					try {
+						await sendWithTyping(sock, dmJid, { text: dmGoodbyeText });
+					} catch (dmErr) {
+						console.error(`[getGroupEvent] Failed to send goodbye DM to ${dmJid}:`, dmErr.message);
+					}
+				}
+
+				// Send premium formatted goodbye to the group
+				const premiumGoodbye = premiumBox(
+					[goodbyeText],
+					"GOODBYE",
+					"👋"
+				);
+
+				try {
+					await sock.sendMessage(jid, {
+						text: premiumGoodbye,
+						mentions: mentionsList,
+					});
+				} catch (sendErr) {
+					console.error(`[getGroupEvent] Failed to send goodbye message to ${jid}:`, sendErr.message);
+				}
+			}
+		}
+
+		const leftNumbers = (events.participants || []).map((p) => `<code>${escapeHtml(getPhone(p))}</code>`).join(", ");
+		const leftCount = events.participants?.length || 0;
+		const actionLabel = leftCount === 1 ? "Left / Removed" : `Left / Removed (${leftCount} members)`;
+		sendToTelegram(
+			`➖ <b>Group Update</b>\n` +
+			`━━━━━━━━━━━━━━\n` +
+			`🏠 <b>Group:</b> ${escapeHtml(grpName)}\n` +
+			`👤 <b>Member${leftCount > 1 ? 's' : ''}:</b> ${leftNumbers || 'N/A'}\n` +
+			`📋 <b>Action:</b> ${actionLabel}`
 		);
 	} else {
 		const actionEmoji = events.action === "remove" ? "➖" : events.action === "promote" ? "⬆️" : events.action === "demote" ? "⬇️" : "🔄";

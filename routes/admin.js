@@ -198,6 +198,7 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 
 		const activeGroups = groups.filter(g => g.isBotOn !== false).length;
 		const blockedMembers = members.filter(m => m.isBlock).length;
+		const warnedMembers = members.filter(m => Array.isArray(m.warning) && m.warning.length > 0).length;
 
 		res.json({
 			topGroups,
@@ -206,6 +207,7 @@ router.get("/api/admin/analytics", requireAdmin, async (req, res) => {
 			totalMessages,
 			activeGroups,
 			blockedMembers,
+			warnedMembers,
 			totalGroups: groups.length,
 			totalMembers: members.length,
 			activity: getActivityOverview(),

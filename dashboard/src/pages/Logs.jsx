@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import GlassCard from '../components/GlassCard.jsx'
-import { SearchIcon, RefreshIcon } from '../components/SVG.jsx'
+import { SearchIcon, RefreshIcon } from '../components/Icons.jsx'
 import { getLogs } from '../lib/api.js'
 
 const LOG_LEVELS = ['info', 'warn', 'error', 'debug']

@@ -23,7 +23,7 @@ baileys_store_multi.json
 # mongodb.js
 .fake
 cookie.json
-# logs
+logs/
 temp/
 performance-metrics.json
 .github/copilot-instructions.md

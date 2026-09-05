@@ -4,7 +4,6 @@ import { useAuth, useToast } from '../App.jsx'
 import { getStats, logout, fmtUptime } from '../lib/api.js'
 import { useWebSocket } from '../hooks/useWebSocket.js'
 import * as Icons from '../components/Icons.jsx'
-import { LogsIcon, SettingsIcon, PluginsIcon } from '../components/SVG.jsx'
 
 const NAV_MAIN = [
  { to: '/', icon: Icons.IconDashboard, label: 'Control Center', end: true },
@@ -17,12 +16,13 @@ const NAV_SYSTEM = [
  { to: '/analytics', icon: Icons.IconAnalytics, label: 'Analytics' },
  { to: '/broadcast', icon: Icons.IconBroadcast, label: 'Broadcast' },
  { to: '/health', icon: Icons.IconHealth, label: 'Engine Health' },
- { to: '/logs', icon: LogsIcon, label: 'System Logs' },
- { to: '/plugins', icon: PluginsIcon, label: 'Plugins' },
+ { to: '/logs', icon: Icons.LogsIcon, label: 'System Logs' },
+ { to: '/plugins', icon: Icons.PluginsIcon, label: 'Plugins' },
+ { to: '/qr', icon: Icons.IconQrCode, label: 'QR Pairing' },
 ]
 
 const NAV_TOOLS = [
- { to: '/settings', icon: SettingsIcon, label: 'Settings' },
+ { to: '/settings', icon: Icons.SettingsIcon, label: 'Settings' },
 ]
 
 export default function Layout({ children }) {

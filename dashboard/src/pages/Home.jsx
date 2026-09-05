@@ -8,9 +8,14 @@ import { useWebSocket } from '../hooks/useWebSocket.js'
 import StatCard from '../components/StatCard.jsx'
 import GlassCard from '../components/GlassCard.jsx'
 import {
- BotIcon, MessageIcon, GroupIcon, UsersIcon, ActivityIcon, ErrorIcon,
- RefreshIcon, PowerIcon, TrendingUpIcon,
-} from '../components/SVG.jsx'
+	MessageIcon,
+	GroupIcon,
+	ActivityIcon,
+	UsersIcon,
+	BotIcon,
+	ErrorIcon,
+	WarningIcon,
+} from '../components/Icons.jsx'
 
 // ── Mini Sparkline ──────────────────────────────────────────────────────
 function Sparkline({ data = [], color = '#818cf8', height = 32 }) {
@@ -47,6 +52,7 @@ export default function Home() {
  const wsStatus = useWebSocket()
  const [stats, setStats] = useState(null)
  const [analytics, setAnalytics] = useState(null)
+ const [warnings, setWarnings] = useState(0)
  const [loading, setLoading] = useState(true)
  const [maintenanceMode, setMaintenanceModeState] = useState(false)
  const [maintenanceLoading, setMaintenanceLoading] = useState(false)
@@ -57,7 +63,7 @@ export default function Home() {
 
  const fetchData = () => {
  Promise.all([getStats(), getAnalytics()])
- .then(([s, a]) => { setStats(s); setAnalytics(a) })
+ .then(([s, a]) => { setStats(s); setAnalytics(a); setWarnings(a?.warnedMembers ?? 0) })
  .catch(() => {})
  .finally(() => setLoading(false))
  }
@@ -165,6 +171,7 @@ export default function Home() {
 				<StatCard title="Members" value={members} subtext="Across all groups" icon={UsersIcon} accent="emerald" delay={180} trend="+8%" />
 				<StatCard title="Uptime" value={uptime} subtext="Since last restart" icon={BotIcon} accent="cyan" delay={240} />
 				<StatCard title="Errors" value={errors} subtext={errors > 0 ? 'Needs attention' : 'All clear'} icon={ErrorIcon} accent={errors > 0 ? 'rose' : 'emerald'} delay={300} trend={errors > 0 ? 'up' : undefined} />
+				<StatCard title="Active Warnings" value={warnings} subtext={warnings > 0 ? 'Users warned' : 'All clear'} icon={WarningIcon} accent={warnings > 0 ? 'amber' : 'emerald'} delay={360} trend={warnings > 0 ? 'up' : undefined} />
 			</div>
 
  {/* ── Main Grid: Activity + Quick Actions ─────────────────── */}

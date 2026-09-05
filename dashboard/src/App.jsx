@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Layout from './components/Layout.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -13,6 +14,7 @@ import Health from './pages/Health.jsx'
 import Logs from './pages/Logs.jsx'
 import Settings from './pages/Settings.jsx'
 import Plugins from './pages/Plugins.jsx'
+import QRPage from './pages/QRPage.jsx'
 import { setOnUnauthorized } from './lib/api.js'
 
 // ── Contexts ───────────────────────────────────────────────────────────────────
@@ -78,9 +80,11 @@ export default function App() {
  <BrowserRouter basename={basename}>
  <Routes>
  <Route path="/login" element={<Login />} />
- <Route path="/*" element={
+ <Route path="/qr" element={<QRPage />} />
+ <Route path="/" element={
  <AuthGuard>
  <Layout>
+ <ErrorBoundary>
  <Routes>
  <Route index element={<Home />} />
  <Route path="dashboard" element={<Dashboard />} />
@@ -95,6 +99,7 @@ export default function App() {
  <Route path="plugins" element={<Plugins />} />
  <Route path="*" element={<Navigate to="/" replace />} />
  </Routes>
+ </ErrorBoundary>
  </Layout>
  </AuthGuard>
  } />

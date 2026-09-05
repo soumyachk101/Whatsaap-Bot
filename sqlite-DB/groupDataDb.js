@@ -19,6 +19,7 @@ const defaultGroupDoc = (groupJid, groupMetadata = {}) => ({
 	desc: groupMetadata?.desc ? groupMetadata.desc.toString() : "",
 	cmdBlocked: [],
 	welcome: "",
+	goodbye: "",
 	totalMsgCount: 0,
 	memberWarnCount: [],
 	members: [],
@@ -180,6 +181,29 @@ const setGroupWelcome = async (groupJid, welcomeText) => {
 	}
 };
 
+const setGroupGoodbye = async (groupJid, goodbyeText) => {
+	if (!groupJid) return;
+	try {
+		await getGroupData(groupJid);
+		await group.updateOne(
+			{ _id: groupJid },
+			{ $set: { goodbye: goodbyeText } },
+			{ upsert: true }
+		);
+		const cached = groupCache.get(groupJid);
+		if (cached?.data) {
+			cached.data.goodbye = goodbyeText;
+			cached.timestamp = Date.now();
+		} else {
+			groupCache.delete(groupJid);
+		}
+	} catch (err) {
+		console.error("[setGroupGoodbye error]", err.message);
+		groupCache.delete(groupJid);
+		throw err;
+	}
+};
+
 const updateGroupData = async (groupJid, update, options = {}) => {
 	if (!groupJid) return;
 	try {
@@ -203,6 +227,7 @@ export {
 	getGroupData,
 	createGroupData,
 	setGroupWelcome,
+	setGroupGoodbye,
 	updateGroupData,
 	recordGroupDailyStats,
 	statsDay,

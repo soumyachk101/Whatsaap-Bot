@@ -1,5 +1,9 @@
 import { cmdToText } from "../../../functions/getAddCommands.js";
-import { box, brandedFooter } from "../../../functions/messageFormatter.js";
+import {
+	box,
+	premiumBox,
+	brandedFooter,
+} from "../../../functions/messageFormatter.js";
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { prefix, sendMessageWTyping } = msgInfoObj;
@@ -13,9 +17,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return `◦ *${prefix}${primary}*${aliasText}\n └─ _${cmd.desc}_\n └─ _Usage: ${prefix}${cmd.usage}_`;
 		}).join("\n\n");
 
-		const admin = box(
+		const admin = premiumBox(
 			[formattedCmds, "", "♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️"],
-			"ADMIN COMMANDS"
+			"ADMIN COMMANDS", "🔐"
 		);
 
 		await sendMessageWTyping(from, { text: admin + brandedFooter() }, { quoted: msg });

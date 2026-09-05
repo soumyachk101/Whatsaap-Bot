@@ -67,7 +67,7 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.get("/", (_req, res) => {
-	res.redirect("/admin");
+	res.render("index");
 });
 
 app.get("/login", (_req, res) => {
@@ -92,6 +92,8 @@ let port = Number(process.env.PORT) || 8000;
 function listenPort(p) {
 	const s = app.listen(p, () => {
 		console.log(`\nWeb-server running on port ${p}!\n` + getDate());
+		console.log(`🔗 QR / Pairing Page: http://localhost:${p}/`);
+		console.log(`🔗 Admin Dashboard  : http://localhost:${p}/admin\n`);
 		console.log(`Memory usage at startup: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
 		startServer();
 	});
@@ -175,6 +177,16 @@ app.locals.reconnect = () => startSock("manual-reconnect");
 
 // ── WebSocket server ──────────────────────────────────────────────────────────
 wss.on("connection", async (ws, req) => {
+	// Origin validation — only accept same-origin or localhost
+	const origin = req.headers.origin || req.headers.referer || ""
+	const allowedOrigins = [process.env.ALLOWED_ORIGIN, "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:5173", "http://localhost:3000"].filter(Boolean)
+	const isAllowed = allowedOrigins.some(o => origin === o || origin.startsWith(o))
+	if (!isAllowed) {
+		console.warn(`[WS] Rejected connection from untrusted origin: ${origin}`)
+		try { ws.close(1008, "Unauthorized origin") } catch {}
+		return
+	}
+
 	const session = await getSession(req);
 	const isAdmin = session?.isAdmin;
 
