@@ -411,8 +411,8 @@ export default function Dashboard() {
  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent)' }} />
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
  <div>
- <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
- <Icons.IconBarChart size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom', color: '#a5b4fc' }} />
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+ <Icons.IconBarChart size={16} style={{ color: '#a5b4fc' }} />
  Group Activity Volume
  </h3>
  <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Message throughput across highest volume groups</p>
@@ -450,8 +450,8 @@ export default function Dashboard() {
  <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(59,130,246,0.25), transparent)' }} />
  <div style={{ marginBottom: '1rem' }}>
- <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
- <Icons.IconTrendingUp size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom', color: '#60a5fa' }} />
+ <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+ <Icons.IconTrendingUp size={16} style={{ color: '#60a5fa' }} />
  Most Active Groups
  </h3>
  <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Highest message throughput</p>

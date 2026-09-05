@@ -64,7 +64,7 @@ export default function Members() {
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
  <div>
  <h1 className="section-title" style={{ fontSize: '1.35rem' }}>
- <Icons.IconMembers size={20} style={{ marginRight: 8, verticalAlign: 'text-bottom', color: '#a5b4fc' }} />
+ <Icons.IconTrophy size={20} style={{ color: '#fbbf24' }} />
  Members Leaderboard
  </h1>
  <p className="section-subtitle">{data ? `${data.total.toLocaleString()} registered participants` : 'Loading...'}</p>

@@ -138,25 +138,31 @@ export const IconUsers = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	</svg>
 ))
 
+export const IconTrophy = memo(({ size = 18, color = 'currentColor' } = {}) => (
+	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+		<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+		<path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+		<path d="M4 22h16" />
+		<path d="M10 14.66V17c0 .55-.45 1-1 1H8v4h8v-4h-1c-.55 0-1-.45-1-1v-2.34" />
+		<path d="M6 4h12a1 1 0 0 1 1 1v4c0 3.87-3.13 7-7 7s-7-3.13-7-7V5a1 1 0 0 1 1-1z" />
+	</svg>
+))
+
+export const IconLeaderboard = IconTrophy
+
 // ── Commands & Features ──────────────────────────────────────────────────────
 export const IconCommands = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-		<polyline points="4 17 10 11 4 5" />
+		<polyline points="4 17 10 12 4 7" />
 		<line x1="12" y1="19" x2="20" y2="19" />
-		<circle cx="17" cy="7" r="1.5" fill={color} stroke="none" />
 	</svg>
 ))
 
-export const CommandIcon = memo(({ size = 24, color = 'currentColor' } = {}) => (
-	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-		<polyline points="4 17 10 11 4 5" />
-		<line x1="12" y1="19" x2="20" y2="19" />
-	</svg>
-))
+export const CommandIcon = IconCommands
 
 // ── Analytics & Data ────────────────────────────────────────────────────────
 export const IconAnalytics = memo(({ size = 18, color = 'currentColor' } = {}) => (
-	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
 		<path d="M3 3v18h18" />
 		<path d="m19 9-5 5-4-4-3 3" />
 	</svg>
@@ -202,10 +208,9 @@ export const DatabaseIcon = memo(({ size = 24, color = 'currentColor' } = {}) =>
 // ── Broadcast & Alerts ───────────────────────────────────────────────────────
 export const IconBroadcast = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-		<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-		<path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-		<path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-		<path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+		<path d="m3 11 18-5v12L3 14v-3z" />
+		<path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+		<path d="M21 9a3 3 0 0 1 0 6" />
 	</svg>
 ))
 
@@ -227,23 +232,12 @@ export const IconAlert = memo(({ size = 18, color = 'currentColor' } = {}) => (
 // ── Health & Monitoring ──────────────────────────────────────────────────────
 export const IconHealth = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-		<path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-		<circle cx="12" cy="12" r="10" />
-		<circle cx="12" cy="12" r="3" fill={color} stroke="none" opacity="0.3" />
-	</svg>
-))
-
-export const IconActivity = memo(({ size = 18, color = 'currentColor' } = {}) => (
-	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
 		<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
 	</svg>
 ))
 
-export const ActivityIcon = memo(({ size = 24, color = 'currentColor' } = {}) => (
-	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-		<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-	</svg>
-))
+export const IconActivity = IconHealth
+export const ActivityIcon = IconHealth
 
 export const IconWifi = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -432,36 +426,19 @@ export const RefreshIcon = memo(({ size = 24, color = 'currentColor' } = {}) => 
 export const IconSettings = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
 		<circle cx="12" cy="12" r="3" />
-		<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-.58 1.82V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-.58-1.82 1.65 1.65 0 0 0-1.82-.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.82-.58H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.82-.33 1.65 1.65 0 0 0 .58-1.82V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 .58 1.82 1.65 1.65 0 0 0 1.82.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.82.58H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+		<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
 	</svg>
 ))
 
-export const SettingsIcon = memo(({ size = 24, color = 'currentColor' } = {}) => (
-	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-		<circle cx="12" cy="12" r="3" />
-		<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-.58 1.82V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-.58-1.82 1.65 1.65 0 0 0-1.82-.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.82-.58H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.82-.33 1.65 1.65 0 0 0 .58-1.82V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 .58 1.82 1.65 1.65 0 0 0 1.82.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.82.58H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-	</svg>
-))
+export const SettingsIcon = IconSettings
 
-export const PluginsIcon = memo(({ size = 24, color = 'currentColor' } = {}) => (
-	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-		<rect x="2" y="6" width="8" height="8" rx="1" />
-		<rect x="14" y="6" width="8" height="8" rx="1" />
-		<path d="M10 10h4M10 13h4M6 19l2-2M14 19l-2-2" />
-		<circle cx="6" cy="10" r="1" fill={color} stroke="none" />
-		<circle cx="18" cy="10" r="1" fill={color} stroke="none" />
-	</svg>
-))
-
-export const IconPlugins = memo(({ size = 18, color = 'currentColor' } = {}) => (
+export const PluginsIcon = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-		<rect x="2" y="6" width="8" height="8" rx="1" />
-		<rect x="14" y="6" width="8" height="8" rx="1" />
-		<path d="M10 10h4M10 13h4M6 19l2-2M14 19l-2-2" />
-		<circle cx="6" cy="10" r="1" fill={color} stroke="none" />
-		<circle cx="18" cy="10" r="1" fill={color} stroke="none" />
+		<path d="M14 4h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 1 0 4 2 2 0 0 0-2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 0-2 2 2 2 0 0 1-4 0 2 2 0 0 0-2-2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0-2-2 2 2 0 0 1 0-4 2 2 0 0 0 2-2V6a2 2 0 0 1 2-2h2a2 2 0 0 0 2-2 2 2 0 0 1 4 0 2 2 0 0 0 2 2z" />
 	</svg>
 ))
+
+export const IconPlugins = PluginsIcon
 
 // ── Media & Fun ──────────────────────────────────────────────────────────────
 export const IconGlobe = memo(({ size = 18, color = 'currentColor' } = {}) => (
@@ -563,15 +540,39 @@ export const IconCheck = memo(({ size = 16, color = 'currentColor' } = {}) => (
 
 export const IconQrCode = memo(({ size = 18, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+		{/* Top-Left Finder */}
 		<rect x="3" y="3" width="7" height="7" rx="1.5" />
+		<rect x="5.5" y="5.5" width="2" height="2" fill={color} stroke="none" />
+		{/* Top-Right Finder */}
 		<rect x="14" y="3" width="7" height="7" rx="1.5" />
+		<rect x="16.5" y="5.5" width="2" height="2" fill={color} stroke="none" />
+		{/* Bottom-Left Finder */}
 		<rect x="3" y="14" width="7" height="7" rx="1.5" />
-		<rect x="14" y="14" width="3" height="3" />
-		<rect x="18" y="14" width="3" height="3" />
-		<rect x="14" y="18" width="3" height="3" />
-		<rect x="18" y="18" width="3" height="3" />
+		<rect x="5.5" y="16.5" width="2" height="2" fill={color} stroke="none" />
+		{/* Bottom-Right Data Pattern */}
+		<path d="M14 14h3v3h-3zM18 18h3v3h-3z" fill={color} stroke="none" />
+		<line x1="21" y1="14" x2="21.01" y2="14" strokeWidth="2.5" />
+		<line x1="14" y1="21" x2="14.01" y2="21" strokeWidth="2.5" />
+		<line x1="17" y1="18" x2="17.01" y2="18" strokeWidth="2.5" />
 	</svg>
 ))
+
+export const IconImage = memo(({ size = 18, color = 'currentColor' } = {}) => (
+	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+		<rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+		<circle cx="8.5" cy="8.5" r="1.5" />
+		<polyline points="21 15 16 10 5 21" />
+	</svg>
+))
+
+export const IconVideo = memo(({ size = 18, color = 'currentColor' } = {}) => (
+	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+		<polygon points="23 7 16 12 23 17 23 7" />
+		<rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+	</svg>
+))
+
+export const IconLogs = LogsIcon
 
 export const MoonIcon = memo(({ size = 24, color = 'currentColor' } = {}) => (
 	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -603,7 +604,7 @@ export const Icons = {
 	// Bot & Communication
 	BotIcon, MessageIcon, IconMessage, IconSend, IconPhone, IconWhatsApp,
 	// Users & Groups
-	IconGroups, GroupIcon, IconMembers, UsersIcon, IconUsers,
+	IconGroups, GroupIcon, IconMembers, UsersIcon, IconUsers, IconTrophy, IconLeaderboard,
 	// Commands & Features
 	IconCommands, CommandIcon,
 	// Analytics & Data
@@ -613,13 +614,13 @@ export const Icons = {
 	// Health & Monitoring
 	IconHealth, IconActivity, ActivityIcon, IconWifi, IconCpu, IconServer, IconClock, ClockIcon, IconWrench,
 	// Logs & Files
-	LogsIcon, IconFileText, IconSearch, SearchIcon, IconCopy, IconTrash,
+	LogsIcon, IconLogs, IconFileText, IconSearch, SearchIcon, IconCopy, IconTrash,
 	// Security & Auth
 	IconLogout, IconLock, IconUnlock, IconShield, ShieldIcon, IconEye, IconEyeOff,
 	// Power & System
 	IconPower, PowerIcon, IconRefresh, RefreshIcon, IconSettings, SettingsIcon, IconPlugins, PluginsIcon, IconQrCode,
 	// Media & Fun
-	IconGlobe, GlobeIcon, IconZap, ZapIcon, IconPalette, IconMusic, IconCurrency, IconGamepad, IconSmile,
+	IconGlobe, GlobeIcon, IconZap, ZapIcon, IconPalette, IconMusic, IconCurrency, IconGamepad, IconSmile, IconImage, IconVideo,
 	// Moderation & Actions
 	IconLink, IconHand, IconCheck, MoonIcon,
 	// Errors & States

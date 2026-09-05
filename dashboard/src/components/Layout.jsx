@@ -9,20 +9,20 @@ const NAV_MAIN = [
  { to: '/', icon: Icons.IconDashboard, label: 'Control Center', end: true },
  { to: '/commands', icon: Icons.IconCommands, label: 'Command Catalog' },
  { to: '/groups', icon: Icons.IconGroups, label: 'Group Settings' },
- { to: '/members', icon: Icons.IconMembers, label: 'User Leaderboard' },
+ { to: '/members', icon: Icons.IconTrophy, label: 'User Leaderboard' },
 ]
 
 const NAV_SYSTEM = [
  { to: '/analytics', icon: Icons.IconAnalytics, label: 'Analytics' },
  { to: '/broadcast', icon: Icons.IconBroadcast, label: 'Broadcast' },
  { to: '/health', icon: Icons.IconHealth, label: 'Engine Health' },
- { to: '/logs', icon: Icons.LogsIcon, label: 'System Logs' },
- { to: '/plugins', icon: Icons.PluginsIcon, label: 'Plugins' },
+ { to: '/logs', icon: Icons.IconLogs, label: 'System Logs' },
+ { to: '/plugins', icon: Icons.IconPlugins, label: 'Plugins' },
  { to: '/qr', icon: Icons.IconQrCode, label: 'QR Pairing' },
 ]
 
 const NAV_TOOLS = [
- { to: '/settings', icon: Icons.SettingsIcon, label: 'Settings' },
+ { to: '/settings', icon: Icons.IconSettings, label: 'Settings' },
 ]
 
 export default function Layout({ children }) {
@@ -88,8 +88,10 @@ export default function Layout({ children }) {
  <nav className="nav">
  {NAV_MAIN.map(({ to, icon: Icon, label, end }) => (
  <NavLink key={to} to={to} end={end} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
- <Icon size={17} />
- <span>{label}</span>
+ <span className="nav-icon-box">
+ <Icon size={18} />
+ </span>
+ <span className="nav-label">{label}</span>
  </NavLink>
  ))}
  </nav>
@@ -98,8 +100,10 @@ export default function Layout({ children }) {
  <nav className="nav">
  {NAV_SYSTEM.map(({ to, icon: Icon, label }) => (
  <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
- <Icon size={17} />
- <span>{label}</span>
+ <span className="nav-icon-box">
+ <Icon size={18} />
+ </span>
+ <span className="nav-label">{label}</span>
  </NavLink>
  ))}
  </nav>
@@ -108,8 +112,10 @@ export default function Layout({ children }) {
  <nav className="nav">
  {NAV_TOOLS.map(({ to, icon: Icon, label }) => (
  <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
- <Icon size={17} />
- <span>{label}</span>
+ <span className="nav-icon-box">
+ <Icon size={18} />
+ </span>
+ <span className="nav-label">{label}</span>
  </NavLink>
  ))}
  </nav>
@@ -141,9 +147,11 @@ export default function Layout({ children }) {
  </div>
  </div>
 
- <button className="btn btn-ghost" onClick={handleLogout} style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--text-dim)', fontSize: '0.72rem', padding: '0.45rem 0.75rem' }}>
- <Icons.IconLogout size={15} />
- Sign Out
+ <button className="nav-item signout-btn" onClick={handleLogout} style={{ width: '100%', background: 'transparent', border: '1px solid transparent', cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
+ <span className="nav-icon-box">
+ <Icons.IconLogout size={18} />
+ </span>
+ <span className="nav-label">Sign Out</span>
  </button>
  </div>
  </aside>

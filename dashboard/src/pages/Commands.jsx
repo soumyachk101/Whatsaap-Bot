@@ -71,8 +71,8 @@ export default function Commands() {
 
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
  <div>
- <h1 className="section-title" style={{ fontSize: '1.35rem' }}>
- <Icons.IconCommands size={20} style={{ marginRight: 8, verticalAlign: 'text-bottom', color: '#a5b4fc' }} />
+ <h1 className="section-title" style={{ fontSize: '1.35rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+ <Icons.IconCommands size={20} style={{ color: '#a5b4fc' }} />
  Command Catalog
  </h1>
  <p className="section-subtitle">{all.length} total commands — toggle global availability</p>

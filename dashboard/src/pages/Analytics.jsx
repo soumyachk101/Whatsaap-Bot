@@ -144,10 +144,10 @@ export default function Analytics() {
 
  const typeData = [
  { name: 'Text Messages', value: typeBreakdown.text || 0, color: '#818cf8', gradId: 'violetG', icon: <Icons.IconMessage size={18} /> },
- { name: 'Images', value: typeBreakdown.image || 0, color: '#a78bfa', gradId: 'purpleG', icon: <Icons.IconActivity size={18} /> },
- { name: 'Videos', value: typeBreakdown.video || 0, color: '#60a5fa', gradId: 'blueG', icon: <Icons.IconBroadcast size={18} /> },
+ { name: 'Images', value: typeBreakdown.image || 0, color: '#a78bfa', gradId: 'purpleG', icon: <Icons.IconImage size={18} /> },
+ { name: 'Videos', value: typeBreakdown.video || 0, color: '#60a5fa', gradId: 'blueG', icon: <Icons.IconVideo size={18} /> },
  { name: 'Stickers', value: typeBreakdown.sticker || 0, color: '#34d399', gradId: 'emeraldG', icon: <Icons.IconZap size={18} /> },
- { name: 'Documents', value: typeBreakdown.pdf || 0, color: '#22d3ee', gradId: 'cyanG', icon: <Icons.IconServer size={18} /> },
+ { name: 'Documents', value: typeBreakdown.pdf || 0, color: '#22d3ee', gradId: 'cyanG', icon: <Icons.IconFileText size={18} /> },
  ].filter(d => d.value > 0)
 
  const SvgDefs = () => (

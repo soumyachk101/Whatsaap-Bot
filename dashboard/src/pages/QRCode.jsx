@@ -47,8 +47,8 @@ export default function QRCode() {
 	return (
 		<div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 			<div>
-				<h1 className="section-title text-gradient" style={{ fontSize: '1.35rem', fontWeight: 800 }}>
-					<Icons.IconQrCode size={22} style={{ marginRight: 10, verticalAlign: 'text-bottom', color: '#a5b4fc' }} />
+				<h1 className="section-title text-gradient" style={{ fontSize: '1.35rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+					<Icons.IconQrCode size={22} style={{ color: '#a5b4fc' }} />
 					QR Pairing
 				</h1>
 				<p className="section-subtitle">Scan the QR code with WhatsApp to link your device</p>

@@ -52,8 +52,8 @@ export default function Broadcast() {
  return (
  <div style={{ maxWidth: '800px' }}>
  <div style={{ marginBottom: '1.75rem' }}>
- <h2 className="section-title" style={{ fontSize: '1.45rem' }}>
- <Icons.IconBroadcast size={22} style={{ marginRight: 10, verticalAlign: 'text-bottom', color: '#a5b4fc' }} />
+ <h2 className="section-title" style={{ fontSize: '1.45rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+ <Icons.IconBroadcast size={22} style={{ color: '#a5b4fc' }} />
  Broadcast
  </h2>
  <p className="section-subtitle">Send a global message to specific groups or your entire network</p>
