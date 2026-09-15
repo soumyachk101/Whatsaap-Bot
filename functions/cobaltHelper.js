@@ -225,51 +225,69 @@ export const normalizeInstagramUrl = (rawUrl) => {
 /**
  * Fallback downloader using yt-dlp binary
  */
-export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false, signal = null) => {
+const YOUTUBE_PLAYER_CLIENTS = ["android", "web", "ios", "tv", "mediaconnect", "mweb"];
+const YOUTUBE_YTDLP_OPTS = ["--extractor-args", "youtube:player_skip=webpage,jsplayer;player_client=android;formats=audio_only"];
+
+/**
+ * Build yt-dlp args for a specific YouTube player client.
+ */
+function buildYtDlpArgsForClient(url, outputDir, audioOnly, playerClient) {
 	const ext = audioOnly ? ".mp3" : ".mp4";
 	const tempFile = outputDir
 		? path.join(outputDir, `ytdlp_${Date.now()}_${crypto.randomUUID().split("-")[0]}${ext}`)
 		: memoryManager.generateTempFileName(ext);
 
-	// Mark as downloading so GC does not delete it mid-flight
 	memoryManager.markFileStatus(tempFile, "downloading");
 
 	const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
 	const isInstagram = url.includes("instagram.com");
 	const igCookie = process.env.INSTAGRAM_COOKIE || "";
 
-	const ytdlpArgs = audioOnly
-		? [
+	const clientArgs = isYouTube
+		? ["--extractor-args", `youtube:player_client=${playerClient}`]
+		: [];
+
+	return {
+		args: [
 				"--no-playlist",
-				...(isYouTube ? ["--extractor-args", "youtube:player_client=android,web"] : []),
+				"--no-check-certificates",
+				"--retries",
+				"3",
+				"--extractor-retries",
+				"3",
+				"--fragment-retries",
+				"3",
+				"--concurrent-fragments",
+				"1",
+				"--sleep-interval",
+				"2",
+				"--max-sleep-interval",
+				"5",
+				...(clientArgs),
 				...(isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
 				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 				"--max-filesize",
 				"200M",
 				"-f",
-				isYouTube ? "140/ba/b" : "bestaudio/best",
-				"--extract-audio",
-				"--audio-format",
-				"mp3",
+				isYouTube
+					? "bestaudio/best[height<=720]/best"
+					: audioOnly
+						? "bestaudio/best"
+						: "best[height<=720][ext=mp4]/best[ext=mp4]/best",
+				...(audioOnly ? ["--extract-audio", "--audio-format", "mp3"] : ["--merge-output-format", "mp4"]),
 				"-o",
 				tempFile,
 				url,
-			]
-		: [
-				"--no-playlist",
-				...(isYouTube ? ["--extractor-args", "youtube:player_client=android,web"] : []),
-				...(isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
-				...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
-				"--max-filesize",
-				"200M",
-				"-f",
-				isYouTube ? "18/best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best" : "best[height<=720][ext=mp4]/best[ext=mp4]/best",
-				"--merge-output-format",
-				"mp4",
-				"-o",
-				tempFile,
-				url,
-			];
+			],
+		tempFile,
+	};
+}
+
+export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false, signal = null) => {
+	const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
+
+	// For YouTube, try multiple player clients in sequence
+	const clientsToTry = isYouTube ? YOUTUBE_PLAYER_CLIENTS : [""];
 
 	const env = { ...process.env };
 	const ffmpegDir = ffmpegPath ? path.dirname(ffmpegPath) : "";
@@ -290,38 +308,57 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 	env.PATH = pathList.join(path.delimiter);
 
 	let lastErr;
-	for (let attempt = 1; attempt <= 2; attempt++) {
-		try {
-			await new Promise((resolve, reject) => {
-				const opts = { timeout: 35000, env };
-				if (signal) opts.signal = signal;
-				const child = execFile(ytDlpPath || "yt-dlp", ytdlpArgs, opts, (err, stdout, stderr) => {
-					if (err) return reject(new Error(stderr ? stderr.trim() : err.message));
-					resolve();
-				});
-				if (signal) {
-					signal.addEventListener(
-						"abort",
-						() => {
-							child.kill("SIGTERM");
-							reject(new Error("Download cancelled"));
-						},
-						{ once: true }
-					);
-				}
-			});
 
-			if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
-				console.log(`[yt-dlp Fallback] Downloaded successfully: ${tempFile}`);
-				memoryManager.markFileStatus(tempFile, "ready");
-				return [tempFile];
-			}
-			lastErr = new Error("yt-dlp produced an empty file");
-		} catch (err) {
-			lastErr = err;
-			if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
-			if (attempt < 2) {
-				await new Promise((r) => setTimeout(r, 1000));
+	for (const client of clientsToTry) {
+		const { args, tempFile } = buildYtDlpArgsForClient(url, outputDir, audioOnly, client);
+		const clientLabel = isYouTube ? ` (client=${client})` : "";
+
+		for (let attempt = 1; attempt <= 2; attempt++) {
+			try {
+				console.log(`[yt-dlp] Trying${clientLabel} attempt ${attempt}...`);
+				await new Promise((resolve, reject) => {
+					const opts = { timeout: 45000, env };
+					if (signal) opts.signal = signal;
+					const child = execFile(ytDlpPath || "yt-dlp", args, opts, (err, stdout, stderr) => {
+						if (err) {
+							const msg = stderr ? stderr.trim() : err.message;
+							// If this is a 429/bot detection error, log it and let the next client try
+							if (msg.includes("429") || msg.includes("bot") || msg.includes("Sign in")) {
+								return reject(new Error(`BLOCKED: ${msg}`));
+							}
+							return reject(new Error(msg));
+						}
+						resolve();
+					});
+					if (signal) {
+						signal.addEventListener(
+							"abort",
+							() => {
+								child.kill("SIGTERM");
+								reject(new Error("Download cancelled"));
+							},
+							{ once: true }
+						);
+					}
+				});
+
+				if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+					console.log(`[yt-dlp] Downloaded successfully with client=${client}: ${tempFile}`);
+					memoryManager.markFileStatus(tempFile, "ready");
+					return [tempFile];
+				}
+				lastErr = new Error("yt-dlp produced an empty file");
+			} catch (err) {
+				lastErr = err;
+				if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
+				// Don't retry if it's a hard block that won't resolve with retry
+				if (err.message.startsWith("BLOCKED:") && attempt >= 2) {
+					console.warn(`[yt-dlp] Client ${client} blocked, trying next client...`);
+					break;
+				}
+				if (attempt < 2) {
+					await new Promise((r) => setTimeout(r, 2000));
+				}
 			}
 		}
 	}
