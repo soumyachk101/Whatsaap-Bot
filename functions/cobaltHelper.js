@@ -250,7 +250,6 @@ function buildYtDlpArgsForClient(url, outputDir, audioOnly, playerClient) {
 	return {
 		args: [
 				"--no-playlist",
-				"--no-check-certificates",
 				"--retries",
 				"3",
 				"--extractor-retries",
