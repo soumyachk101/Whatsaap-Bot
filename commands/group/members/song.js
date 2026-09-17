@@ -1,6 +1,6 @@
 import fs from "fs";
 import yts from "yt-search";
-import { downloadViaCobalt, CobaltDownloadError, isSafeUrl } from "../../../functions/cobaltHelper.js";
+import { downloadViaCobalt, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError } from "../../../functions/cobaltHelper.js";
 import memoryManager from "../../../functions/memoryUtils.js";
 import downloadQueue from "../../../functions/downloadQueue.js";
 
@@ -155,7 +155,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	} catch (err) {
 		console.error("Song download error:", err);
 		const userMsg = err instanceof CobaltDownloadError
-			? `❌ Download failed (${err.code}): ${err.message}`
+			? `❌ ${sanitizeYtDlpError(err.message)}`
 			: "❌ Failed to download song. Try again with a different link or name.";
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {

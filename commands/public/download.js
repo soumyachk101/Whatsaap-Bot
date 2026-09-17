@@ -3,7 +3,7 @@ import path from "path";
 import yts from "yt-search";
 import { fileTypeFromFile } from "file-type";
 import memoryManager from "../../functions/memoryUtils.js";
-import { downloadViaCobalt, CobaltDownloadError, isSafeUrl } from "../../functions/cobaltHelper.js";
+import { downloadViaCobalt, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError } from "../../functions/cobaltHelper.js";
 import { isValidVideoFile } from "../../functions/fileUtils.js";
 import downloadQueue from "../../functions/downloadQueue.js";
 
@@ -238,9 +238,16 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	} catch (err) {
 		console.error("[Universal DL] Error:", err);
-		const userMsg = err.message?.includes("cancelled") ? "❌ Download was cancelled."
-			: err.message?.includes("Invalid URL") ? "❌ Invalid URL provided."
-			: `❌ Download failed. Please try again later.`;
+		let userMsg;
+		if (err instanceof CobaltDownloadError) {
+			userMsg = `❌ ${sanitizeYtDlpError(err.message)}`;
+		} else if (err.message?.includes("cancelled")) {
+			userMsg = "❌ Download was cancelled.";
+		} else if (err.message?.includes("Invalid URL")) {
+			userMsg = "❌ Invalid URL provided.";
+		} else {
+			userMsg = "❌ Download failed. Please try again later.";
+		}
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg }).catch(() => {});
 		err.userNotified = true;
 		throw err;

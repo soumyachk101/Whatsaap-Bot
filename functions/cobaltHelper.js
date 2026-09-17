@@ -456,7 +456,8 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 				return await downloadWithYtDlp(url, outputDir, audioOnly, signal);
 			} catch (ytdlpErr) {
 				console.error(`[YouTube DL] Direct yt-dlp failed: ${ytdlpErr.message}`);
-				throw new CobaltDownloadError("ytdlp_failed", `YouTube download failed: ${ytdlpErr.message}`);
+				const cleanMsg = sanitizeYtDlpError(ytdlpErr.message);
+				throw new CobaltDownloadError("ytdlp_failed", cleanMsg);
 			}
 		} else {
 			console.warn(`[YouTube DL] yt-dlp not found on system, attempting Cobalt fallback...`);
@@ -770,6 +771,32 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 
 	const errorCode = lastError?.data?.error?.code || "download_failed";
 	throw new CobaltDownloadError(errorCode, `Failed to download: ${url}`);
+};
+
+/**
+ * Sanitize yt-dlp error messages for user-facing display.
+ * Strips verbose internal warnings/debug lines, keeps only the actionable part.
+ */
+export const sanitizeYtDlpError = (rawMsg) => {
+	if (!rawMsg || typeof rawMsg !== "string") return "Download failed. Please try again later.";
+
+	// If it's a hard block, produce a clean message
+	if (rawMsg.includes("Sign in to confirm") || rawMsg.includes("Sign in to confirm you're not a bot")) {
+		return "YouTube is blocking automated downloads. Please try again in a few minutes, or send a direct link.";
+	}
+	if (rawMsg.includes("429")) {
+		return "YouTube is rate-limiting requests. Please wait a moment and try again.";
+	}
+
+	// Strip leading WARNING/ERROR/DEBUG console noise, keep last meaningful line
+	const lines = rawMsg.split("\n").map((l) => l.trim()).filter(Boolean);
+	const meaningful = lines.filter(
+		(l) => !l.startsWith("WARNING:") && !l.startsWith("ERROR:") && !l.startsWith("DEBUG:")
+	);
+	const clean = meaningful.length > 0 ? meaningful[meaningful.length - 1] : lines[lines.length - 1] || "Download failed. Please try again.";
+
+	// Remove "BLOCKED: " prefix if present
+	return clean.replace(/^BLOCKED:\s*/, "").trim();
 };
 
 export { isSafeUrl };

@@ -1,5 +1,5 @@
 import fs from "fs";
-import { downloadViaCobalt, CobaltDownloadError } from "../../functions/cobaltHelper.js";
+import { downloadViaCobalt, CobaltDownloadError, sanitizeYtDlpError } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
 import downloadQueue from "../../functions/downloadQueue.js";
 
@@ -88,7 +88,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	} catch (error) {
 		console.error("MP3 Download Error:", error);
 		const userMsg = error instanceof CobaltDownloadError
-			? `❌ Download failed (${error.code}): ${error.message}`
+			? `❌ ${sanitizeYtDlpError(error.message)}`
 			: "❌ Couldn't fetch audio from that link. Try again with a different link.";
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
