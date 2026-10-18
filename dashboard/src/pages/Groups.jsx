@@ -164,16 +164,16 @@ function GroupCard({
           top: 0,
           left: 0,
           right: 0,
-          height: '2px',
+          height: '3px',
           background: grp.isBotOn
-            ? 'linear-gradient(90deg, #10b981 0%, #6366f1 50%, #10b981 100%)'
-            : 'rgba(255, 255, 255, 0.08)',
+            ? 'linear-gradient(90deg, var(--primary) 0%, #768F69 100%)'
+            : 'var(--timber)',
           transition: 'background 0.3s ease'
         }}
       />
 
       {/* Header section with Group Identity */}
-      <div style={{ paddingBottom: '0.85rem', marginBottom: '0.85rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+      <div style={{ paddingBottom: '0.85rem', marginBottom: '0.85rem', borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.5rem' }}>
           {/* Avatar Monogram */}
           <div className="group-avatar" style={{ background: getAvatarGradient(grp._id) }}>
@@ -218,15 +218,15 @@ function GroupCard({
                 <h3
                   title={grp.grpName}
                   style={{
-                    fontSize: '0.92rem',
+                    fontSize: '1rem',
                     fontWeight: 700,
-                    color: grp.isBotOn ? 'var(--text-main)' : 'var(--text-dim)',
+                    color: 'var(--text-main)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     letterSpacing: '-0.01em',
                     lineHeight: 1.25,
-                    fontFamily: "'Plus Jakarta Sans', sans-serif"
+                    fontFamily: "'Fraunces', Georgia, serif"
                   }}
                 >
                   {grp.grpName || 'Unnamed Group'}
@@ -380,8 +380,8 @@ function GroupCard({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: isChecked ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255, 255, 255, 0.04)',
-                    color: isChecked ? '#818cf8' : 'var(--text-faint)',
+                    background: isChecked ? 'rgba(93, 112, 82, 0.15)' : 'rgba(44, 44, 36, 0.05)',
+                    color: isChecked ? 'var(--primary)' : 'var(--text-muted)',
                     flexShrink: 0
                   }}
                 >
@@ -390,8 +390,8 @@ function GroupCard({
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
                       color: isChecked ? 'var(--text-main)' : 'var(--text-muted)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -419,16 +419,16 @@ function GroupCard({
       </div>
 
       {/* Accordion Tabs for Automations & Blocked Commands */}
-      <div style={{ display: 'flex', gap: '0.35rem', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '0.55rem', marginTop: 'auto' }}>
+      <div style={{ display: 'flex', gap: '0.45rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem', marginTop: 'auto' }}>
         <button
           type="button"
           className="action-bar-btn"
           onClick={() => setActiveTab(activeTab === 'automations' ? null : 'automations')}
           style={{
             flex: 1,
-            color: activeTab === 'automations' ? '#818cf8' : 'var(--text-dim)',
-            background: activeTab === 'automations' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-            borderColor: activeTab === 'automations' ? 'rgba(99, 102, 241, 0.25)' : 'transparent'
+            color: activeTab === 'automations' ? 'var(--primary)' : 'var(--text-muted)',
+            background: activeTab === 'automations' ? 'rgba(93, 112, 82, 0.12)' : 'var(--stone)',
+            borderColor: activeTab === 'automations' ? 'rgba(93, 112, 82, 0.3)' : 'var(--border-subtle)'
           }}
         >
           <MessageSquare size={13} />
@@ -440,9 +440,9 @@ function GroupCard({
           onClick={() => setActiveTab(activeTab === 'blocks' ? null : 'blocks')}
           style={{
             flex: 1,
-            color: activeTab === 'blocks' ? '#818cf8' : 'var(--text-dim)',
-            background: activeTab === 'blocks' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-            borderColor: activeTab === 'blocks' ? 'rgba(99, 102, 241, 0.25)' : 'transparent'
+            color: activeTab === 'blocks' ? 'var(--primary)' : 'var(--text-muted)',
+            background: activeTab === 'blocks' ? 'rgba(93, 112, 82, 0.12)' : 'var(--stone)',
+            borderColor: activeTab === 'blocks' ? 'rgba(93, 112, 82, 0.3)' : 'var(--border-subtle)'
           }}
         >
           <Ban size={13} />
@@ -456,13 +456,13 @@ function GroupCard({
           style={{
             padding: '0.75rem',
             marginTop: '0.5rem',
-            background: 'rgba(10, 13, 22, 0.85)',
+            background: 'var(--stone)',
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(255, 255, 255, 0.06)'
+            border: '1px solid var(--border)'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
               Welcome Message
             </span>
             <div style={{ display: 'flex', gap: '3px' }}>
@@ -472,12 +472,13 @@ function GroupCard({
                   type="button"
                   onClick={() => insertVariable('welcome', tag)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
                     borderRadius: '4px',
-                    padding: '1px 5px',
-                    fontSize: '0.58rem',
-                    color: '#a5b4fc',
+                    padding: '2px 6px',
+                    fontSize: '0.62rem',
+                    fontWeight: 600,
+                    color: 'var(--primary)',
                     cursor: 'pointer',
                     fontFamily: "'JetBrains Mono', monospace"
                   }}
@@ -497,7 +498,7 @@ function GroupCard({
           />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
               Goodbye Message
             </span>
             <div style={{ display: 'flex', gap: '3px' }}>
@@ -507,12 +508,13 @@ function GroupCard({
                   type="button"
                   onClick={() => insertVariable('goodbye', tag)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
                     borderRadius: '4px',
-                    padding: '1px 5px',
-                    fontSize: '0.58rem',
-                    color: '#a5b4fc',
+                    padding: '2px 6px',
+                    fontSize: '0.62rem',
+                    fontWeight: 600,
+                    color: 'var(--primary)',
                     cursor: 'pointer',
                     fontFamily: "'JetBrains Mono', monospace"
                   }}
@@ -552,12 +554,12 @@ function GroupCard({
           style={{
             padding: '0.75rem',
             marginTop: '0.5rem',
-            background: 'rgba(10, 13, 22, 0.85)',
+            background: 'var(--stone)',
             borderRadius: 'var(--radius-sm)',
-            border: '1px dashed rgba(255, 255, 255, 0.08)'
+            border: '1px solid var(--border)'
           }}
         >
-          <div style={{ fontSize: '0.64rem', fontWeight: 700, color: 'var(--text-dim)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Disabled in this group ({blockedCount})
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.6rem', maxHeight: '90px', overflowY: 'auto' }}>
@@ -629,10 +631,10 @@ function GroupCard({
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '0.3rem',
-          marginTop: '0.65rem',
-          paddingTop: '0.55rem',
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+          gap: '0.4rem',
+          marginTop: '0.75rem',
+          paddingTop: '0.65rem',
+          borderTop: '1px solid var(--border-subtle)'
         }}
       >
         <button
@@ -891,13 +893,13 @@ export default function Groups() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem' }}>
         <div>
           <h1 className="section-title">
-            <Users size={22} style={{ color: '#818cf8' }} />
+            <Users size={22} style={{ color: 'var(--primary)' }} />
             Group Management
           </h1>
           <p className="section-subtitle">
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: 'var(--text-main)' }}>{groups.length}</span> groups configured ·{' '}
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: '#34d399' }}>{activeCount}</span> active ·{' '}
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: '#818cf8' }}>{inGroupCount}</span> connected
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: 'var(--text-main)' }}>{groups.length}</span> groups configured ·{' '}
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: 'var(--primary)' }}>{activeCount}</span> active ·{' '}
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: 'var(--secondary)' }}>{inGroupCount}</span> connected
           </p>
         </div>
 
@@ -912,8 +914,7 @@ export default function Groups() {
               padding: '0.45rem 0.85rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '7px',
-              borderColor: 'rgba(99, 102, 241, 0.28)'
+              gap: '7px'
             }}
           >
             <RotateCw size={13} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
@@ -928,7 +929,7 @@ export default function Groups() {
                 left: '0.75rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--text-faint)',
+                color: 'var(--text-muted)',
                 pointerEvents: 'none'
               }}
             />
@@ -937,7 +938,7 @@ export default function Groups() {
               placeholder="Filter by name, JID, description..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.2rem', width: '230px', fontSize: '0.78rem' }}
+              style={{ paddingLeft: '2.2rem', width: '240px', fontSize: '0.78rem' }}
             />
           </div>
         </div>
@@ -948,11 +949,11 @@ export default function Groups() {
         <div
           style={{
             display: 'inline-flex',
-            background: 'rgba(255, 255, 255, 0.025)',
+            background: 'var(--stone)',
             padding: '3px',
-            borderRadius: '9px',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            gap: '3px'
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-subtle)',
+            gap: '4px'
           }}
         >
           {FILTER_TABS.map(tab => {
@@ -964,13 +965,13 @@ export default function Groups() {
                 className={`btn ${active ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setFilterTab(tab.key)}
                 style={{
-                  fontSize: '0.72rem',
-                  padding: '0.3rem 0.7rem',
-                  borderRadius: '7px',
-                  fontWeight: active ? 700 : 500,
-                  background: active ? 'linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
-                  color: active ? '#ffffff' : 'var(--text-dim)',
-                  border: active ? '1px solid #4338ca' : '1px solid transparent'
+                  fontSize: '0.74rem',
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '6px',
+                  fontWeight: active ? 700 : 600,
+                  background: active ? 'var(--primary)' : 'transparent',
+                  color: active ? '#ffffff' : 'var(--text-muted)',
+                  border: active ? '1px solid var(--primary)' : '1px solid transparent'
                 }}
               >
                 {tab.label}
@@ -980,18 +981,18 @@ export default function Groups() {
         </div>
 
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <SlidersHorizontal size={12} />
             Sort:
           </span>
           <div
             style={{
               display: 'inline-flex',
-              background: 'rgba(255, 255, 255, 0.025)',
+              background: 'var(--stone)',
               padding: '3px',
-              borderRadius: '9px',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-              gap: '3px'
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-subtle)',
+              gap: '4px'
             }}
           >
             {SORTS.map(s => {
@@ -1003,11 +1004,12 @@ export default function Groups() {
                   className={`btn ${active ? 'btn-secondary' : 'btn-ghost'}`}
                   onClick={() => setSort(s.key)}
                   style={{
-                    fontSize: '0.7rem',
-                    padding: '0.28rem 0.65rem',
-                    borderRadius: '7px',
-                    fontWeight: active ? 700 : 500,
-                    color: active ? 'var(--text-main)' : 'var(--text-dim)'
+                    fontSize: '0.72rem',
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: '6px',
+                    fontWeight: active ? 700 : 600,
+                    background: active ? 'var(--timber)' : 'transparent',
+                    color: active ? 'var(--text-main)' : 'var(--text-muted)'
                   }}
                 >
                   {s.label}
@@ -1022,10 +1024,10 @@ export default function Groups() {
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '36vh', gap: '0.85rem' }}>
           <div className="spinner" />
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>Loading group configuration...</span>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Loading group configuration...</span>
         </div>
       ) : rows.length ? (
-        <div className="grid grid-cols-3">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
           {rows.map(g => (
             <GroupCard
               key={g._id}
@@ -1048,14 +1050,14 @@ export default function Groups() {
               width: 52,
               height: 52,
               borderRadius: 14,
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%)',
-              border: '1px solid rgba(99, 102, 241, 0.25)',
+              background: 'var(--stone)',
+              border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1rem',
-              color: '#a5b4fc',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
+              color: 'var(--primary)',
+              boxShadow: 'var(--shadow-sm)'
             }}
           >
             <Users size={24} />
@@ -1085,16 +1087,16 @@ export default function Groups() {
       {memberModal.open && (
         <div className="modal-overlay" onClick={() => setMemberModal({ open: false, grp: null, loading: false, data: null, query: '' })}>
           <div className="modal-dialog" style={{ maxWidth: '540px', maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.15rem 1.25rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.15rem 1.25rem', borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <div className="group-avatar" style={{ width: 32, height: 32, fontSize: '0.8rem', background: getAvatarGradient(memberModal.grp?._id) }}>
+                <div className="group-avatar" style={{ width: 34, height: 34, fontSize: '0.85rem', background: getAvatarGradient(memberModal.grp?._id) }}>
                   {getInitials(memberModal.grp?.grpName)}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: "'Fraunces', Georgia, serif" }}>
                     {memberModal.grp?.grpName || 'Group Members'}
                   </h3>
-                  <span style={{ fontSize: '0.66rem', color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace" }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                     {memberModal.grp?._id}
                   </span>
                 </div>
@@ -1110,12 +1112,12 @@ export default function Groups() {
             </div>
 
             {/* Inner Search & Stats */}
-            <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600 }}>
-                Total: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-main)' }}>{memberModal.data?.participants?.length || 0}</span>
+            <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Total: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-main)', fontWeight: 700 }}>{memberModal.data?.participants?.length || 0}</span>
               </span>
               <div style={{ position: 'relative', width: '200px' }}>
-                <Search size={12} style={{ position: 'absolute', left: '0.55rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
+                <Search size={12} style={{ position: 'absolute', left: '0.55rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   className="input"
                   placeholder="Filter phone..."
@@ -1129,7 +1131,7 @@ export default function Groups() {
             {memberModal.loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '220px', gap: '0.75rem' }}>
                 <div className="spinner" />
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Querying WhatsApp metadata...</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Querying WhatsApp metadata...</span>
               </div>
             ) : (
               <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -1147,16 +1149,16 @@ export default function Groups() {
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           padding: '0.45rem 0.75rem',
-                          background: 'rgba(255, 255, 255, 0.02)',
-                          borderRadius: '7px',
-                          border: '1px solid rgba(255, 255, 255, 0.04)'
+                          background: 'var(--stone)',
+                          borderRadius: 'var(--radius-xs)',
+                          border: '1px solid var(--border-subtle)'
                         }}
                       >
-                        <span style={{ fontSize: '0.76rem', color: 'var(--text-main)', fontFamily: "'JetBrains Mono', monospace" }}>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-main)', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
                           +{phone}
                         </span>
                         {isAdmin && (
-                          <span className={`badge ${isSuper ? 'badge-amber' : 'badge-indigo'}`} style={{ fontSize: '0.62rem', padding: '0.1rem 0.45rem' }}>
+                          <span className={`badge ${isSuper ? 'badge-amber' : 'badge-emerald'}`} style={{ fontSize: '0.62rem', padding: '0.1rem 0.45rem' }}>
                             {isSuper ? <Crown size={11} strokeWidth={2.4} /> : <Shield size={11} strokeWidth={2.4} />}
                             {isSuper ? 'Group Creator' : 'Group Admin'}
                           </span>
@@ -1165,7 +1167,7 @@ export default function Groups() {
                     )
                   })
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-faint)', fontSize: '0.78rem' }}>
+                  <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                     No participants matched your search
                   </div>
                 )}
@@ -1181,7 +1183,7 @@ export default function Groups() {
           <div className="modal-dialog" style={{ maxWidth: '480px', padding: '1.35rem' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
                   <Send size={14} />
                 </div>
                 <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)' }}>
@@ -1242,7 +1244,7 @@ export default function Groups() {
           <div className="modal-dialog" style={{ maxWidth: '440px', padding: '1.35rem' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
                   <Link size={14} />
                 </div>
                 <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)' }}>

@@ -75,7 +75,7 @@ export default function Members() {
  </div>
  </div>
 
- 	<div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '4px' }}>
+ 	<div style={{ display: 'inline-flex', background: 'var(--stone)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', gap: '4px' }}>
 		{SORTS.map(s => {
 			const active = sort === s.key;
 			return (
@@ -85,13 +85,13 @@ export default function Members() {
 					className={`btn ${active ? 'btn-primary' : 'btn-ghost'}`}
 					onClick={() => handleSort(s.key)}
 					style={{
-						fontSize: '0.72rem',
+						fontSize: '0.74rem',
 						padding: '0.35rem 0.85rem',
 						borderRadius: '6px',
-						fontWeight: active ? 700 : 500,
-						background: active ? 'linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
-						color: active ? '#ffffff' : 'var(--text-dim)',
-						borderColor: active ? '#4338ca' : 'transparent',
+						fontWeight: active ? 700 : 600,
+						background: active ? 'var(--primary)' : 'transparent',
+						color: active ? '#ffffff' : 'var(--text-muted)',
+						borderColor: active ? 'var(--primary)' : 'transparent',
 					}}
 				>
 					{s.label} {sort === s.key && (order === 'desc' ? '↓' : '↑')}
@@ -142,7 +142,7 @@ export default function Members() {
  {m._id.replace('@s.whatsapp.net', '')}
  </td>
  <td style={{ fontWeight: 500, color: 'var(--text-main)' }}>{m.username || '—'}</td>
- <td style={{ fontWeight: 700, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans'" }}>{(m.totalmsg || 0).toLocaleString()}</td>
+ <td style={{ fontWeight: 700, color: 'var(--text-main)', fontFamily: "'JetBrains Mono', monospace" }}>{(m.totalmsg || 0).toLocaleString()}</td>
  <td>{(m.texttotal || 0).toLocaleString()}</td>
  <td>{(m.imagetotal || 0).toLocaleString()}</td>
  <td>{(m.videototal || 0).toLocaleString()}</td>

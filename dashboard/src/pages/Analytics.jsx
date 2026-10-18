@@ -30,7 +30,7 @@ function MetricTile({ title, value, subtext, accent, icon, delay = 0 }) {
  <div className="stat-card page-enter" style={{ animationDelay: `${delay}ms`, borderLeft: `3px solid ${c.border.replace('0.25', '0.5')}` }}>
  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent, ${c.border}, transparent)` }} />
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
- <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-dim)' }}>{title}</span>
+ <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>{title}</span>
  <div style={{
  width: 34, height: 34,
  display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -41,10 +41,10 @@ function MetricTile({ title, value, subtext, accent, icon, delay = 0 }) {
  {icon}
  </div>
  </div>
- <div style={{ fontSize: '1.65rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2 }}>
+ <div style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)', fontFamily: "'Fraunces', Georgia, serif", lineHeight: 1.2 }}>
  {value}
  </div>
- <div style={{ fontSize: '0.68rem', color: 'var(--text-faint)', marginTop: '0.25rem', fontWeight: 500 }}>{subtext}</div>
+ <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.3rem', fontWeight: 600 }}>{subtext}</div>
  </div>
  )
 }
@@ -235,19 +235,19 @@ export default function Analytics() {
 				<p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>Text vs Media balance</p>
 			</div>
 			<div style={{ display: 'flex', gap: '1.1rem', fontSize: '0.78rem' }}>
-				<span style={{ color: '#818cf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-					<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 6px rgba(129,140,248,0.4)' }} />
+				<span style={{ color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+					<span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }} />
 					Text: {textPct}%
 				</span>
-				<span style={{ color: '#a78bfa', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-					<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#a78bfa', boxShadow: '0 0 6px rgba(167,139,250,0.4)' }} />
+				<span style={{ color: 'var(--secondary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+					<span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--secondary)' }} />
 					Media: {mediaPct}%
 				</span>
 			</div>
 		</div>
-		<div style={{ height: '0.65rem', width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 9999, overflow: 'hidden', display: 'flex', border: '1px solid rgba(255,255,255,0.04)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
-			<div style={{ width: `${textPct}%`, background: 'linear-gradient(90deg, #818cf8, #6366f1)', transition: 'width 0.8s ease', boxShadow: textPct > 0 ? '0 0 8px rgba(99,102,241,0.3)' : 'none' }} />
-			<div style={{ width: `${mediaPct}%`, background: 'linear-gradient(90deg, #a78bfa, #8b5cf6)', transition: 'width 0.8s ease', boxShadow: mediaPct > 0 ? '0 0 8px rgba(139,92,246,0.3)' : 'none' }} />
+		<div style={{ height: '0.75rem', width: '100%', background: 'var(--stone)', borderRadius: 9999, overflow: 'hidden', display: 'flex', border: '1px solid var(--border-subtle)', boxShadow: 'inset 0 1px 3px rgba(44,44,36,0.08)' }}>
+			<div style={{ width: `${textPct}%`, background: 'var(--primary)', transition: 'width 0.8s ease' }} />
+			<div style={{ width: `${mediaPct}%`, background: 'var(--secondary)', transition: 'width 0.8s ease' }} />
 		</div>
 	</SectionCard>
 
@@ -329,10 +329,10 @@ export default function Analytics() {
  <span style={{ color }}>{icon}</span>
  <span className="badge" style={{ fontSize: '0.6rem', background: `${color}18`, color, borderColor: `${color}35` }}>{pct}%</span>
  </div>
- <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 500 }}>{name}</div>
- <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginTop: '0.15rem', letterSpacing: '-0.02em' }}>{value.toLocaleString()}</div>
- <div style={{ marginTop: '0.5rem', height: '3px', background: 'rgba(255,255,255,0.04)', borderRadius: 9999, overflow: 'hidden' }}>
- <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}aa)`, transition: 'width 0.8s ease', boxShadow: `0 0 6px ${color}35` }} />
+ <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{name}</div>
+ <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.15rem', letterSpacing: '-0.02em', fontFamily: "'JetBrains Mono', monospace" }}>{value.toLocaleString()}</div>
+ <div style={{ marginTop: '0.5rem', height: '4px', background: 'var(--stone)', borderRadius: 9999, overflow: 'hidden' }}>
+ <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}aa)`, transition: 'width 0.8s ease' }} />
  </div>
  </div>
  )
@@ -343,8 +343,8 @@ export default function Analytics() {
  {mediaView === 'donut' ? (
  <>
  <div style={{ position: 'absolute', textAlign: 'center', pointerEvents: 'none', zIndex: 0 }}>
- <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans'" }}>{totalMessages.toLocaleString()}</div>
- <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Total</div>
+ <div style={{ fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em', fontFamily: "'Fraunces', Georgia, serif" }}>{totalMessages.toLocaleString()}</div>
+ <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Total Messages</div>
  </div>
  <div style={{ width: '100%', height: '100%', zIndex: 10, position: 'relative' }}>
  <ResponsiveContainer width="100%" height="100%">

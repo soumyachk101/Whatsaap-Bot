@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     wget \
     curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
@@ -42,7 +43,7 @@ COPY . .
 # Build dashboard
 RUN cd dashboard && npm run build
 
-RUN mkdir -p temp
+RUN mkdir -p /data temp
 
 ENV NODE_ENV=production
 EXPOSE 8080

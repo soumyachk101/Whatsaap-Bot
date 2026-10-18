@@ -1,6 +1,10 @@
 # ── Node modules (reinstalled inside Docker) ─────────────────────────────────
 node_modules
+node_modules/
+**/node_modules
+**/node_modules/**
 dashboard/node_modules
+dashboard/node_modules/
 
 # ── React build output (built inside Docker) ──────────────────────────────────
 public/app
@@ -30,11 +34,17 @@ backups/*
 # ── Auth / session (generated at runtime) ─────────────────────────────────────
 auth_info_baileys/
 
-# ── Git ───────────────────────────────────────────────────────────────────────
+# ── Git / Agent tooling ───────────────────────────────────────────────────────
 .git
 .gitignore
 .gitattributes
 .github/
+.agents
+.claude
+.pheromone
+.kilo
+.superpowers
+.insta
 
 # ── IDE / OS ──────────────────────────────────────────────────────────────────
 .vscode
@@ -60,3 +70,4 @@ docs/
 coverage
 .nyc_output
 Procfile
+cobalt-engine/

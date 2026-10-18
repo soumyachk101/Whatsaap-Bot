@@ -1,6 +1,6 @@
 import sendToTelegram, { escapeHtml } from "./telegramLogger.js";
 import { fake_quoted } from "./getFakeQuoted.js";
-import { getGroupData, createGroupData } from "../sqlite-DB/groupDataDb.js";
+import { getGroupData, createGroupData, group } from "../sqlite-DB/groupDataDb.js";
 import { extractPhoneNumber, getPreferredJID, resolveMemberIdentity } from "./lidUtils.js";
 import { groupMetadataCache } from "./getSocket.js";
 import { randomWelcome, randomGoodbye, sendWithTyping, premiumBox } from "./messageFormatter.js";
@@ -38,6 +38,9 @@ const getGroupEvent = async (sock, events, cache) => {
 		if (!groupDataDB || groupDataDB === -1) {
 			groupDataDB = { welcome: "", goodbye: "", grpName: groupMetadata?.subject || "Group", is91Only: false };
 		}
+	} else if (groupMetadata?.subject && groupDataDB.grpName !== groupMetadata.subject) {
+		group.updateOne({ _id: jid }, { $set: { grpName: groupMetadata.subject } }).catch(() => {});
+		groupDataDB.grpName = groupMetadata.subject;
 	}
 
 	const grpName = groupMetadata?.subject || groupDataDB?.grpName || "Group";

@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
+import { sanitizeUserError } from "../../functions/errorUtils.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -31,18 +32,23 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 	if (command === "groq" || command === "llama" || !genAI) {
 		if (groq) {
-			try {
-				const completion = await groq.chat.completions.create({
-					messages: [
-						{ role: "system", content: "You are a helpful, smart AI assistant. Reply in WhatsApp format. Use *bold* for emphasis where needed. Keep your answers concise." },
-						{ role: "user", content: evv },
-					],
-					model: "llama-3.3-70b-versatile",
-				});
-				const reply = completion.choices[0]?.message?.content || "";
-				return sendMessageWTyping(from, { text: `_*AI (${command === "llama" ? "LLaMA" : "Groq"}):*_\n\n` + reply.trim() }, { quoted: msg });
-			} catch (groqErr) {
-				console.error("Groq Error:", groqErr);
+			const groqModels = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
+			for (const m of groqModels) {
+				try {
+					const completion = await groq.chat.completions.create({
+						messages: [
+							{ role: "system", content: "You are a helpful, smart AI assistant. Reply in WhatsApp format. Use *bold* for emphasis where needed. Keep your answers concise." },
+							{ role: "user", content: evv },
+						],
+						model: m,
+					});
+					const reply = completion.choices[0]?.message?.content || "";
+					if (reply) {
+						return sendMessageWTyping(from, { text: `_*AI (${command === "llama" ? "LLaMA" : "Groq"}):*_\n\n` + reply.trim() }, { quoted: msg });
+					}
+				} catch (groqErr) {
+					console.error(`Groq (${m}) Error:`, groqErr.message);
+				}
 			}
 		}
 	}
@@ -61,19 +67,24 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		} catch (error) {
 			console.error("Gemini Error:", error);
 			if (groq) {
-				try {
-					const completion = await groq.chat.completions.create({
-						messages: [
-							{ role: "system", content: "You are a helpful AI assistant." },
-							{ role: "user", content: evv },
-						],
-						model: "llama-3.3-70b-versatile",
-					});
-					const reply = completion.choices[0]?.message?.content || "";
-					return sendMessageWTyping(from, { text: "_*AI:*_\n\n" + reply.trim() }, { quoted: msg });
-				} catch (_) {}
+				const groqModels = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
+				for (const m of groqModels) {
+					try {
+						const completion = await groq.chat.completions.create({
+							messages: [
+								{ role: "system", content: "You are a helpful, smart AI assistant. Reply in WhatsApp format. Use *bold* for emphasis where needed. Keep your answers concise." },
+								{ role: "user", content: evv },
+							],
+							model: m,
+						});
+						const reply = completion.choices[0]?.message?.content || "";
+						if (reply) {
+							return sendMessageWTyping(from, { text: "_*AI:*_\n\n" + reply.trim() }, { quoted: msg });
+						}
+					} catch (_) {}
+				}
 			}
-			return sendMessageWTyping(from, { text: "Error calling AI API: " + error.message }, { quoted: msg });
+			return sendMessageWTyping(from, { text: sanitizeUserError(error, command) }, { quoted: msg });
 		}
 	}
 

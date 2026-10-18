@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { writeFile } from "fs/promises";
 import mime from "mime";
 import memoryManager from "../../../functions/memoryUtils.js";
+import { sanitizeUserError } from "../../../functions/errorUtils.js";
 import { getGroupData } from "../../../sqlite-DB/groupDataDb.js";
 
 const getRandom = (ext) => {
@@ -155,24 +156,8 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		generatedFiles.forEach((file) => memoryManager.safeUnlink(file));
 	} catch (error) {
 		console.error("Image generation error:", error);
-
-		let errorMsg = "❎ Failed to generate image. ";
-
-		if (error.message?.includes("quota")) {
-			errorMsg += "API quota exceeded. Please try again later.";
-		} else if (error.message?.includes("API key")) {
-			errorMsg += "Invalid API key.";
-		} else if (error.message?.includes("safety")) {
-			errorMsg += "Image rejected due to safety filters. Try a different prompt.";
-		} else if (error.message?.includes("not found") || error.message?.includes("model")) {
-			errorMsg += "Model not available. The Gemini 2.5 Flash Image model may not be accessible yet.";
-		} else {
-			errorMsg += error.message || "Unknown error occurred.";
-		}
-
+		const errorMsg = sanitizeUserError(error, "imageGen2");
 		await sendMessageWTyping(from, { text: errorMsg }, { quoted: msg });
-
-		// Clean up files if they exist
 		generatedFiles.forEach((file) => memoryManager.safeUnlink(file));
 	}
 };

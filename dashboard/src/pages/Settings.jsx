@@ -119,8 +119,8 @@ export default function Settings() {
  ].map(f => (
  <div key={f.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 0', borderBottom: '1px solid var(--border-subtle)' }}>
  <div>
- <div style={{ fontSize: '0.82rem', color: '#f1f5f9', fontWeight: 500 }}>{f.label}</div>
- <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>{f.desc}</div>
+ <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 700 }}>{f.label}</div>
+ <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{f.desc}</div>
  </div>
  <label className="toggle" style={{ cursor: 'pointer' }}>
  <input type="checkbox" checked={f.value} onChange={e => f.onChange(e.target.checked)} />
@@ -135,7 +135,7 @@ export default function Settings() {
  <div className="form-group" style={{ maxWidth: 600 }}>
  <label className="form-label">Message Template</label>
  <textarea className="input" rows={3} value={welcomeMsg} onChange={e => setWelcomeMsg(e.target.value)} placeholder="Welcome @user!" style={{ resize: 'vertical' }} />
- <div className="form-hint">Use <code style={{ color: '#a5b4fc', background: 'rgba(99,102,241,0.1)', padding: '1px 5px', borderRadius: 4, fontSize: '0.68rem' }}>@user</code> to mention the new member</div>
+ <div className="form-hint">Use <code style={{ color: 'var(--primary)', background: 'rgba(93,112,82,0.12)', padding: '1px 5px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 700 }}>@user</code> to mention the new member</div>
  </div>
  </GlassCard>
  </div>

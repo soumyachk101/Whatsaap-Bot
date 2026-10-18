@@ -25,6 +25,8 @@ baileys_store_multi.json
 cookie.json
 cookies.txt
 youtube-cookies.txt
+instagram-cookies.txt
+.codex/
 logs/
 temp/
 performance-metrics.json

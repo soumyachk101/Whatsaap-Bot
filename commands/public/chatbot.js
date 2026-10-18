@@ -6,9 +6,13 @@ import { getMemberData } from "../../sqlite-DB/membersDataDb.js";
 import { extractPhoneNumber } from "../../functions/lidUtils.js";
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 //-------------------------------------------------------------------------------------------------------------//
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
-const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+import Groq from "groq-sdk";
+
+const genAI = (GOOGLE_API_KEY && !GOOGLE_API_KEY.startsWith("AQ.")) ? new GoogleGenerativeAI(GOOGLE_API_KEY) : null;
+const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 const safetySettings = [
 	{
@@ -38,15 +42,17 @@ const generationConfig = {
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
-// Define models ONCE - not recreated every time
-const geminiModel = genAI.getGenerativeModel({
-	model: GEMINI_MODEL,
-	systemInstruction: `You are a helpful, professional AI assistant. You provide clear, accurate, and informative responses. Pay attention to who is speaking in each message. Reply in WhatsApp format only. No markdown, no backticks.`,
-});
+const geminiModel = genAI
+	? genAI.getGenerativeModel({
+			model: GEMINI_MODEL,
+			systemInstruction: `You are a helpful, professional AI assistant. You provide clear, accurate, and informative responses. Pay attention to who is speaking in each message. Reply in WhatsApp format only. No markdown, no backticks.`,
+	  })
+	: null;
 
-const downloadBuddyModel = genAI.getGenerativeModel({
-	model: GEMINI_MODEL,
-	systemInstruction: `You're DownloadBuddy, a helpful and efficient assistant. You're quick, professional, and reliable. Talk like a helpful friend texting, not some AI.
+const downloadBuddyModel = genAI
+	? genAI.getGenerativeModel({
+			model: GEMINI_MODEL,
+			systemInstruction: `You're DownloadBuddy, a helpful and efficient assistant. You're quick, professional, and reliable. Talk like a helpful friend texting, not some AI.
 
 Your vibe:
 - Helpful and fast - you prioritize efficiency
@@ -90,7 +96,8 @@ FORMATTING RESTRICTIONS:
 - Use plain text for section separators or line breaks if needed
 
 You're a real person, not a character. Act like it.`,
-});
+	  })
+	: null;
 
 async function chat(prompt, from, msg, taggedMember, msgInfoObj, data, tagMessage, tagMessageSenderJID) {
 	let { sendMessageWTyping, command, updateName, updateId, senderJid, groupMetadata, groupAdmins, isGroup } =
@@ -156,67 +163,93 @@ Is Admin: ${groupAdmins?.includes(senderJid) ? "Yes" : "No"}
 		fullPrompt = groupInfo + fullPrompt;
 	}
 
-	const chatSession = model.startChat({
-		generationConfig,
-		history: conversationHistory,
-	});
+	let text = "";
 
-	try {
-		// Send the full prompt with sender name
-		const result = await chatSession.sendMessage(fullPrompt);
-		const text = result.response.text();
-
-		if (!text?.trim()) {
-			return sendMessageWTyping(
-				from,
-				{ text: `Sorry, I didn't understand that. Can you please rephrase your question?` },
-				{ quoted: msg }
-			);
-		} else {
-			// Save conversation to history with sender name in the message
-			if (isGroup) {
-				const newHistory = [
-					...(data?.chatHistory || []),
-					{
-						role: "user",
-						parts: [{ text: fullPrompt }],
-						senderName: updateName,
-						senderJid: senderJid,
-						timestamp: new Date().toISOString(),
-					},
-					{
-						role: "model",
-						parts: [{ text: text.trim() }],
-						senderName: command === "gemini" ? "Gemini" : "DownloadBuddy",
-						timestamp: new Date().toISOString(),
-					},
-				];
-
-				// Keep only last 20 messages (10 exchanges)
-				const trimmedHistory = newHistory.slice(-20);
-
-				await group.updateOne({ _id: from }, { $set: { chatHistory: trimmedHistory } });
-			}
-
-			await sendMessageWTyping(from, { text: "_*DownloadBuddy:*_\n" + text.trim() }, { quoted: msg });
+	if (model) {
+		try {
+			const chatSession = model.startChat({
+				generationConfig,
+				history: conversationHistory,
+			});
+			const result = await chatSession.sendMessage(fullPrompt);
+			text = result.response.text();
+		} catch (err) {
+			console.warn("[Chatbot] Gemini error, trying Groq fallback:", err.message);
 		}
-	} catch (err) {
-		console.error(err);
-		sendMessageWTyping(
+	}
+
+	if (!text?.trim() && groq) {
+		const groqModels = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
+		for (const m of groqModels) {
+			try {
+				const groqMessages = [
+					{
+						role: "system",
+						content: `You're DownloadBuddy, a helpful and witty friend in a WhatsApp group.
+STRICT HUMAN RULES:
+- Talk like a real person texting in WhatsApp, not an AI bot.
+- No emojis spam, no robotic prefixes, no corporate disclaimers.
+- Match language: If spoken to in Bengali, reply in natural conversational Bengali. If in Hinglish, reply in modern Hinglish. If English, keep it real and friendly.`
+					},
+					...conversationHistory.map((h) => ({
+						role: h.role === "model" ? "assistant" : "user",
+						content: h.parts?.[0]?.text || "",
+					})),
+					{ role: "user", content: fullPrompt },
+				];
+				const comp = await groq.chat.completions.create({
+					model: m,
+					messages: groqMessages,
+					temperature: 0.85,
+				});
+				text = comp.choices[0]?.message?.content?.trim();
+				if (text) break;
+			} catch (e) {
+				console.warn(`[Chatbot] Groq ${m} fallback error:`, e.message);
+			}
+		}
+	}
+
+	if (!text?.trim()) {
+		return sendMessageWTyping(
 			from,
-			{
-				text: `An error occurred while processing your request. Please try again later.`,
-			},
+			{ text: `Bhai kotha ta thik bujhte parlam na, abar ektu bol to? 😅` },
 			{ quoted: msg }
 		);
 	}
+
+	// Save conversation to history with sender name in the message
+	if (isGroup) {
+		const newHistory = [
+			...(data?.chatHistory || []),
+			{
+				role: "user",
+				parts: [{ text: fullPrompt }],
+				senderName: updateName,
+				senderJid: senderJid,
+				timestamp: new Date().toISOString(),
+			},
+			{
+				role: "model",
+				parts: [{ text: text.trim() }],
+				senderName: command === "gemini" ? "Gemini" : "DownloadBuddy",
+				timestamp: new Date().toISOString(),
+			},
+		];
+
+		// Keep only last 20 messages (10 exchanges)
+		const trimmedHistory = newHistory.slice(-20);
+		await group.updateOne({ _id: from }, { $set: { chatHistory: trimmedHistory } }).catch(() => {});
+	}
+
+	await sendMessageWTyping(from, { text: text.trim() }, { quoted: msg });
 }
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	let { sendMessageWTyping, isGroup, evv } = msgInfoObj;
 
-	if (GOOGLE_API_KEY == "") {
-		return sendMessageWTyping(from, { text: "```Generative AI API Key is Missing```" }, { quoted: msg });
+	if (!GOOGLE_API_KEY && !GROQ_API_KEY) {
+		return sendMessageWTyping(from, { text: "AI API Key is missing in .env" }, { quoted: msg });
 	}
 
 	if (!evv) return sendMessageWTyping(from, { text: `Enter some text` });

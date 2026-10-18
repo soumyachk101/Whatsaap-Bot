@@ -2,10 +2,30 @@ import session from "express-session";
 import Database from "better-sqlite3";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dbPath = process.env.DATABASE_PATH || join(__dirname, "database.db");
-const sqliteDb = new Database(dbPath);
+let resolvedDbPath = join(__dirname, "database.db");
+if (process.env.DATABASE_PATH) {
+	try {
+		const targetDir = dirname(process.env.DATABASE_PATH);
+		if (!fs.existsSync(targetDir)) {
+			fs.mkdirSync(targetDir, { recursive: true });
+		}
+		if (!fs.existsSync(process.env.DATABASE_PATH)) {
+			const defaultDb = join(__dirname, "database.db");
+			if (fs.existsSync(defaultDb)) {
+				fs.copyFileSync(defaultDb, process.env.DATABASE_PATH);
+			}
+		}
+		resolvedDbPath = process.env.DATABASE_PATH;
+	} catch (e) {
+		console.warn("⚠️ Could not access persistent database in session store, using local fallback:", e.message);
+		resolvedDbPath = join(__dirname, "database.db");
+	}
+}
+
+const sqliteDb = new Database(resolvedDbPath);
 
 sqliteDb.exec(`
 	CREATE TABLE IF NOT EXISTS Sessions (

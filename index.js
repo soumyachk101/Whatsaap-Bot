@@ -12,6 +12,7 @@ import { normalizeJID } from "./functions/lidUtils.js";
 import { startBirthdayCron } from "./functions/birthdayCron.js";
 import adminRouter, { requireAdmin } from "./routes/admin.js";
 import { createBotData } from "./sqlite-DB/botDataDb.js";
+import cobaltEngineManager from "./functions/cobaltEngineManager.js";
 
 import cors from "cors";
 import express from "express";
@@ -95,12 +96,15 @@ app.get(["/admin", "/admin/*"], (req, res, next) => {
 let port = Number(process.env.PORT) || 8000;
 
 function listenPort(p) {
-	const s = app.listen(p, () => {
+	const s = app.listen(p, "0.0.0.0", () => {
 		console.log(`\nWeb-server running on port ${p}!\n` + getDate());
 		console.log(`🔗 QR / Pairing Page: http://localhost:${p}/`);
 		console.log(`🔗 Admin Dashboard  : http://localhost:${p}/admin\n`);
 		console.log(`Memory usage at startup: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
 		startServer();
+		cobaltEngineManager.ensureEngineRunning().catch((err) => {
+			console.warn("[CobaltEngine] Startup notice:", err.message);
+		});
 	});
 	s.on("error", (err) => {
 		if (err.code === "EADDRINUSE") {
@@ -183,14 +187,16 @@ app.locals.getLastQR = () => lastQR;
 
 // ── WebSocket server ──────────────────────────────────────────────────────────
 wss.on("connection", async (ws, req) => {
-	// Origin validation — only accept same-origin or localhost
-	const origin = req.headers.origin || req.headers.referer || ""
-	const allowedOrigins = [process.env.ALLOWED_ORIGIN, "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:5173", "http://localhost:3000"].filter(Boolean)
-	const isAllowed = allowedOrigins.some(o => origin === o || origin.startsWith(o))
+	// Origin validation — accept same-origin, configured ALLOWED_ORIGIN, or localhost
+	const origin = req.headers.origin || req.headers.referer || "";
+	const host = req.headers.host;
+	const isSameOrigin = host && (origin === `https://${host}` || origin === `http://${host}` || origin.startsWith(`https://${host}/`) || origin.startsWith(`http://${host}/`));
+	const allowedOrigins = [process.env.ALLOWED_ORIGIN, "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:5173", "http://localhost:3000"].filter(Boolean);
+	const isAllowed = isSameOrigin || allowedOrigins.some(o => origin === o || origin.startsWith(o));
 	if (!isAllowed) {
-		console.warn(`[WS] Rejected connection from untrusted origin: ${origin}`)
-		try { ws.close(1008, "Unauthorized origin") } catch {}
-		return
+		console.warn(`[WS] Rejected connection from untrusted origin: ${origin}`);
+		try { ws.close(1008, "Unauthorized origin"); } catch {}
+		return;
 	}
 
 	const session = await getSession(req);
@@ -295,6 +301,7 @@ function gracefulShutdown(signal) {
 	server.close(() => {
 		console.log("✅ HTTP server closed");
 		wss.clients.forEach((client) => client.close());
+		cobaltEngineManager.stopEngine();
 		memoryManager.destroy();
 		performanceMonitor.saveMetrics();
 		console.log("✅ Graceful shutdown completed");

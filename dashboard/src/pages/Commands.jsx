@@ -72,7 +72,7 @@ export default function Commands() {
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
  <div>
  <h1 className="section-title" style={{ fontSize: '1.35rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
- <Icons.IconCommands size={20} style={{ color: '#a5b4fc' }} />
+ <Icons.IconCommands size={20} style={{ color: 'var(--primary)' }} />
  Command Catalog
  </h1>
  <p className="section-subtitle">{all.length} total commands — toggle global availability</p>
@@ -81,7 +81,7 @@ export default function Commands() {
  </div>
 
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
- 		<div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '4px' }}>
+ 		<div style={{ display: 'inline-flex', background: 'var(--stone)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', gap: '4px' }}>
 			{FILTERS.map(f => {
 				const active = filter === f;
 				return (
@@ -91,14 +91,14 @@ export default function Commands() {
 						className={`btn ${active ? 'btn-primary' : 'btn-ghost'}`}
 						onClick={() => setFilter(f)}
 						style={{
-							fontSize: '0.72rem',
+							fontSize: '0.74rem',
 							padding: '0.35rem 0.85rem',
 							borderRadius: '6px',
-							fontWeight: active ? 700 : 500,
+							fontWeight: active ? 700 : 600,
 							textTransform: 'capitalize',
-							background: active ? 'linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
-							color: active ? '#ffffff' : 'var(--text-dim)',
-							borderColor: active ? '#4338ca' : 'transparent',
+							background: active ? 'var(--primary)' : 'transparent',
+							color: active ? '#ffffff' : 'var(--text-muted)',
+							borderColor: active ? 'var(--primary)' : 'transparent',
 						}}
 					>
 						{f}
@@ -107,7 +107,7 @@ export default function Commands() {
 			})}
 		</div>
  <div style={{ position: 'relative', width: '260px' }}>
- <Icons.IconSearch size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)', pointerEvents: 'none' }} />
+ <Icons.IconSearch size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
  <input className="input" placeholder="Search commands..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '2.2rem', fontSize: '0.8rem' }} />
  </div>
  </div>
@@ -115,7 +115,7 @@ export default function Commands() {
  {loading ? (
  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '30vh', gap: '0.75rem' }}>
  <div className="spinner" />
- <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Loading commands...</span>
+ <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Loading commands...</span>
  </div>
  ) : (
  <div className="table-wrap">
@@ -135,7 +135,7 @@ export default function Commands() {
 						const primary = c.primaryCmd || c.cmd?.[0] || 'cmd'
 						return (
 							<tr key={`${primary}-${i}`}>
-								<td style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: '#f1f5f9', fontSize: '0.8rem' }}>
+								<td style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-main)', fontSize: '0.82rem' }}>
 									{(c.cmd || [primary]).map(a => `#${a}`).join(', ')}
 								</td>
 								<td><span className={`badge ${style.cls}`}>{style.label}</span></td>
