@@ -112,51 +112,60 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			throw new Error(`Audio file too large: ${fileSizeMB.toFixed(2)}MB (max 200MB)`);
 		}
 
+		const sendAudioSafely = async (payload, quotedMsg) => {
+			const sendOpts = { useCachedGroupMetadata: true };
+			if (quotedMsg) {
+				try {
+					return await sock.sendMessage(from, payload, { ...sendOpts, quoted: quotedMsg });
+				} catch (qErr) {
+					console.warn(`[Song] Quoted send failed (${qErr.message}), retrying unquoted...`);
+				}
+			}
+			return await sock.sendMessage(from, payload, sendOpts);
+		};
+
 		try {
 			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-			await sock.sendMessage(
-				from,
+			await sendAudioSafely(
 				{
 					audio: { url: fileDown },
 					mimetype: mime,
 					ptt: false,
 				},
-				{ quoted: msg }
+				msg
 			);
 			memoryManager.markFileSent(fileDown);
 		} catch (sendErr) {
 			console.error("[Song] Send with URL failed, trying buffer/stream fallback:", sendErr.message);
 			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-			if (fileSizeMB <= 35) {
-				const buf = fs.readFileSync(fileDown);
-				await sock.sendMessage(
-					from,
-					{
-						audio: buf,
-						mimetype: mime,
-						ptt: false,
-					},
-					{ quoted: msg }
-				);
-			} else {
-				const readStream = memoryManager.createOptimizedReadStream(fileDown);
-				await sock.sendMessage(
-					from,
-					{
-						audio: readStream,
-						mimetype: mime,
-						ptt: false,
-					},
-					{ quoted: msg }
-				);
+			try {
+				if (fileSizeMB <= 35) {
+					const buf = fs.readFileSync(fileDown);
+					await sendAudioSafely({ audio: buf, mimetype: mime, ptt: false }, null);
+				} else {
+					const readStream = memoryManager.createOptimizedReadStream(fileDown);
+					await sendAudioSafely({ audio: readStream, mimetype: mime, ptt: false }, null);
+				}
+				memoryManager.markFileSent(fileDown);
+			} catch (fallbackErr) {
+				console.error("[Song] Audio fallback failed, trying document fallback:", fallbackErr.message);
+				try {
+					await sendAudioSafely({
+						document: { url: fileDown },
+						fileName: `${title || "song"}.mp3`,
+						mimetype: "audio/mpeg"
+					}, null);
+					memoryManager.markFileSent(fileDown);
+				} catch (docErr) {
+					console.error("[Song] Document fallback also failed:", docErr.message);
+					await sendMessageWTyping(from, { text: "❌ Failed to upload song file. Please try again later." }, { quoted: msg });
+				}
 			}
-			memoryManager.markFileSent(fileDown);
 		}
 	} catch (err) {
-		console.error("Song download error:", err);
-		const userMsg = err instanceof CobaltDownloadError
-			? `❌ ${sanitizeYtDlpError(err.message)}`
-			: "❌ Failed to download song. Try again with a different link or name.";
+		console.error("Song download error:", err.message);
+		const clean = sanitizeYtDlpError(err.message);
+		const userMsg = clean.startsWith("❌") ? clean : `❌ ${clean}`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
 		if (fileDown) {

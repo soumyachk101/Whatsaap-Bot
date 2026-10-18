@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import { downloadViaCobalt, CobaltDownloadError, sanitizeYtDlpError } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
 import downloadQueue from "../../functions/downloadQueue.js";
@@ -60,42 +61,54 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
 		const mime = downloadPath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
 
+		const sendAudioSafely = async (payload, quotedMsg) => {
+			const sendOpts = { useCachedGroupMetadata: true };
+			if (quotedMsg) {
+				try {
+					return await sock.sendMessage(from, payload, { ...sendOpts, quoted: quotedMsg });
+				} catch (qErr) {
+					console.warn(`[MP3] Quoted audio send failed (${qErr.message}), retrying unquoted...`);
+				}
+			}
+			return await sock.sendMessage(from, payload, sendOpts);
+		};
+
+		const sizeMB = stats.size / (1024 * 1024);
 		try {
-			await sock.sendMessage(
-				from,
-				{
-					audio: { url: downloadPath },
-					mimetype: mime,
-					ptt: false,
-				},
-				{ quoted: msg }
-			);
+			if (sizeMB <= 30) {
+				const buf = fs.readFileSync(downloadPath);
+				await sendAudioSafely({ audio: buf, mimetype: mime, ptt: false }, msg);
+			} else {
+				await sendAudioSafely({ audio: { url: downloadPath }, mimetype: mime, ptt: false }, msg);
+			}
 			memoryManager.markFileSent(downloadPath);
 		} catch (sendErr) {
-			console.error("[MP3] Send with URL failed, trying buffer fallback:", sendErr.message);
-			const buf = fs.readFileSync(downloadPath);
-			await sock.sendMessage(
-				from,
-				{
-					audio: buf,
-					mimetype: mime,
-					ptt: false,
-				},
-				{ quoted: msg }
-			);
-			memoryManager.markFileSent(downloadPath);
+			console.error("[MP3] Audio send failed, trying document fallback:", sendErr.message);
+			try {
+				await sendAudioSafely(
+					{
+						document: { url: downloadPath },
+						fileName: path.basename(downloadPath) || "audio.mp3",
+						mimetype: mime,
+					},
+					null
+				);
+				memoryManager.markFileSent(downloadPath);
+			} catch (docErr) {
+				console.error("[MP3] Document fallback also failed:", docErr.message);
+				throw new Error("Failed to send audio to WhatsApp. Please try again.");
+			}
 		}
 	} catch (error) {
-		console.error("MP3 Download Error:", error);
-		const userMsg = error instanceof CobaltDownloadError
-			? `❌ ${sanitizeYtDlpError(error.message)}`
-			: "❌ Couldn't fetch audio from that link. Try again with a different link.";
+		console.error("MP3 Download Error:", error.message);
+		const clean = sanitizeYtDlpError(error.message);
+		const userMsg = clean.startsWith("❌") ? clean : `❌ ${clean}`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
 		if (downloadPath) {
 			setTimeout(() => {
 				if (fs.existsSync(downloadPath)) memoryManager.safeUnlink(downloadPath);
-			}, 60000);
+			}, 15000);
 		}
 		if (acquired) {
 			downloadQueue.release();

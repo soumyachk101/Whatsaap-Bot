@@ -15,6 +15,7 @@ import { checkNSFW } from "./nsfwFilter.js";
 import { groupMetadataCache, getOrFetchGroupMetadata } from "./getSocket.js";
 import { extractPhoneNumber, isLID, resolveMemberIdentity } from "./lidUtils.js";
 import { logCommandEvent, logMessageEvent } from "./botLogger.js";
+import { sanitizeUserError } from "./errorUtils.js";
 
 const parseNumberEnv = (envVal) => {
 	if (!envVal) return [];
@@ -144,6 +145,7 @@ const getCommand = async (sock, msg, cache) => {
 				const doSend = async () => {
 					try {
 						const sendOptions = {
+							useCachedGroupMetadata: true,
 							...messageOptions,
 							cachedGroupMetadata: isGroupChat ? (jid) => groupMetadataCache.get(jid) : undefined,
 							mediaUploadTimeoutMs: isGroupChat ? 1000 * 60 * 10 : 1000 * 60 * 5,
@@ -156,7 +158,17 @@ const getCommand = async (sock, msg, cache) => {
 							};
 						}
 
-						return await sock.sendMessage(to, msgObj, sendOptions);
+						try {
+							return await sock.sendMessage(to, msgObj, sendOptions);
+						} catch (sendErr) {
+							if (sendOptions.quoted) {
+								console.warn(`[sendMessageWTyping] Quoted send failed (${sendErr.message}), retrying unquoted in ${to}...`);
+								const unquotedOpts = { ...sendOptions };
+								delete unquotedOpts.quoted;
+								return await sock.sendMessage(to, msgObj, unquotedOpts);
+							}
+							throw sendErr;
+						}
 					} catch (err) {
 						console.error("❌ Error sending message:", err.message);
 						throw err;
@@ -294,9 +306,11 @@ const getCommand = async (sock, msg, cache) => {
 			groupMetadata = groupMetadataCache.get(from) || (typeof cache?.get === "function" ? cache.get(from + ":groupMetadata") : null);
 			if (!groupMetadata || !Array.isArray(groupMetadata.participants) || groupMetadata.participants.length === 0) {
 				groupMetadata = await getOrFetchGroupMetadata(sock, from);
-				if (!groupMetadata) {
-					groupMetadata = { participants: [], subject: from };
-				} else if (typeof cache?.set === "function") {
+				if (!groupMetadata || !Array.isArray(groupMetadata.participants)) {
+					groupMetadata = { id: from, participants: [], subject: from, addressingMode: "lid" };
+				}
+				groupMetadataCache.set(from, groupMetadata, 86400);
+				if (typeof cache?.set === "function") {
 					cache.set(from + ":groupMetadata", groupMetadata, 86400);
 				}
 			}
@@ -413,6 +427,11 @@ const getCommand = async (sock, msg, cache) => {
 			getMemberData(senderJid),
 			isGroup ? getGroupData(from) : Promise.resolve(null),
 		]);
+
+		if (isGroup && groupData && groupMetadata?.subject && groupMetadata.subject !== from && groupData.grpName !== groupMetadata.subject) {
+			group.updateOne({ _id: from }, { $set: { grpName: groupMetadata.subject } }).catch(() => {});
+			groupData.grpName = groupMetadata.subject;
+		}
 
 		const allowedWhenOff = [
 			"start", "welcome", "stats", "mystats", "search", "yts",
@@ -617,7 +636,7 @@ const getCommand = async (sock, msg, cache) => {
 		const initialReaction = (command === "song" || command === "play" || command === "mp3" || command === "yta") ? "🎵" : "👀";
 
 		if (command != "") {
-			sock.sendMessage(from, { react: { text: initialReaction, key: msg.key } }).catch(err => console.error("[React Error]", err));
+			sock.sendMessage(from, { react: { text: initialReaction, key: msg.key } }, { useCachedGroupMetadata: true }).catch(err => console.error("[React Error]", err));
 			const globallyDisabled = botData?.disabledGlobally || [];
 			if (globallyDisabled.includes(command)) {
 				return sendMessageWTyping(from, { text: `🚫 This command is globally disabled.` }, { quoted: msg });
@@ -647,12 +666,12 @@ const getCommand = async (sock, msg, cache) => {
 				console.log(`[PROFILE] Command '${command}' (${label}) took ${t1 - t0}ms`);
 				// Success reaction
 				const successReaction = (command === "song" || command === "play" || command === "mp3" || command === "yta") ? "🎶" : "✅";
-				sock.sendMessage(from, { react: { text: successReaction, key: msg.key } }).catch(() => {});
+				sock.sendMessage(from, { react: { text: successReaction, key: msg.key } }, { useCachedGroupMetadata: true }).catch(() => {});
 				return result;
 			} catch (err) {
 				abortController.abort();
 				// Failure reaction
-				sock.sendMessage(from, { react: { text: "❌", key: msg.key } }).catch(() => {});
+				sock.sendMessage(from, { react: { text: "❌", key: msg.key } }, { useCachedGroupMetadata: true }).catch(() => {});
 				if (err.message && err.message.includes("Command timeout")) {
 					console.error(`[WATCHDOG] ${err.message}`);
 					await sendMessageWTyping(from, { text: `⏱️ *Command Timeout*\n\nCommand '${command}' took too long to respond. Please try again.` }, { quoted: msg }).catch(() => {});
@@ -696,7 +715,12 @@ const getCommand = async (sock, msg, cache) => {
 		try {
 			const safeFrom = (from && typeof from === "string") ? from : (msg?.key?.remoteJid || "");
 			if (safeFrom && sock && !error.userNotified) {
-				await sock.sendMessage(safeFrom, { text: `❌ *Error processing command:*\n_${error.message}_` }, { quoted: msg });
+				const userMessage = sanitizeUserError(error, command);
+				try {
+					await sock.sendMessage(safeFrom, { text: userMessage }, { quoted: msg, useCachedGroupMetadata: true });
+				} catch (_) {
+					await sock.sendMessage(safeFrom, { text: userMessage }, { useCachedGroupMetadata: true }).catch(() => {});
+				}
 			}
 		} catch (_) {}
 	}

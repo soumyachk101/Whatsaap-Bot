@@ -6,6 +6,8 @@ import P from "pino";
 
 const logger = P({ level: "silent" }); // Set to "error" to allow essential logs but suppress debug spam
 
+import { group } from "../sqlite-DB/groupDataDb.js";
+
 // Optimized caches with reduced memory footprint
 const msgRetryCounterCache = new NodeCache({
 	stdTTL: 180, // Reduced to 3 minutes
@@ -31,7 +33,40 @@ export const groupMetadataCache = new NodeCache({
 const pendingGroupMetaFetches = new Map();
 
 /**
- * Thread-safe deduplicated group metadata fetcher with cache
+ * Pre-warm group cache from database immediately on startup (0ms lookups, 0 network requests)
+ */
+export const prewarmGroupCacheFromDb = async () => {
+	try {
+		const groups = await group.find({}).toArray();
+		let count = 0;
+		for (const doc of groups) {
+			if (!doc || !doc._id || !doc._id.endsWith("@g.us")) continue;
+			const jid = doc._id;
+			const participants = Array.isArray(doc.participants) && doc.participants.length > 0
+				? doc.participants
+				: (Array.isArray(doc.members) && doc.members.length > 0
+					? doc.members.map(m => ({ id: m.id || m, admin: null }))
+					: []);
+			const meta = {
+				id: jid,
+				subject: doc.grpName || "Group",
+				desc: doc.desc || "",
+				participants: participants.length > 0 ? participants : [{ id: "bot@s.whatsapp.net" }],
+				addressingMode: "lid",
+			};
+			groupMetadataCache.set(jid, meta);
+			count++;
+		}
+		if (count > 0) {
+			console.log(`⚡ Pre-warmed group cache from DB for ${count} groups! (0ms lookups active)`);
+		}
+	} catch (e) {
+		console.warn("[prewarmGroupCacheFromDb] Warning:", e.message);
+	}
+};
+
+/**
+ * Thread-safe deduplicated group metadata fetcher with cache & database fallback
  */
 export const getOrFetchGroupMetadata = async (sock, jid, force = false) => {
 	if (!jid || !jid.endsWith("@g.us")) return null;
@@ -55,15 +90,64 @@ export const getOrFetchGroupMetadata = async (sock, jid, force = false) => {
 			const meta = await Promise.race([
 				sock.groupMetadata(jid),
 				new Promise((_, reject) =>
-					setTimeout(() => reject(new Error("Group metadata timeout")), 4000)
+					setTimeout(() => reject(new Error("Group metadata timeout")), 3500)
 				),
 			]);
 			if (meta && Array.isArray(meta.participants)) {
 				groupMetadataCache.set(jid, meta);
+				// Save participants to database for instant recovery and offline reliability
+				try {
+					const participantIds = meta.participants.map(p => ({
+						id: p.id,
+						admin: p.admin || null,
+						lid: p.lid || null
+					}));
+					group.updateOne(
+						{ _id: jid },
+						{
+							$set: {
+								grpName: meta.subject || "Group",
+								desc: meta.desc ? meta.desc.toString() : "",
+								participants: participantIds
+							}
+						},
+						{ upsert: true }
+					).catch(() => {});
+				} catch (_) {}
 				return meta;
 			}
 		} catch (err) {
-			return groupMetadataCache.get(jid) || null;
+			// On network error or timeout, fall back to DB stored participants
+			try {
+				const dbDoc = await group.findOne({ _id: jid });
+				if (dbDoc) {
+					const participants = Array.isArray(dbDoc.participants) && dbDoc.participants.length > 0
+						? dbDoc.participants
+						: (Array.isArray(dbDoc.members) && dbDoc.members.length > 0
+							? dbDoc.members.map(m => ({ id: m.id || m, admin: null }))
+							: []);
+					const recovered = {
+						id: jid,
+						subject: dbDoc.grpName || "Group",
+						desc: dbDoc.desc || "",
+						participants: participants.length > 0 ? participants : [{ id: sock?.user?.id || "bot@s.whatsapp.net" }],
+						addressingMode: "lid"
+					};
+					groupMetadataCache.set(jid, recovered, 600);
+					return recovered;
+				}
+			} catch (_) {}
+
+			// Always provide a safe resilient object so Baileys NEVER crashes or hangs calling groupMetadata(jid)
+			const botId = sock?.user?.id ? (sock.user.id.includes(":") ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : sock.user.id) : "bot@s.whatsapp.net";
+			const fallback = {
+				id: jid,
+				subject: "Group",
+				participants: [{ id: botId }],
+				addressingMode: "lid"
+			};
+			groupMetadataCache.set(jid, fallback, 60);
+			return fallback;
 		} finally {
 			pendingGroupMetaFetches.delete(jid);
 		}
@@ -141,6 +225,11 @@ const socket = async () => {
 			let meta = groupMetadataCache.get(jid);
 			if (!meta || !Array.isArray(meta.participants) || meta.participants.length === 0) {
 				meta = await getOrFetchGroupMetadata(sock, jid);
+			}
+			if (!meta || !Array.isArray(meta.participants)) {
+				const botId = sock?.user?.id ? (sock.user.id.includes(":") ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : sock.user.id) : "bot@s.whatsapp.net";
+				meta = { id: jid, subject: "Group", participants: [{ id: botId }], addressingMode: "lid" };
+				groupMetadataCache.set(jid, meta, 60);
 			}
 			return meta;
 		},

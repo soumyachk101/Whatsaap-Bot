@@ -157,6 +157,18 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			throw new Error("All downloaded files were too large or empty.");
 		}
 
+const sendMediaSafely = async (sock, from, payload, quotedMsg) => {
+	const sendOpts = { useCachedGroupMetadata: true };
+	if (quotedMsg) {
+		try {
+			return await sock.sendMessage(from, payload, { ...sendOpts, quoted: quotedMsg });
+		} catch (qErr) {
+			console.warn(`[Universal DL] Quoted send failed (${qErr.message}), retrying unquoted...`);
+		}
+	}
+	return await sock.sendMessage(from, payload, sendOpts);
+};
+
 		for (const filePath of validFiles) {
 			if (!fs.existsSync(filePath)) continue;
 			memoryManager.markFileReady(filePath);
@@ -169,27 +181,27 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 					if (sizeMB <= 35) {
 						// For files <= 35MB, buffer delivery is instantaneous and avoids Baileys stream ENOENT races
 						const videoBuf = fs.readFileSync(filePath);
-						await sock.sendMessage(from, { video: videoBuf, mimetype: "video/mp4" }, { quoted: msg });
+						await sendMediaSafely(sock, from, { video: videoBuf, mimetype: "video/mp4" }, msg);
 					} else {
-						await sock.sendMessage(from, { video: { url: filePath }, mimetype: "video/mp4" }, { quoted: msg });
+						await sendMediaSafely(sock, from, { video: { url: filePath }, mimetype: "video/mp4" }, msg);
 					}
 				} else if (mediaInfo.detected === "image") {
 					if (sizeMB <= 15) {
 						const imgBuf = fs.readFileSync(filePath);
-						await sock.sendMessage(from, { image: imgBuf }, { quoted: msg });
+						await sendMediaSafely(sock, from, { image: imgBuf }, msg);
 					} else {
-						await sock.sendMessage(from, { image: { url: filePath } }, { quoted: msg });
+						await sendMediaSafely(sock, from, { image: { url: filePath } }, msg);
 					}
 				} else if (mediaInfo.detected === "audio") {
 					const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
 					if (sizeMB <= 30) {
 						const audioBuf = fs.readFileSync(filePath);
-						await sock.sendMessage(from, { audio: audioBuf, mimetype: mime, ptt: false }, { quoted: msg });
+						await sendMediaSafely(sock, from, { audio: audioBuf, mimetype: mime, ptt: false }, msg);
 					} else {
-						await sock.sendMessage(from, { audio: { url: filePath }, mimetype: mime, ptt: false }, { quoted: msg });
+						await sendMediaSafely(sock, from, { audio: { url: filePath }, mimetype: mime, ptt: false }, msg);
 					}
 				} else {
-					await sock.sendMessage(from, { document: { url: filePath }, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
+					await sendMediaSafely(sock, from, { document: { url: filePath }, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, msg);
 				}
 				memoryManager.markFileSent(filePath);
 			} catch (sendErr) {
@@ -209,24 +221,24 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				try {
 					const readStream = memoryManager.createOptimizedReadStream(filePath);
 					if (mediaInfo.detected === "video") {
-						await sock.sendMessage(from, { video: readStream, mimetype: "video/mp4" }, { quoted: msg });
+						await sendMediaSafely(sock, from, { video: readStream, mimetype: "video/mp4" }, null);
 					} else if (mediaInfo.detected === "audio") {
 						const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-						await sock.sendMessage(from, { audio: readStream, mimetype: mime, ptt: false }, { quoted: msg });
+						await sendMediaSafely(sock, from, { audio: readStream, mimetype: mime, ptt: false }, null);
 					} else if (mediaInfo.detected === "image") {
-						await sock.sendMessage(from, { image: readStream }, { quoted: msg });
+						await sendMediaSafely(sock, from, { image: readStream }, null);
 					} else {
-						await sock.sendMessage(from, { document: readStream, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, { quoted: msg });
+						await sendMediaSafely(sock, from, { document: readStream, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, null);
 					}
 					memoryManager.markFileSent(filePath);
 				} catch (fallbackErr) {
 					console.error("[Universal DL] Media send failed, trying document fallback (up to 200MB/2GB):", fallbackErr.message);
 					try {
-						await sock.sendMessage(from, {
+						await sendMediaSafely(sock, from, {
 							document: { url: filePath },
 							fileName: path.basename(filePath) || `media.${mediaInfo.ext || "mp4"}`,
 							mimetype: mediaInfo.mime || "application/octet-stream"
-						}, { quoted: msg });
+						}, null);
 						memoryManager.markFileSent(filePath);
 					} catch (docErr) {
 						console.error("[Universal DL] Document fallback also failed:", docErr.message);
@@ -237,17 +249,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			await new Promise((res) => setTimeout(res, 500));
 		}
 	} catch (err) {
-		console.error("[Universal DL] Error:", err);
-		let userMsg;
-		if (err instanceof CobaltDownloadError) {
-			userMsg = `❌ ${sanitizeYtDlpError(err.message)}`;
-		} else if (err.message?.includes("cancelled")) {
-			userMsg = "❌ Download was cancelled.";
-		} else if (err.message?.includes("Invalid URL")) {
-			userMsg = "❌ Invalid URL provided.";
-		} else {
-			userMsg = "❌ Download failed. Please try again later.";
-		}
+		console.error("[Universal DL] Error:", err.message);
+		let clean = sanitizeYtDlpError(err.message);
+		let userMsg = clean.startsWith("❌") ? clean : `❌ ${clean}`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg }).catch(() => {});
 		err.userNotified = true;
 		throw err;
