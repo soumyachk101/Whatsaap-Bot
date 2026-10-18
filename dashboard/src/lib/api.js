@@ -45,8 +45,17 @@ export const toggleCommand = (cmd, disabled, aliases) =>
 
 // Groups
 export const getGroups = () => api.get('/api/admin/groups')
+export const syncGroups = () => api.post('/api/admin/groups/sync')
 export const updateGroup = (jid, update) =>
  api.patch(`/api/admin/groups/${encodeURIComponent(jid)}`, update)
+export const getGroupMetadata = (jid) =>
+ api.get(`/api/admin/groups/${encodeURIComponent(jid)}/metadata`)
+export const sendGroupMessage = (jid, message) =>
+ api.post(`/api/admin/groups/${encodeURIComponent(jid)}/message`, { message })
+export const leaveGroup = (jid) =>
+ api.post(`/api/admin/groups/${encodeURIComponent(jid)}/leave`)
+export const getGroupInvite = (jid) =>
+ api.get(`/api/admin/groups/${encodeURIComponent(jid)}/invite`)
 
 // Members
 export const getMembers = (params) =>

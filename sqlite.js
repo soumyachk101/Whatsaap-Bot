@@ -2,11 +2,31 @@ import Database from "better-sqlite3";
 import { MongoClient } from "mongodb";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import fs from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dbPath = process.env.DATABASE_PATH || join(__dirname, "database.db");
+let resolvedDbPath = join(__dirname, "database.db");
+if (process.env.DATABASE_PATH) {
+	try {
+		const targetDir = dirname(process.env.DATABASE_PATH);
+		if (!fs.existsSync(targetDir)) {
+			fs.mkdirSync(targetDir, { recursive: true });
+		}
+		if (!fs.existsSync(process.env.DATABASE_PATH)) {
+			const defaultDb = join(__dirname, "database.db");
+			if (fs.existsSync(defaultDb)) {
+				fs.copyFileSync(defaultDb, process.env.DATABASE_PATH);
+				console.log(`✅ Seeded database from ${defaultDb} to persistent volume at ${process.env.DATABASE_PATH}`);
+			}
+		}
+		resolvedDbPath = process.env.DATABASE_PATH;
+	} catch (e) {
+		console.warn(`⚠️ Could not access DATABASE_PATH (${process.env.DATABASE_PATH}), falling back to local database:`, e.message);
+		resolvedDbPath = join(__dirname, "database.db");
+	}
+}
 
-const sqliteDb = new Database(dbPath);
+const sqliteDb = new Database(resolvedDbPath);
 sqliteDb.pragma("journal_mode = WAL");
 
 // Initialize SQLite tables as fallback
@@ -520,6 +540,21 @@ class Collection {
 			}
 			return { matchedCount: res.changes };
 		}
+	}
+
+	async updateMany(query, update, options = {}) {
+		const mongoResult = await this._mongoOp(() => mongoDbInstance.collection(this.tableName).updateMany(query, update, options));
+		if (mongoResult !== null) return mongoResult;
+
+		const items = await this.find(query).toArray();
+		let modifiedCount = 0;
+		for (const item of items) {
+			if (item._id) {
+				const res = await this.updateOne({ _id: item._id }, update, options);
+				if (res?.matchedCount) modifiedCount++;
+			}
+		}
+		return { matchedCount: items.length, modifiedCount };
 	}
 
 	async insertOne(doc) {

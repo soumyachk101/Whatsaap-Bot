@@ -100,7 +100,7 @@ export default function Plugins() {
  {typeof plugin.icon === 'function' ? (
  <plugin.icon size={22} color={plugin.color || '#818cf8'} />
  ) : (
- <span>{plugin.icon || '🧩'}</span>
+ <Icons.PluginsIcon size={20} color={plugin.color || '#818cf8'} />
  )}
  </div>
  <span className={`plugin-badge ${plugin.enabled ? 'badge-emerald' : 'badge-zinc'}`}>

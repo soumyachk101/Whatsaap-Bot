@@ -260,8 +260,9 @@ export default function Login() {
 								Master Password
 							</label>
 							{capsLock && (
-								<span style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-									⚠️ Caps Lock ON
+								<span style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+									<Icons.WarningIcon size={12} color="#fbbf24" />
+									Caps Lock ON
 								</span>
 							)}
 						</div>

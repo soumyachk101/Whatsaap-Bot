@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { group, updateGroupData } from "../sqlite-DB/groupDataDb.js";
+import { group, updateGroupData, clearGroupCache } from "../sqlite-DB/groupDataDb.js";
 import { member } from "../sqlite-DB/membersDataDb.js";
 import { bot, getBotData, clearBotCache } from "../sqlite-DB/botDataDb.js";
 import { cmdToText } from "../functions/getAddCommands.js";
 import { clearSQLiteAuthState } from "../functions/useSQLiteAuthState.js";
 import { getLogs, getRecentActivities, getActivityOverview, getCommandsRun, logSystemEvent } from "../functions/botLogger.js";
+import { groupMetadataCache } from "../functions/getSocket.js";
 import mdClient from "../sqlite.js";
 import QRCode from "qrcode";
 
@@ -492,19 +493,215 @@ router.get("/api/admin/groups", requireAdmin, async (req, res) => {
 	}
 });
 
+// Sync all participating groups live from WhatsApp
+router.post("/api/admin/groups/sync", requireAdmin, async (req, res) => {
+	const sock = req.app.locals.sock;
+	if (!sock || !sock.user) {
+		return res.status(503).json({ error: "Bot is not connected to WhatsApp. Please connect first." });
+	}
+
+	try {
+		console.log("[Groups API] Syncing groups directly from WhatsApp...");
+		const participating = await sock.groupFetchAllParticipating();
+		const groupJids = Object.keys(participating || {});
+
+		const botRaw = sock.user?.id || "";
+		const botPn = botRaw.split(":")[0];
+		const botJid = botPn ? `${botPn}@s.whatsapp.net` : "";
+		const botLid = sock.user?.lid || "";
+
+		let updatedCount = 0;
+		for (const [jid, meta] of Object.entries(participating)) {
+			if (!jid || !meta) continue;
+			const isBotAdmin = Array.isArray(meta.participants) && meta.participants.some((p) => {
+				const pId = p.id || p.jid || "";
+				const pPn = pId.split("@")[0].split(":")[0];
+				return (
+					(pId === botJid || pId === botLid || (botPn && pPn === botPn)) &&
+					(p.admin === "admin" || p.admin === "superadmin")
+				);
+			});
+
+			const updateDoc = {
+				grpName: meta.subject || "Unnamed Group",
+				desc: meta.desc ? meta.desc.toString() : "",
+				memberCount: Array.isArray(meta.participants) ? meta.participants.length : 0,
+				isBotAdmin,
+				inGroup: true,
+				lastSyncedAt: new Date().toISOString(),
+			};
+
+			await group.updateOne(
+				{ _id: jid },
+				{
+					$set: updateDoc,
+					$setOnInsert: {
+						isBotOn: true,
+						adminOnly: false,
+						restrictedMode: false,
+						antilink: false,
+						nsfw: false,
+						isChatBotOn: false,
+						isImgOn: false,
+						isAutoStickerOn: false,
+						is91Only: false,
+						welcome: "",
+						goodbye: "",
+						cmdBlocked: [],
+						totalMsgCount: 0,
+					},
+				},
+				{ upsert: true }
+			);
+
+			groupMetadataCache.set(jid, meta);
+			updatedCount++;
+		}
+
+		// Mark groups in DB that bot is no longer in as inGroup: false
+		const allDbGroups = await group.find({}).toArray();
+		for (const dbGrp of allDbGroups) {
+			if (dbGrp._id && !groupJids.includes(dbGrp._id)) {
+				await group.updateOne({ _id: dbGrp._id }, { $set: { inGroup: false } }).catch(() => {});
+			}
+		}
+
+		clearGroupCache();
+		console.log(`[Groups API] Synced ${updatedCount} groups from WhatsApp.`);
+		res.json({ ok: true, synced: updatedCount });
+	} catch (err) {
+		console.error("[Groups API] Sync error:", err);
+		res.status(500).json({ error: err.message || "Failed to sync groups." });
+	}
+});
+
 router.patch("/api/admin/groups/:jid", requireAdmin, async (req, res) => {
 	const jid = decodeURIComponent(req.params.jid);
-	const allowed = ["isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn", "cmdBlocked", "antilink", "nsfw", "adminOnly", "restrictedMode", "welcome"];
+	const allowed = [
+		"isBotOn", "isChatBotOn", "isImgOn", "is91Only", "isAutoStickerOn",
+		"cmdBlocked", "antilink", "nsfw", "adminOnly", "restrictedMode",
+		"welcome", "goodbye", "grpName", "desc"
+	];
 	const update = {};
 	for (const key of allowed) {
 		if (key in req.body) update[key] = req.body[key];
 	}
 	if (!Object.keys(update).length) return res.status(400).json({ error: "No valid fields" });
+
+	const sock = req.app.locals.sock;
+
 	try {
+		// If group name is updated, try updating WhatsApp subject if bot is connected
+		if (update.grpName && sock && typeof sock.groupUpdateSubject === "function") {
+			try {
+				await sock.groupUpdateSubject(jid, update.grpName.slice(0, 100));
+			} catch (waErr) {
+				console.warn(`[Groups API] Live subject update error (will still update DB): ${waErr.message}`);
+			}
+		}
+
+		// If description is updated, try updating WhatsApp description if bot is connected
+		if (typeof update.desc === "string" && sock && typeof sock.groupUpdateDescription === "function") {
+			try {
+				await sock.groupUpdateDescription(jid, update.desc);
+			} catch (waErr) {
+				console.warn(`[Groups API] Live description update error: ${waErr.message}`);
+			}
+		}
+
 		await updateGroupData(jid, { $set: update });
+		clearGroupCache(jid);
+		res.json({ ok: true, update });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+// Live metadata & participants for a single group
+router.get("/api/admin/groups/:jid/metadata", requireAdmin, async (req, res) => {
+	const jid = decodeURIComponent(req.params.jid);
+	const sock = req.app.locals.sock;
+
+	try {
+		let liveMeta = null;
+		if (sock && typeof sock.groupMetadata === "function") {
+			try {
+				liveMeta = await sock.groupMetadata(jid);
+				if (liveMeta) {
+					groupMetadataCache.set(jid, liveMeta);
+					await group.updateOne(
+						{ _id: jid },
+						{
+							$set: {
+								grpName: liveMeta.subject || "Unnamed Group",
+								desc: liveMeta.desc ? liveMeta.desc.toString() : "",
+								memberCount: liveMeta.participants?.length || 0,
+								inGroup: true,
+							},
+						}
+					).catch(() => {});
+				}
+			} catch (e) {
+				console.warn(`[Groups API] Single group live fetch failed: ${e.message}`);
+			}
+		}
+
+		const grpDoc = await group.findOne({ _id: jid });
+		res.json({
+			ok: true,
+			group: grpDoc,
+			liveMetadata: liveMeta,
+			participants: liveMeta?.participants || grpDoc?.members || [],
+		});
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+// Send message directly to group
+router.post("/api/admin/groups/:jid/message", requireAdmin, async (req, res) => {
+	const jid = decodeURIComponent(req.params.jid);
+	const { message } = req.body;
+	if (!message || !message.trim()) return res.status(400).json({ error: "Message cannot be empty." });
+
+	const sock = req.app.locals.sock;
+	if (!sock || !sock.user) return res.status(503).json({ error: "Bot is not connected to WhatsApp." });
+
+	try {
+		await sock.sendMessage(jid, { text: message.trim() });
 		res.json({ ok: true });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
+	}
+});
+
+// Leave group
+router.post("/api/admin/groups/:jid/leave", requireAdmin, async (req, res) => {
+	const jid = decodeURIComponent(req.params.jid);
+	const sock = req.app.locals.sock;
+	if (!sock || !sock.user) return res.status(503).json({ error: "Bot is not connected to WhatsApp." });
+
+	try {
+		await sock.groupLeave(jid);
+		await group.updateOne({ _id: jid }, { $set: { inGroup: false, isBotOn: false } }).catch(() => {});
+		clearGroupCache(jid);
+		res.json({ ok: true });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+// Get invite link
+router.get("/api/admin/groups/:jid/invite", requireAdmin, async (req, res) => {
+	const jid = decodeURIComponent(req.params.jid);
+	const sock = req.app.locals.sock;
+	if (!sock || !sock.user) return res.status(503).json({ error: "Bot is not connected to WhatsApp." });
+
+	try {
+		const code = await sock.groupInviteCode(jid);
+		res.json({ ok: true, code, link: `https://chat.whatsapp.com/${code}` });
+	} catch (err) {
+		res.status(500).json({ error: err.message || "Failed to fetch invite link. Make sure bot is group admin." });
 	}
 });
 
