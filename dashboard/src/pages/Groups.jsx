@@ -67,12 +67,12 @@ const CONTROL_DEFINITIONS = [
 
 function getAvatarGradient(id = '') {
   const gradients = [
-    'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
-    'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-    'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-    'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
-    'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
-    'linear-gradient(135deg, #e11d48 0%, #fb7185 100%)'
+    'linear-gradient(135deg, #5D7052 0%, #768F69 100%)',
+    'linear-gradient(135deg, #C18C5D 0%, #D8A578 100%)',
+    'linear-gradient(135deg, #4A4A40 0%, #636356 100%)',
+    'linear-gradient(135deg, #526E70 0%, #6A8E90 100%)',
+    'linear-gradient(135deg, #A85448 0%, #C36E62 100%)',
+    'linear-gradient(135deg, #8E8270 0%, #ABA08E 100%)'
   ]
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash << 5) - hash + id.charCodeAt(i)

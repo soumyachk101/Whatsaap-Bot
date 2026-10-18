@@ -8,20 +8,20 @@ import { getAnalytics } from '../lib/api.js'
 import * as Icons from '../components/Icons.jsx'
 
 const PALETTE = [
- { main: '#818cf8', gradId: 'violetG' },
- { main: '#a78bfa', gradId: 'purpleG' },
- { main: '#60a5fa', gradId: 'blueG' },
- { main: '#34d399', gradId: 'emeraldG' },
- { main: '#22d3ee', gradId: 'cyanG' },
+ { main: '#5D7052', gradId: 'mossG' },
+ { main: '#C18C5D', gradId: 'clayG' },
+ { main: '#4D6D47', gradId: 'emeraldG' },
+ { main: '#526E70', gradId: 'blueG' },
+ { main: '#A85448', gradId: 'roseG' },
 ]
 
 const ACCENT_COLORS = {
- violet: { bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)' },
- emerald: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', glow: 'rgba(16,185,129,0.2)' },
- blue: { bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)' },
- rose: { bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.25)', glow: 'rgba(244,63,94,0.2)' },
- cyan: { bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)', glow: 'rgba(6,182,212,0.2)' },
- amber: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', glow: 'rgba(245,158,11,0.2)' },
+ violet: { bg: 'rgba(93,112,82,0.12)', border: 'rgba(93,112,82,0.25)', glow: 'rgba(93,112,82,0.15)' },
+ emerald: { bg: 'rgba(77,109,71,0.12)', border: 'rgba(77,109,71,0.25)', glow: 'rgba(77,109,71,0.15)' },
+ blue: { bg: 'rgba(82,110,112,0.12)', border: 'rgba(82,110,112,0.25)', glow: 'rgba(82,110,112,0.15)' },
+ rose: { bg: 'rgba(168,84,72,0.12)', border: 'rgba(168,84,72,0.25)', glow: 'rgba(168,84,72,0.15)' },
+ cyan: { bg: 'rgba(74,122,120,0.12)', border: 'rgba(74,122,120,0.25)', glow: 'rgba(74,122,120,0.15)' },
+ amber: { bg: 'rgba(193,140,93,0.12)', border: 'rgba(193,140,93,0.25)', glow: 'rgba(193,140,93,0.15)' },
 }
 
 function MetricTile({ title, value, subtext, accent, icon, delay = 0 }) {

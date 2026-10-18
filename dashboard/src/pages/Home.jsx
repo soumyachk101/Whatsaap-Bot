@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
- getStats, getAnalytics, fmtUptime, requestPair, reconnectBot, clearAuth, restartBot,
- getMaintenanceMode, setMaintenanceMode,
+	getStats, getAnalytics, fmtUptime, reconnectBot, clearAuth, restartBot,
+	getMaintenanceMode, setMaintenanceMode,
 } from '../lib/api.js'
 import { useToast } from '../App.jsx'
 import { useWebSocket } from '../hooks/useWebSocket.js'
@@ -19,98 +19,98 @@ import {
 	PowerIcon,
 } from '../components/Icons.jsx'
 
-// ── Mini Sparkline ──────────────────────────────────────────────────────
-function Sparkline({ data = [], color = '#818cf8', height = 32 }) {
- const max = Math.max(...data, 1)
- const bars = data.slice(-20)
- return (
- <div className="sparkline" style={{ height }}>
- {bars.map((v, i) => (
- <div key={i} className="spark-bar" style={{
- height: `${Math.max((v / max) * 100, 4)}%`,
- background: `linear-gradient(180deg, ${color}, ${color}88)`,
- opacity: 0.5 + (i / bars.length) * 0.5,
- borderRadius: '2px 2px 0 0',
- }} />
- ))}
- </div>
- )
+// ── Organic Sparkline ───────────────────────────────────────────────────
+function Sparkline({ data = [], color = '#5D7052', height = 36 }) {
+	const max = Math.max(...data, 1)
+	const bars = data.slice(-20)
+	return (
+		<div className="sparkline" style={{ height }}>
+			{bars.map((v, i) => (
+				<div key={i} className="spark-bar" style={{
+					height: `${Math.max((v / max) * 100, 6)}%`,
+					background: `linear-gradient(180deg, ${color}, rgba(93, 112, 82, 0.25))`,
+					opacity: 0.5 + (i / bars.length) * 0.5,
+					borderRadius: '4px 4px 0 0',
+				}} />
+			))}
+		</div>
+	)
 }
 
-// ── Activity Item ──────────────────────────────────────────────────────
-function ActivityItem({ text, time, color = '#818cf8' }) {
- return (
- <div className="activity-item">
- <div className="activity-dot" style={{ background: color, boxShadow: `0 0 6px ${color}44` }} />
- <div className="activity-text">{text}</div>
- <div className="activity-time">{time}</div>
- </div>
- )
+// ── Organic Activity Item ───────────────────────────────────────────────
+function ActivityItem({ text, time, color = '#5D7052' }) {
+	return (
+		<div className="activity-item">
+			<div className="activity-dot" style={{ background: color, boxShadow: `0 0 8px ${color}55` }} />
+			<div className="activity-text">{text}</div>
+			<div className="activity-time">{time}</div>
+		</div>
+	)
 }
 
-// ── Main Dashboard ─────────────────────────────────────────────────────
+// ── Main Dashboard: Control Center ──────────────────────────────────────
 export default function Home() {
- const toast = useToast()
- const wsStatus = useWebSocket()
- const [stats, setStats] = useState(null)
- const [analytics, setAnalytics] = useState(null)
- const [warnings, setWarnings] = useState(0)
- const [loading, setLoading] = useState(true)
- const [maintenanceMode, setMaintenanceModeState] = useState(false)
- const [maintenanceLoading, setMaintenanceLoading] = useState(false)
- const [actionLoading, setActionLoading] = useState(false)
- const [currentTime, setCurrentTime] = useState(new Date())
+	const toast = useToast()
+	const wsStatus = useWebSocket()
+	const [stats, setStats] = useState(null)
+	const [analytics, setAnalytics] = useState(null)
+	const [warnings, setWarnings] = useState(0)
+	const [loading, setLoading] = useState(true)
+	const [maintenanceMode, setMaintenanceModeState] = useState(false)
+	const [maintenanceLoading, setMaintenanceLoading] = useState(false)
+	const [actionLoading, setActionLoading] = useState(false)
+	const [currentTime, setCurrentTime] = useState(new Date())
 
- const isConnected = wsStatus === 'connected'
+	const isConnected = wsStatus === 'connected'
 
- const fetchData = () => {
- Promise.all([getStats(), getAnalytics()])
- .then(([s, a]) => { setStats(s); setAnalytics(a); setWarnings(a?.warnedMembers ?? 0) })
- .catch(() => {})
- .finally(() => setLoading(false))
- }
+	const fetchData = () => {
+		Promise.all([getStats(), getAnalytics()])
+			.then(([s, a]) => { setStats(s); setAnalytics(a); setWarnings(a?.warnedMembers ?? 0) })
+			.catch(() => {})
+			.finally(() => setLoading(false))
+	}
 
- useEffect(() => { fetchData(); const t = setInterval(fetchData, 30_000); return () => clearInterval(t) }, [])
- useEffect(() => {
- getMaintenanceMode().then(r => { if (r?.maintenanceMode != null) setMaintenanceModeState(r.maintenanceMode) }).catch(() => {})
- }, [])
- useEffect(() => { const t = setInterval(() => setCurrentTime(new Date()), 1000); return () => clearInterval(t) }, [])
+	useEffect(() => { fetchData(); const t = setInterval(fetchData, 30_000); return () => clearInterval(t) }, [])
+	useEffect(() => {
+		getMaintenanceMode().then(r => { if (r?.maintenanceMode != null) setMaintenanceModeState(r.maintenanceMode) }).catch(() => {})
+	}, [])
+	useEffect(() => { const t = setInterval(() => setCurrentTime(new Date()), 1000); return () => clearInterval(t) }, [])
 
- const handleMaintenance = async () => {
- const newVal = !maintenanceMode
- setMaintenanceLoading(true)
- try {
- const res = await setMaintenanceMode(newVal)
- setMaintenanceModeState(res?.maintenanceMode ?? newVal)
- toast(`Restriction mode ${newVal ? 'enabled' : 'disabled'}`, true)
- } catch (err) { toast(err.message || 'Failed to toggle', false) }
- finally { setMaintenanceLoading(false) }
- }
+	const handleMaintenance = async () => {
+		const newVal = !maintenanceMode
+		setMaintenanceLoading(true)
+		try {
+			const res = await setMaintenanceMode(newVal)
+			setMaintenanceModeState(res?.maintenanceMode ?? newVal)
+			toast(`Restriction mode ${newVal ? 'enabled' : 'disabled'}`, true)
+		} catch (err) { toast(err.message || 'Failed to toggle', false) }
+		finally { setMaintenanceLoading(false) }
+	}
 
- const handleReconnect = async () => {
- setActionLoading(true)
- try { await reconnectBot(); toast('Reconnection triggered', true); fetchData() }
- catch (err) { toast(err.message, false) }
- finally { setActionLoading(false) }
- }
+	const handleReconnect = async () => {
+		setActionLoading(true)
+		try { await reconnectBot(); toast('Reconnection triggered', true); fetchData() }
+		catch (err) { toast(err.message, false) }
+		finally { setActionLoading(false) }
+	}
 
- const handleRestart = async () => {
- if (!confirm('Restart Node process?')) return
- setActionLoading(true)
- try { await restartBot(); toast('Restart initiated', true) }
- catch (err) { toast(err.message, false) }
- finally { setActionLoading(false) }
- }
+	const handleRestart = async () => {
+		if (!confirm('Restart Node process on server?')) return
+		setActionLoading(true)
+		try { await restartBot(); toast('Restart initiated', true) }
+		catch (err) { toast(err.message, false) }
+		finally { setActionLoading(false) }
+	}
 
- const handleClearAuth = async () => {
- if (!confirm('Clear session auth? You will need to re-link WhatsApp.')) return
- setActionLoading(true)
- try { await clearAuth(); toast('Session cleared', true); handleReconnect() }
- catch (err) { toast(err.message, false) }
- finally { setActionLoading(false) }
- }
+	const handleClearAuth = async () => {
+		if (!confirm('Clear session auth? You will need to re-link WhatsApp.')) return
+		setActionLoading(true)
+		try { await clearAuth(); toast('Session cleared', true); handleReconnect() }
+		catch (err) { toast(err.message, false) }
+		finally { setActionLoading(false) }
+	}
 
- // Derive display values
+	// Derive display values
 	const uptime = stats?.uptime ? fmtUptime(stats.uptime) : '—'
 	const messages = analytics?.totalMessages ?? stats?.messages ?? 0
 	const commands = stats?.commandsRun ?? 0
@@ -123,7 +123,6 @@ export default function Home() {
 		? analytics.activity
 		: Array.from({ length: 20 }, () => 0)
 
-	// Real calculated percentages & trends
 	const last10Msgs = activityData.slice(10).reduce((a, b) => a + b, 0)
 	const prev10Msgs = activityData.slice(0, 10).reduce((a, b) => a + b, 0)
 	let msgTrend = analytics?.messageTrend
@@ -143,18 +142,17 @@ export default function Home() {
 	const memberPct = analytics?.activeSendersPct ?? (members > 0 ? Math.round((activeSenders / members) * 100) : 0)
 	const warnPct = analytics?.warnedMembersPct ?? (members > 0 ? Math.round((warnings / members) * 100) : 0)
 
-	// Real recent activity from backend
 	const activities = useMemo(() => {
 		if (Array.isArray(analytics?.recentActivity) && analytics.recentActivity.length > 0) {
 			return analytics.recentActivity.map(a => ({
 				text: a.text,
 				time: a.time,
-				color: a.color || '#818cf8',
+				color: a.color || '#5D7052',
 			}))
 		}
 		return [
-			{ text: 'Bot Engine online and listening for messages', time: 'Just now', color: '#34d399' },
-			{ text: 'All active WhatsApp groups monitored', time: 'Just now', color: '#60a5fa' },
+			{ text: 'Bot Engine online and listening for messages', time: 'Just now', color: '#5D7052' },
+			{ text: 'All active WhatsApp groups monitored with 0ms cache', time: 'Just now', color: '#C18C5D' },
 		]
 	}, [analytics?.recentActivity])
 
@@ -164,37 +162,46 @@ export default function Home() {
 		return (
 			<div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '1rem' }}>
 				<div className="spinner" />
-				<span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 500 }}>Loading dashboard...</span>
+				<span style={{ fontSize: '0.85rem', color: '#78786C', fontWeight: 600 }}>Loading control center...</span>
 			</div>
 		)
 	}
 
 	return (
-		<div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+		<div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
 
 			{/* ── Header ─────────────────────────────────────────────── */}
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
 				<div>
-					<h1 className="section-title text-gradient-animated" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+					<h1 className="section-title" style={{ fontSize: '1.85rem', fontWeight: 700, color: '#2C2C24' }}>
 						Bot Control Center
 					</h1>
 					<p className="section-subtitle">Monitor, configure, and manage your WhatsApp bot engine</p>
 				</div>
 				<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-					<span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", background: 'rgba(255,255,255,0.03)', padding: '0.3rem 0.75rem', borderRadius: 8, border: '1px solid var(--border)' }}>
+					<span style={{
+						fontSize: '0.75rem',
+						color: '#78786C',
+						fontFamily: "'JetBrains Mono', monospace",
+						background: '#FEFEFA',
+						padding: '0.4rem 0.95rem',
+						borderRadius: '9999px',
+						border: '1px solid #DED8CF',
+						boxShadow: '0 2px 6px rgba(93, 112, 82, 0.06)'
+					}}>
 						{formatTime(currentTime)}
 					</span>
 				</div>
 			</div>
 
-			{/* ── Stat Cards Row (100% Real Live Metrics) ──────────────── */}
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.85rem' }}>
+			{/* ── Stat Cards Row ─────────────────────────────────────── */}
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
 				<StatCard
 					title="Messages"
 					value={messages}
 					subtext={last10Msgs > 0 ? `${last10Msgs} in last 10m` : 'All-time volume'}
 					icon={MessageIcon}
-					accent="violet"
+					accent="moss"
 					delay={0}
 					trend={msgTrend}
 				/>
@@ -203,7 +210,7 @@ export default function Home() {
 					value={groups}
 					subtext={`${activeGroups} of ${groups} active`}
 					icon={GroupIcon}
-					accent="indigo"
+					accent="clay"
 					delay={60}
 					trend={`+${groupPct}%`}
 				/>
@@ -212,7 +219,7 @@ export default function Home() {
 					value={commands}
 					subtext="Session executions"
 					icon={ActivityIcon}
-					accent="blue"
+					accent="moss"
 					delay={120}
 					trend={commands > 0 ? `+${commands}` : undefined}
 				/>
@@ -230,7 +237,7 @@ export default function Home() {
 					value={uptime}
 					subtext="Since last restart"
 					icon={BotIcon}
-					accent="cyan"
+					accent="blue"
 					delay={240}
 					trend={isConnected ? 'online' : 'offline'}
 				/>
@@ -239,7 +246,7 @@ export default function Home() {
 					value={errors}
 					subtext={errors > 0 ? `${errors} logged errors` : 'All clear'}
 					icon={ErrorIcon}
-					accent={errors > 0 ? 'rose' : 'emerald'}
+					accent={errors > 0 ? 'rose' : 'moss'}
 					delay={300}
 					trend={errors > 0 ? `+${errors}` : '0%'}
 				/>
@@ -248,97 +255,97 @@ export default function Home() {
 					value={warnings}
 					subtext={`${warnPct}% of user base`}
 					icon={WarningIcon}
-					accent={warnings > 0 ? 'amber' : 'emerald'}
+					accent={warnings > 0 ? 'amber' : 'moss'}
 					delay={360}
 					trend={warnings > 0 ? `${warnPct}%` : '0%'}
 				/>
 			</div>
 
- {/* ── Main Grid: Activity + Quick Actions ─────────────────── */}
- <div className="grid grid-cols-3" style={{ gap: '1.25rem' }}>
+			{/* ── Main Grid: Activity + Quick Actions ─────────────────── */}
+			<div className="grid grid-cols-3" style={{ gap: '1.5rem' }}>
 
- {/* Activity Chart + Activity Feed */}
- <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', gridColumn: 'span 2' }}>
- <GlassCard title="Activity Overview" subtitle="Messages per minute over the last 20 minutes" accent="indigo">
- <Sparkline data={activityData} color="#818cf8" height={48} />
- <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
- <span style={{ fontSize: '0.68rem', color: 'var(--text-faint)' }}>20 min ago</span>
- <span style={{ fontSize: '0.68rem', color: 'var(--text-faint)' }}>Now</span>
- </div>
- </GlassCard>
+				{/* Activity Chart + Activity Feed */}
+				<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', gridColumn: 'span 2' }}>
+					<GlassCard title="Activity Pulse" subtitle="Messages per minute over the last 20 minutes" accent="moss">
+						<Sparkline data={activityData} color="#5D7052" height={52} />
+						<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.65rem' }}>
+							<span style={{ fontSize: '0.72rem', color: '#8E8E80', fontWeight: 600 }}>20 min ago</span>
+							<span style={{ fontSize: '0.72rem', color: '#5D7052', fontWeight: 700 }}>Real-time</span>
+						</div>
+					</GlassCard>
 
- <GlassCard title="Recent Activity" subtitle="Latest events from your bot" accent="violet" padding="0.75rem 1.25rem">
- {activities.length === 0 ? (
- <div style={{ padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
- No recent activity
- </div>
- ) : (
- activities.map((a, i) => (
- <ActivityItem key={i} text={a.text} time={a.time} color={a.color} />
- ))
- )}
- </GlassCard>
- </div>
+					<GlassCard title="Recent Activity" subtitle="Latest live events from your bot engine" accent="clay" padding="1.5rem 1.75rem">
+						{activities.length === 0 ? (
+							<div style={{ padding: '2rem 0', textAlign: 'center', color: '#78786C', fontSize: '0.85rem' }}>
+								No recent activity
+							</div>
+						) : (
+							activities.map((a, i) => (
+								<ActivityItem key={i} text={a.text} time={a.time} color={a.color} />
+							))
+						)}
+					</GlassCard>
+				</div>
 
- {/* Quick Actions Sidebar */}
- <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
- <GlassCard title="Quick Actions" subtitle="Common bot operations" accent="emerald">
- <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
- <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleReconnect} disabled={actionLoading}>
- <RefreshIcon size={15} color="#a5b4fc" /> Reconnect Bot
- </button>
- <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleRestart} disabled={actionLoading}>
- <PowerIcon size={15} color="#a5b4fc" /> Restart Process
- </button>
- <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleClearAuth} disabled={actionLoading}>
- <BotIcon size={15} color="#a5b4fc" /> Clear Auth Session
- </button>
- </div>
- </GlassCard>
+				{/* Quick Actions Sidebar */}
+				<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+					<GlassCard title="Quick Operations" subtitle="Engine controls" accent="moss">
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+							<button className="btn btn-primary" style={{ width: '100%' }} onClick={handleReconnect} disabled={actionLoading}>
+								<RefreshIcon size={16} /> Reconnect WhatsApp Bot
+							</button>
+							<button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleRestart} disabled={actionLoading}>
+								<PowerIcon size={16} /> Restart PM2 Process
+							</button>
+							<button className="btn btn-danger" style={{ width: '100%' }} onClick={handleClearAuth} disabled={actionLoading}>
+								<BotIcon size={16} /> Reset Auth Credentials
+							</button>
+						</div>
+					</GlassCard>
 
- {/* Maintenance Mode */}
- <GlassCard title="Restriction Mode" subtitle={maintenanceMode ? 'Bot is in maintenance' : 'Bot is fully operational'} accent={maintenanceMode ? 'amber' : 'emerald'}>
- <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
- <div>
- <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
- {maintenanceMode ? 'Maintenance Active' : 'Fully Operational'}
- </div>
- <div style={{ fontSize: '0.68rem', color: 'var(--text-faint)', marginTop: '0.15rem' }}>
- {maintenanceMode ? 'All commands blocked' : 'All systems running'}
- </div>
- </div>
- <label className="toggle" style={{ cursor: 'pointer' }}>
- <input type="checkbox" checked={maintenanceMode} onChange={handleMaintenance} disabled={maintenanceLoading} />
- <div className="toggle-track"><div className="toggle-thumb" /></div>
- </label>
- </div>
- </GlassCard>
+					{/* Maintenance Mode */}
+					<GlassCard title="Restriction Mode" subtitle={maintenanceMode ? 'Bot is in maintenance' : 'Bot is fully operational'} accent={maintenanceMode ? 'clay' : 'moss'}>
+						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+							<div>
+								<div style={{ fontSize: '0.85rem', color: '#2C2C24', fontWeight: 700 }}>
+									{maintenanceMode ? 'Maintenance Active' : 'Fully Operational'}
+								</div>
+								<div style={{ fontSize: '0.72rem', color: '#78786C', marginTop: '0.2rem' }}>
+									{maintenanceMode ? 'All public commands paused' : 'Accepting commands normally'}
+								</div>
+							</div>
+							<label className="toggle" style={{ cursor: 'pointer' }}>
+								<input type="checkbox" checked={maintenanceMode} onChange={handleMaintenance} disabled={maintenanceLoading} />
+								<div className="toggle-track"><div className="toggle-thumb" /></div>
+							</label>
+						</div>
+					</GlassCard>
 
- {/* Connection Info */}
- <GlassCard title="Connection Status" subtitle="WhatsApp Web session" accent={isConnected ? 'emerald' : 'rose'}>
- <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
- <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Status</span>
- <span style={{ fontSize: '0.78rem', color: isConnected ? '#34d399' : '#fb7185', fontWeight: 600 }}>
- {isConnected ? 'Connected' : 'Disconnected'}
- </span>
- </div>
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
- <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Uptime</span>
- <span className="mono" style={{ fontSize: '0.78rem', color: '#e2e8f0' }}>{uptime}</span>
- </div>
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
- <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Groups</span>
- <span style={{ fontSize: '0.78rem', color: '#e2e8f0', fontWeight: 600 }}>{groups}</span>
- </div>
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
- <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Errors</span>
- <span style={{ fontSize: '0.78rem', color: errors > 0 ? '#fb7185' : '#34d399', fontWeight: 600 }}>{errors}</span>
- </div>
- </div>
- </GlassCard>
- </div>
- </div>
- </div>
- )
+					{/* Connection Info */}
+					<GlassCard title="Session Health" subtitle="WhatsApp Web socket session" accent={isConnected ? 'moss' : 'sienna'}>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Status</span>
+								<span style={{ fontSize: '0.82rem', color: isConnected ? '#5D7052' : '#A85448', fontWeight: 700 }}>
+									{isConnected ? 'Connected' : 'Disconnected'}
+								</span>
+							</div>
+							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Uptime</span>
+								<span className="mono" style={{ fontSize: '0.82rem', color: '#2C2C24', fontWeight: 600 }}>{uptime}</span>
+							</div>
+							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Active Groups</span>
+								<span style={{ fontSize: '0.82rem', color: '#2C2C24', fontWeight: 700 }}>{groups}</span>
+							</div>
+							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Logged Errors</span>
+								<span style={{ fontSize: '0.82rem', color: errors > 0 ? '#A85448' : '#5D7052', fontWeight: 700 }}>{errors}</span>
+							</div>
+						</div>
+					</GlassCard>
+				</div>
+			</div>
+		</div>
+	)
 }

@@ -1,89 +1,79 @@
 import React from 'react'
 
-// ── Glassmorphism Card ──────────────────────────────────────────────────────
-// Reusable glass card with optional accent border and animations
-
-const glassBase = {
- background: 'rgba(255, 255, 255, 0.025)',
- backdropFilter: 'blur(20px) saturate(1.2)',
- WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
- border: '1px solid rgba(255, 255, 255, 0.06)',
- borderRadius: '20px',
- position: 'relative',
- overflow: 'hidden',
-}
-
+// ── Organic Card (Wabi-Sabi tactile container) ──────────────────────────────
 export default function GlassCard({
- children,
- title,
- subtitle,
- accent = 'indigo',
- padding = '1.5rem',
- className = '',
- style = {},
+  children,
+  title,
+  subtitle,
+  accent = 'moss',
+  padding = '1.75rem',
+  className = '',
+  style = {},
 }) {
- const accentMap = {
- violet: 'rgba(139,92,246,0.3)',
- indigo: 'rgba(99,102,241,0.3)',
- emerald: 'rgba(16,185,129,0.3)',
- blue: 'rgba(59,130,246,0.3)',
- amber: 'rgba(245,158,11,0.3)',
- rose: 'rgba(244,63,94,0.3)',
- cyan: 'rgba(6,182,212,0.3)',
- }
- const borderColor = accentMap[accent] || accentMap.indigo
+  const accentBorders = {
+    moss: 'rgba(93, 112, 82, 0.3)',
+    terracotta: 'rgba(193, 140, 93, 0.3)',
+    clay: 'rgba(193, 140, 93, 0.3)',
+    sand: 'rgba(230, 220, 205, 0.6)',
+    sienna: 'rgba(168, 84, 72, 0.3)',
+    river: 'rgba(82, 110, 112, 0.3)',
+    indigo: 'rgba(93, 112, 82, 0.3)',
+    violet: 'rgba(93, 112, 82, 0.3)',
+    emerald: 'rgba(77, 109, 71, 0.3)',
+  }
+  const highlightBorder = accentBorders[accent] || accentBorders.moss
 
- return (
- <div
- className={`glass-card ${className}`}
- style={{
- ...glassBase,
- padding,
- ...style,
- }}
- onMouseEnter={(e) => {
- e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), inset 0 0 0 1px ${borderColor}`
- e.currentTarget.style.borderColor = borderColor
- }}
- onMouseLeave={(e) => {
- e.currentTarget.style.boxShadow = 'none'
- e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
- }}
- >
- {/* Animated top accent */}
- <div style={{
- position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
- background: `linear-gradient(90deg, transparent, ${borderColor}, transparent)`,
- opacity: 0.6,
- }} />
-
- {/* Corner glow */}
- <div style={{
- position: 'absolute', top: -40, right: -40, width: 120, height: 120,
- background: `radial-gradient(circle, ${borderColor.replace('0.3', '0.06')}, transparent 70%)`,
- pointerEvents: 'none',
- }} />
-
- {(title || subtitle) && (
- <div style={{ marginBottom: '1rem' }}>
- {title && (
- <h3 style={{
- margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#f1f5f9',
- letterSpacing: '-0.01em',
- }}>
- {title}
- </h3>
- )}
- {subtitle && (
- <p style={{
- margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b', fontWeight: 400,
- }}>
- {subtitle}
- </p>
- )}
- </div>
- )}
- {children}
- </div>
- )
+  return (
+    <div
+      className={`glass-card ${className}`}
+      style={{
+        background: '#FEFEFA',
+        border: '1px solid rgba(222, 216, 207, 0.7)',
+        borderRadius: '2rem',
+        boxShadow: '0 4px 20px -2px rgba(93, 112, 82, 0.12)',
+        padding,
+        position: 'relative',
+        transition: 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.35s ease, border-color 0.35s ease',
+        ...style,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-3px)'
+        e.currentTarget.style.boxShadow = '0 16px 36px -6px rgba(93, 112, 82, 0.16)'
+        e.currentTarget.style.borderColor = highlightBorder
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = '0 4px 20px -2px rgba(93, 112, 82, 0.12)'
+        e.currentTarget.style.borderColor = 'rgba(222, 216, 207, 0.7)'
+      }}
+    >
+      {(title || subtitle) && (
+        <div style={{ marginBottom: '1.25rem' }}>
+          {title && (
+            <h3 style={{
+              margin: 0,
+              fontSize: '1.2rem',
+              fontWeight: 700,
+              color: '#2C2C24',
+              fontFamily: "'Fraunces', Georgia, serif",
+              letterSpacing: '-0.02em',
+            }}>
+              {title}
+            </h3>
+          )}
+          {subtitle && (
+            <p style={{
+              margin: '0.3rem 0 0',
+              fontSize: '0.8rem',
+              color: '#78786C',
+              fontWeight: 500,
+            }}>
+              {subtitle}
+            </p>
+          )}
+        </div>
+      )}
+      {children}
+    </div>
+  )
 }
