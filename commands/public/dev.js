@@ -6,13 +6,12 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const response = devCard(
 			"Soumya Chakraborty",
 			"@soumyachk101",
-			"https://github.com/soumyachk101",
 			[
-				"📦  GitHub  →  github.com/soumyachk101",
-				"☕  Support →  buymeacoffee.com/soumyachk101",
-				"💬  WhatsApp →  wa.me/qr/PAVVG4QPZUJXF1?s=v"
-			],
-			"DownloadBuddy Bot Engine · v1.0"
+				"🔗 *Links:*",
+				"  📦  github.com/soumyachk101",
+				"  ☕  buymeacoffee.com/soumyachk101",
+				"  💬  wa.me/qr/PAVVG4QPZUJXF1?s=v"
+			]
 		);
 
 		return sendMessageWTyping(from, { text: response }, { quoted: msg });

@@ -699,14 +699,14 @@ export const featureComingSoon = (f) => premiumBox([
 	"_Coming soon! Stay tuned._ ✨"
 ], "COMING SOON", "🚧", null, { variant: "light" });
 
-export const devCard = (name, handle, github, links, footer) => {
+export const devCard = (name, handle, links) => {
 	const lns = [
 		"👨‍💻 *Developer*",
 		`${name} · ${handle}`,
 		"",
 		...links
 	];
-	return premiumBox(lns, "DEV", "👨‍💻", footer, { variant: "default" });
+	return premiumBox(lns, "DEV", "👨‍💻", null, { variant: "default" });
 };
 
 export const tagAllMsg = (count) =>
