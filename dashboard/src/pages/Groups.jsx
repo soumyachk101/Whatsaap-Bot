@@ -166,7 +166,7 @@ function GroupCard({
           right: 0,
           height: '3px',
           background: grp.isBotOn
-            ? 'linear-gradient(90deg, var(--primary) 0%, #768F69 100%)'
+            ? 'linear-gradient(90deg, var(--primary) 0%, #74a8f7 100%)'
             : 'var(--timber)',
           transition: 'background 0.3s ease'
         }}
@@ -1308,11 +1308,11 @@ export default function Groups() {
         <div className="modal-overlay" onClick={() => setLeaveModal({ open: false, grp: null, leaving: false })}>
           <div
             className="modal-dialog"
-            style={{ maxWidth: '420px', padding: '1.35rem', border: '1px solid rgba(244, 63, 94, 0.3)' }}
+            style={{ maxWidth: '420px', padding: '1.35rem', border: '1px solid rgba(240, 84, 79, 0.3)' }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(244, 63, 94, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f0544f' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(240, 84, 79, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f0544f' }}>
                 <AlertTriangle size={18} />
               </div>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f0544f' }}>
