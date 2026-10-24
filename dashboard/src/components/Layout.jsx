@@ -72,16 +72,16 @@ export default function Layout({ children }) {
               height: 42,
               borderRadius: '50%',
               objectFit: 'cover',
-              border: '2px solid #5D7052',
-              boxShadow: '0 4px 14px -2px rgba(93, 112, 82, 0.3)',
+              border: '2px solid #4f8ef7',
+              boxShadow: '0 4px 14px -2px rgba(79, 142, 247, 0.3)',
               flexShrink: 0,
             }}
           />
           <div>
-            <div className="brand-name" style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '1.15rem' }}>
+            <div className="brand-name" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '1.15rem' }}>
               WhatsApp Bot
             </div>
-            <div className="brand-subtitle" style={{ color: '#C18C5D', fontWeight: 700, fontSize: '0.72rem' }}>
+            <div className="brand-subtitle" style={{ color: '#9ca1b5', fontWeight: 700, fontSize: '0.72rem' }}>
               Admin Engine v2.2
             </div>
           </div>
@@ -125,14 +125,14 @@ export default function Layout({ children }) {
 
         <div className="sidebar-footer">
           <div className="status-card" style={{
-            background: '#FEFEFA',
-            border: `1px solid ${connected ? 'rgba(93, 112, 82, 0.3)' : 'rgba(168, 84, 72, 0.3)'}`,
-            boxShadow: '0 4px 14px -2px rgba(93, 112, 82, 0.08)',
+            background: '#ffffff',
+            border: `1px solid ${connected ? 'rgba(79, 142, 247, 0.3)' : 'rgba(240, 84, 79, 0.3)'}`,
+            boxShadow: '0 4px 14px -2px rgba(0, 0, 0, 0.08)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div className={`status-dot ${connected ? 'online' : 'offline'}`} />
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: connected ? '#5D7052' : '#A85448' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: connected ? '#4f8ef7' : '#f0544f' }}>
                   {connected ? 'Engine Online' : 'Engine Offline'}
                 </span>
               </div>
@@ -140,14 +140,14 @@ export default function Layout({ children }) {
                 {stats ? fmtUptime(stats.uptime) : '—'}
               </span>
             </div>
-            <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.68rem', color: '#78786C', fontWeight: 600 }}>
+            <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.68rem', color: '#6b7080', fontWeight: 600 }}>
               <span>Heap: {stats?.memoryUsage?.heapUsed ? Math.round(stats.memoryUsage.heapUsed / 1024 / 1024) + 'MB' : '—'}</span>
               <span style={{ opacity: 0.5 }}>•</span>
               <span>Groups: {stats?.groupCount ?? '—'}</span>
             </div>
           </div>
 
-          <button className="nav-item signout-btn" onClick={handleLogout} style={{ width: '100%', background: 'transparent', border: '1px solid transparent', cursor: 'pointer', textAlign: 'left', font: 'inherit', color: '#78786C', marginTop: '0.25rem' }}>
+          <button className="nav-item signout-btn" onClick={handleLogout} style={{ width: '100%', background: 'transparent', border: '1px solid transparent', cursor: 'pointer', textAlign: 'left', font: 'inherit', color: '#6b7080', marginTop: '0.25rem' }}>
             <span className="nav-icon-box">
               <Icons.IconLogout size={18} />
             </span>
@@ -163,9 +163,9 @@ export default function Layout({ children }) {
               <Icons.IconMenu size={20} />
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
-              <span style={{ color: '#78786C', fontWeight: 600 }}>Admin</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#B2B2A4' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
-              <span style={{ fontWeight: 700, color: '#2C2C24', fontFamily: "'Fraunces', Georgia, serif", fontSize: '1.05rem' }}>{activeLabel}</span>
+              <span style={{ color: '#6b7080', fontWeight: 600 }}>Admin</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#9ca1b5' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
+              <span style={{ fontWeight: 700, color: '#1a1d2b', fontFamily: "'Space Grotesk', sans-serif", fontSize: '1.05rem' }}>{activeLabel}</span>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -173,7 +173,7 @@ export default function Layout({ children }) {
               <span className={connected ? 'status-dot online' : 'status-dot offline'} style={{ width: 6, height: 6, borderRadius: '50%' }} />
               {connected ? 'Active Connection' : 'Disconnected'}
             </span>
-            <span style={{ fontSize: '0.72rem', color: '#78786C', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ fontSize: '0.72rem', color: '#6b7080', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
               {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
           </div>

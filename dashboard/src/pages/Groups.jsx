@@ -67,12 +67,12 @@ const CONTROL_DEFINITIONS = [
 
 function getAvatarGradient(id = '') {
   const gradients = [
-    'linear-gradient(135deg, #5D7052 0%, #768F69 100%)',
-    'linear-gradient(135deg, #C18C5D 0%, #D8A578 100%)',
-    'linear-gradient(135deg, #4A4A40 0%, #636356 100%)',
-    'linear-gradient(135deg, #526E70 0%, #6A8E90 100%)',
-    'linear-gradient(135deg, #A85448 0%, #C36E62 100%)',
-    'linear-gradient(135deg, #8E8270 0%, #ABA08E 100%)'
+    'linear-gradient(135deg, #4f8ef7 0%, #74a8f7 100%)',
+    'linear-gradient(135deg, #f5a623 0%, #f7bd5a 100%)',
+    'linear-gradient(135deg, #6b7080 0%, #9ca1b5 100%)',
+    'linear-gradient(135deg, #8b5cf6 0%, #8b5cf6 100%)',
+    'linear-gradient(135deg, #f0544f 0%, #f77d7a 100%)',
+    'linear-gradient(135deg, #34c77b 0%, #5ddc9a 100%)'
   ]
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash << 5) - hash + id.charCodeAt(i)
@@ -173,7 +173,7 @@ function GroupCard({
       />
 
       {/* Header section with Group Identity */}
-      <div style={{ paddingBottom: '0.85rem', marginBottom: '0.85rem', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ paddingBottom: '0.85rem', marginBottom: '0.85rem', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.5rem' }}>
           {/* Avatar Monogram */}
           <div className="group-avatar" style={{ background: getAvatarGradient(grp._id) }}>
@@ -226,7 +226,7 @@ function GroupCard({
                     textOverflow: 'ellipsis',
                     letterSpacing: '-0.01em',
                     lineHeight: 1.25,
-                    fontFamily: "'Fraunces', Georgia, serif"
+                    fontFamily: "'Space Grotesk', sans-serif"
                   }}
                 >
                   {grp.grpName || 'Unnamed Group'}
@@ -380,7 +380,7 @@ function GroupCard({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: isChecked ? 'rgba(93, 112, 82, 0.15)' : 'rgba(44, 44, 36, 0.05)',
+                    background: isChecked ? 'rgba(79, 142, 247, 0.15)' : 'rgba(26, 29, 43, 0.05)',
                     color: isChecked ? 'var(--primary)' : 'var(--text-muted)',
                     flexShrink: 0
                   }}
@@ -419,7 +419,7 @@ function GroupCard({
       </div>
 
       {/* Accordion Tabs for Automations & Blocked Commands */}
-      <div style={{ display: 'flex', gap: '0.45rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem', marginTop: 'auto' }}>
+      <div style={{ display: 'flex', gap: '0.45rem', borderTop: '1px solid var(--border)', paddingTop: '0.65rem', marginTop: 'auto' }}>
         <button
           type="button"
           className="action-bar-btn"
@@ -427,8 +427,8 @@ function GroupCard({
           style={{
             flex: 1,
             color: activeTab === 'automations' ? 'var(--primary)' : 'var(--text-muted)',
-            background: activeTab === 'automations' ? 'rgba(93, 112, 82, 0.12)' : 'var(--stone)',
-            borderColor: activeTab === 'automations' ? 'rgba(93, 112, 82, 0.3)' : 'var(--border-subtle)'
+            background: activeTab === 'automations' ? 'rgba(79, 142, 247, 0.12)' : '#f1f3f9',
+            borderColor: activeTab === 'automations' ? 'rgba(79, 142, 247, 0.3)' : 'var(--border)'
           }}
         >
           <MessageSquare size={13} />
@@ -441,8 +441,8 @@ function GroupCard({
           style={{
             flex: 1,
             color: activeTab === 'blocks' ? 'var(--primary)' : 'var(--text-muted)',
-            background: activeTab === 'blocks' ? 'rgba(93, 112, 82, 0.12)' : 'var(--stone)',
-            borderColor: activeTab === 'blocks' ? 'rgba(93, 112, 82, 0.3)' : 'var(--border-subtle)'
+            background: activeTab === 'blocks' ? 'rgba(79, 142, 247, 0.12)' : '#f1f3f9',
+            borderColor: activeTab === 'blocks' ? 'rgba(79, 142, 247, 0.3)' : 'var(--border)'
           }}
         >
           <Ban size={13} />
@@ -456,7 +456,7 @@ function GroupCard({
           style={{
             padding: '0.75rem',
             marginTop: '0.5rem',
-            background: 'var(--stone)',
+            background: '#f1f3f9',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border)'
           }}
@@ -554,7 +554,7 @@ function GroupCard({
           style={{
             padding: '0.75rem',
             marginTop: '0.5rem',
-            background: 'var(--stone)',
+            background: '#f1f3f9',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border)'
           }}
@@ -634,7 +634,7 @@ function GroupCard({
           gap: '0.4rem',
           marginTop: '0.75rem',
           paddingTop: '0.65rem',
-          borderTop: '1px solid var(--border-subtle)'
+          borderTop: '1px solid var(--border)'
         }}
       >
         <button
@@ -949,10 +949,10 @@ export default function Groups() {
         <div
           style={{
             display: 'inline-flex',
-            background: 'var(--stone)',
+            background: '#f1f3f9',
             padding: '3px',
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-subtle)',
+            border: '1px solid var(--border)',
             gap: '4px'
           }}
         >
@@ -988,10 +988,10 @@ export default function Groups() {
           <div
             style={{
               display: 'inline-flex',
-              background: 'var(--stone)',
+              background: '#f1f3f9',
               padding: '3px',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
+              border: '1px solid var(--border)',
               gap: '4px'
             }}
           >
@@ -1050,7 +1050,7 @@ export default function Groups() {
               width: 52,
               height: 52,
               borderRadius: 14,
-              background: 'var(--stone)',
+              background: '#f1f3f9',
               border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
@@ -1087,13 +1087,13 @@ export default function Groups() {
       {memberModal.open && (
         <div className="modal-overlay" onClick={() => setMemberModal({ open: false, grp: null, loading: false, data: null, query: '' })}>
           <div className="modal-dialog" style={{ maxWidth: '540px', maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.15rem 1.25rem', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.15rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <div className="group-avatar" style={{ width: 34, height: 34, fontSize: '0.85rem', background: getAvatarGradient(memberModal.grp?._id) }}>
                   {getInitials(memberModal.grp?.grpName)}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: "'Fraunces', Georgia, serif" }}>
+                  <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: "'Space Grotesk', sans-serif" }}>
                     {memberModal.grp?.grpName || 'Group Members'}
                   </h3>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
@@ -1112,7 +1112,7 @@ export default function Groups() {
             </div>
 
             {/* Inner Search & Stats */}
-            <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+            <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
               <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                 Total: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-main)', fontWeight: 700 }}>{memberModal.data?.participants?.length || 0}</span>
               </span>
@@ -1149,9 +1149,9 @@ export default function Groups() {
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           padding: '0.45rem 0.75rem',
-                          background: 'var(--stone)',
+                          background: '#f1f3f9',
                           borderRadius: 'var(--radius-xs)',
-                          border: '1px solid var(--border-subtle)'
+                          border: '1px solid var(--border)'
                         }}
                       >
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-main)', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
@@ -1312,10 +1312,10 @@ export default function Groups() {
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(244, 63, 94, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fb7185' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(244, 63, 94, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f0544f' }}>
                 <AlertTriangle size={18} />
               </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#fb7185' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f0544f' }}>
                 Disconnect From Group?
               </h3>
             </div>

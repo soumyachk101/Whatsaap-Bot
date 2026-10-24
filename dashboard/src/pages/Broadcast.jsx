@@ -53,14 +53,14 @@ export default function Broadcast() {
  <div style={{ maxWidth: '800px' }}>
  <div style={{ marginBottom: '1.75rem' }}>
  <h2 className="section-title" style={{ fontSize: '1.45rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
- <Icons.IconBroadcast size={22} style={{ color: '#a5b4fc' }} />
+ <Icons.IconBroadcast size={22} style={{ color: '#4f8ef7' }} />
  Broadcast
  </h2>
  <p className="section-subtitle">Send a global message to specific groups or your entire network</p>
  </div>
 
  <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent)' }} />
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(79,142,247,0.25), transparent)' }} />
 
  <div style={{ paddingBottom: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)' }}>
  <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>Compose Message</h3>
@@ -73,9 +73,9 @@ export default function Broadcast() {
  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Target Audience</label>
  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
  {[
- { key: 'active', label: 'Active Groups', desc: `Bot ON (${activeGroups.length})`, icon: <Icons.IconWifi size={18} style={{ color: '#34d399' }} /> },
- { key: 'all', label: 'All Groups', desc: `Every group (${groups.length})`, icon: <Icons.IconGlobe size={18} style={{ color: '#60a5fa' }} /> },
- { key: 'custom', label: 'Custom', desc: 'Select specific', icon: <Icons.IconUsers size={18} style={{ color: '#a78bfa' }} /> },
+ { key: 'active', label: 'Active Groups', desc: `Bot ON (${activeGroups.length})`, icon: <Icons.IconWifi size={18} style={{ color: '#34c77b' }} /> },
+ { key: 'all', label: 'All Groups', desc: `Every group (${groups.length})`, icon: <Icons.IconGlobe size={18} style={{ color: '#4f8ef7' }} /> },
+ { key: 'custom', label: 'Custom', desc: 'Select specific', icon: <Icons.IconUsers size={18} style={{ color: '#8b5cf6' }} /> },
  ].map(opt => (
  <label key={opt.key} style={{
  display: 'flex', flexDirection: 'column', gap: '0.35rem', padding: '1rem',
@@ -101,11 +101,11 @@ export default function Broadcast() {
  {targetType === 'custom' && (
  <div style={{
  maxHeight: '280px', overflowY: 'auto', border: '1px solid var(--border)',
- borderRadius: 'var(--radius-md)', padding: '0.5rem', background: 'rgba(255,255,255,0.015)'
+ borderRadius: 'var(--radius-md)', padding: '0.5rem', background: '#f8f9fc'
  }}>
  {groups.length === 0 ? <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.8rem' }}>No groups in database</p> :
  groups.map(g => (
- <label key={g._id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.65rem 0.5rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+ <label key={g._id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.65rem 0.5rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', borderBottom: '1px solid #f1f3f9' }}>
  <input type="checkbox" checked={selectedJids.includes(g._id)} onChange={() => handleToggle(g._id)} style={{ width: '15px', height: '15px', cursor: 'pointer' }} />
  <div style={{ minWidth: 0, flex: 1 }}>
  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>{g.grpName || g._id.split('@')[0] || 'Unknown'}</span>

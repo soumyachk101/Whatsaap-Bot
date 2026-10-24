@@ -81,7 +81,7 @@ export default function Commands() {
  </div>
 
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
- 		<div style={{ display: 'inline-flex', background: 'var(--stone)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', gap: '4px' }}>
+ 		<div style={{ display: 'inline-flex', background: '#f1f3f9', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '4px' }}>
 			{FILTERS.map(f => {
 				const active = filter === f;
 				return (

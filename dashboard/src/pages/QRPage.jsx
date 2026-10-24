@@ -122,7 +122,7 @@ export default function QRPage() {
  width: 64,
  height: 64,
  borderRadius: 16,
- background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+ background: 'linear-gradient(135deg, #4f8ef7, #8b5cf6)',
  display: 'flex',
  alignItems: 'center',
  justifyContent: 'center',
@@ -161,7 +161,7 @@ export default function QRPage() {
  display: 'flex',
  alignItems: 'center',
  justifyContent: 'center',
- boxShadow: '0 0 60px rgba(99,102,241,0.2), 0 25px 50px -12px rgba(0,0,0,0.5)',
+ boxShadow: '0 0 60px rgba(79,142,247,0.2), 0 25px 50px -12px rgba(0,0,0,0.5)',
  position: 'relative',
  overflow: 'hidden',
  }}>
@@ -184,10 +184,10 @@ export default function QRPage() {
  flexDirection: 'column',
  alignItems: 'center',
  gap: '0.75rem',
- color: '#ef4444',
+ color: '#f0544f',
  padding: '1rem',
  }}>
- <IconAlert size={36} color="#ef4444" />
+ <IconAlert size={36} color="#f0544f" />
  <span style={{ fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
  Connection failed<br />
  <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.78rem' }}>
@@ -221,13 +221,13 @@ export default function QRPage() {
  width: 6,
  height: 6,
  borderRadius: '50%',
- background: connected ? '#10b981' : '#f59e0b',
- boxShadow: connected ? '0 0 8px rgba(16,185,129,0.6)' : '0 0 8px rgba(245,158,11,0.6)',
+ background: connected ? '#34c77b' : '#f59e0b',
+ boxShadow: connected ? '0 0 8px rgba(16,185,129,0.6)' : '0 0 8px rgba(245,166,35,0.6)',
  }} />
  <span style={{
  fontSize: '0.65rem',
  fontWeight: 600,
- color: connected ? '#34d399' : '#fbbf24',
+ color: connected ? '#34c77b' : '#f5a623',
  textTransform: 'uppercase',
  letterSpacing: '0.05em',
  }}>
@@ -270,14 +270,14 @@ export default function QRPage() {
  borderRadius: 10,
  border: '1px solid rgba(99,102,241,0.3)',
  background: 'rgba(99,102,241,0.1)',
- color: '#a5b4fc',
+ color: '#4f8ef7',
  fontSize: '0.82rem',
  fontWeight: 600,
  cursor: 'pointer',
  transition: 'all 0.2s',
  }}
  onMouseEnter={(e) => {
- e.target.style.background = 'rgba(99,102,241,0.2)'
+ e.target.style.background = 'rgba(79,142,247,0.2)'
  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
  }}
  onMouseLeave={(e) => {
@@ -298,9 +298,9 @@ export default function QRPage() {
  justifyContent: 'center',
  }}>
  {[
- { step: 1, text: 'Open WhatsApp on your phone', color: '#6366f1' },
- { step: 2, text: 'Go to Settings > Linked Devices', color: '#818cf8' },
- { step: 3, text: 'Tap "Link a Device"', color: '#a78bfa' },
+ { step: 1, text: 'Open WhatsApp on your phone', color: '#4f8ef7' },
+ { step: 2, text: 'Go to Settings > Linked Devices', color: '#4f8ef7' },
+ { step: 3, text: 'Tap "Link a Device"', color: '#8b5cf6' },
  { step: 4, text: 'Scan the QR code above', color: '#c084fc' },
  { step: 5, text: 'Confirm pairing on your phone', color: '#8b5cf6' },
  ].map(({ step, text, color }) => (

@@ -11,15 +11,15 @@ export default function GlassCard({
   style = {},
 }) {
   const accentBorders = {
-    moss: 'rgba(93, 112, 82, 0.3)',
-    terracotta: 'rgba(193, 140, 93, 0.3)',
-    clay: 'rgba(193, 140, 93, 0.3)',
-    sand: 'rgba(230, 220, 205, 0.6)',
-    sienna: 'rgba(168, 84, 72, 0.3)',
-    river: 'rgba(82, 110, 112, 0.3)',
-    indigo: 'rgba(93, 112, 82, 0.3)',
-    violet: 'rgba(93, 112, 82, 0.3)',
-    emerald: 'rgba(77, 109, 71, 0.3)',
+    moss: 'rgba(79, 142, 247, 0.3)',
+    terracotta: 'rgba(245, 166, 35, 0.3)',
+    clay: 'rgba(245, 166, 35, 0.3)',
+    sand: 'rgba(200, 205, 224, 0.6)',
+    sienna: 'rgba(240, 84, 79, 0.3)',
+    river: 'rgba(79, 142, 247, 0.3)',
+    indigo: 'rgba(79, 142, 247, 0.3)',
+    violet: 'rgba(139, 92, 246, 0.3)',
+    emerald: 'rgba(52, 199, 123, 0.3)',
   }
   const highlightBorder = accentBorders[accent] || accentBorders.moss
 
@@ -27,24 +27,24 @@ export default function GlassCard({
     <div
       className={`glass-card ${className}`}
       style={{
-        background: '#FEFEFA',
-        border: '1px solid rgba(222, 216, 207, 0.7)',
-        borderRadius: '2rem',
-        boxShadow: '0 4px 20px -2px rgba(93, 112, 82, 0.12)',
+        background: '#ffffff',
+        border: '1px solid #e2e5f0',
+        borderRadius: '12px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
         padding,
         position: 'relative',
-        transition: 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.35s ease, border-color 0.35s ease',
+        transition: 'transform 0.25s var(--ease), box-shadow 0.25s var(--ease), border-color 0.25s var(--ease)',
         ...style,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-3px)'
-        e.currentTarget.style.boxShadow = '0 16px 36px -6px rgba(93, 112, 82, 0.16)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'
         e.currentTarget.style.borderColor = highlightBorder
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)'
-        e.currentTarget.style.boxShadow = '0 4px 20px -2px rgba(93, 112, 82, 0.12)'
-        e.currentTarget.style.borderColor = 'rgba(222, 216, 207, 0.7)'
+        e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)'
+        e.currentTarget.style.borderColor = '#e2e5f0'
       }}
     >
       {(title || subtitle) && (
@@ -52,21 +52,21 @@ export default function GlassCard({
           {title && (
             <h3 style={{
               margin: 0,
-              fontSize: '1.2rem',
-              fontWeight: 700,
-              color: '#2C2C24',
-              fontFamily: "'Fraunces', Georgia, serif",
-              letterSpacing: '-0.02em',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              color: '#1a1d2b',
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: '-0.01em',
             }}>
               {title}
             </h3>
           )}
           {subtitle && (
             <p style={{
-              margin: '0.3rem 0 0',
+              margin: '0.25rem 0 0',
               fontSize: '0.8rem',
-              color: '#78786C',
-              fontWeight: 500,
+              color: '#6b7080',
+              fontWeight: 400,
             }}>
               {subtitle}
             </p>

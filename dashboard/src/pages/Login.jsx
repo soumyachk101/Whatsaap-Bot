@@ -53,33 +53,16 @@ export default function Login() {
 			alignItems: 'center',
 			justifyContent: 'center',
 			padding: '1.5rem',
-			backgroundColor: '#FDFCF8',
+			backgroundColor: '#f8f9fc',
 			position: 'relative',
 			overflow: 'hidden',
-			fontFamily: "'Nunito', sans-serif"
+			fontFamily: "'Inter', sans-serif"
 		}}>
-			{/* Ambient organic blobs with blur-3xl */}
+			{/* Subtle radial gradient */}
 			<div style={{
 				position: 'absolute',
-				top: '-5%',
-				left: '10%',
-				width: '420px',
-				height: '380px',
-				borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%',
-				background: 'rgba(93, 112, 82, 0.15)',
-				filter: 'blur(80px)',
-				pointerEvents: 'none',
-				zIndex: 0,
-			}} />
-			<div style={{
-				position: 'absolute',
-				bottom: '-10%',
-				right: '15%',
-				width: '480px',
-				height: '420px',
-				borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%',
-				background: 'rgba(193, 140, 93, 0.14)',
-				filter: 'blur(90px)',
+				inset: 0,
+				background: 'radial-gradient(ellipse 50% 40% at 50% 0%, #eef4ff, transparent)',
 				pointerEvents: 'none',
 				zIndex: 0,
 			}} />
@@ -91,11 +74,11 @@ export default function Login() {
 					zIndex: 1,
 					width: '100%',
 					maxWidth: '440px',
-					background: '#FEFEFA',
-					border: '1px solid rgba(222, 216, 207, 0.8)',
+					background: '#ffffff',
+					border: '1px solid #e2e5f0',
 					borderRadius: '2.5rem',
 					padding: '2.5rem 2.25rem',
-					boxShadow: '0 10px 40px -10px rgba(193, 140, 93, 0.18), 0 4px 20px -2px rgba(93, 112, 82, 0.12)',
+					boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.08), 0 4px 20px -2px rgba(0, 0, 0, 0.04)',
 					transition: 'transform 0.25s ease, box-shadow 0.25s ease',
 				}}
 			>
@@ -108,8 +91,8 @@ export default function Login() {
 						margin: '0 auto 1.25rem',
 						borderRadius: '50%',
 						padding: '3px',
-						background: '#5D7052',
-						boxShadow: '0 4px 20px -2px rgba(93, 112, 82, 0.35)',
+						background: '#4f8ef7',
+						boxShadow: '0 4px 20px -2px rgba(79, 142, 247, 0.35)',
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: 'center',
@@ -136,9 +119,9 @@ export default function Login() {
 								width: 18,
 								height: 18,
 								borderRadius: '50%',
-								background: '#5D7052',
-								border: '3px solid #FEFEFA',
-								boxShadow: '0 0 8px rgba(93, 112, 82, 0.6)',
+								background: '#4f8ef7',
+								border: '3px solid #ffffff',
+								boxShadow: '0 0 8px rgba(79, 142, 247, 0.6)',
 							}}
 						/>
 					</div>
@@ -146,8 +129,8 @@ export default function Login() {
 					<h1 style={{
 						fontSize: '1.85rem',
 						fontWeight: 700,
-						color: '#2C2C24',
-						fontFamily: "'Fraunces', Georgia, serif",
+						color: '#1a1d2b',
+						fontFamily: "'Space Grotesk', sans-serif",
 						letterSpacing: '-0.02em',
 						margin: '0 0 0.35rem',
 					}}>
@@ -155,7 +138,7 @@ export default function Login() {
 					</h1>
 					<p style={{
 						fontSize: '0.85rem',
-						color: '#78786C',
+						color: '#6b7080',
 						margin: 0,
 						fontWeight: 600,
 					}}>
@@ -168,8 +151,8 @@ export default function Login() {
 					marginBottom: '1.75rem',
 					padding: '0.9rem 1.15rem',
 					borderRadius: '1.5rem',
-					background: 'rgba(93, 112, 82, 0.08)',
-					border: '1px solid rgba(93, 112, 82, 0.2)',
+					background: 'rgba(79, 142, 247, 0.08)',
+					border: '1px solid rgba(79, 142, 247, 0.2)',
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'space-between',
@@ -180,19 +163,19 @@ export default function Login() {
 							width: 38,
 							height: 38,
 							borderRadius: '50%',
-							background: 'rgba(93, 112, 82, 0.15)',
+							background: 'rgba(79, 142, 247, 0.15)',
 							display: 'flex',
 							alignItems: 'center',
 							justifyContent: 'center',
 							flexShrink: 0,
 						}}>
-							<Icons.IconQrCode size={19} color="#5D7052" />
+							<Icons.IconQrCode size={19} color="#4f8ef7" />
 						</div>
 						<div style={{ textAlign: 'left' }}>
-							<div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#2C2C24' }}>
+							<div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a1d2b' }}>
 								Link WhatsApp Device
 							</div>
-							<div style={{ fontSize: '0.72rem', color: '#78786C', marginTop: '1px' }}>
+							<div style={{ fontSize: '0.72rem', color: '#6b7080', marginTop: '1px' }}>
 								Scan QR or enter pairing code
 							</div>
 						</div>
@@ -203,13 +186,13 @@ export default function Login() {
 						style={{
 							padding: '0.45rem 0.95rem',
 							borderRadius: '9999px',
-							background: '#5D7052',
-							color: '#F3F4F1',
+							background: '#4f8ef7',
+							color: '#ffffff',
 							fontSize: '0.75rem',
 							fontWeight: 700,
 							textDecoration: 'none',
 							whiteSpace: 'nowrap',
-							boxShadow: '0 4px 12px rgba(93, 112, 82, 0.25)',
+							boxShadow: '0 4px 12px rgba(79, 142, 247, 0.25)',
 						}}
 					>
 						Open QR →
@@ -222,16 +205,16 @@ export default function Login() {
 						marginBottom: '1.25rem',
 						padding: '0.75rem 1rem',
 						borderRadius: '1rem',
-						background: 'rgba(168, 84, 72, 0.1)',
-						border: '1px solid rgba(168, 84, 72, 0.25)',
-						color: '#A85448',
+						background: 'rgba(240, 84, 79, 0.1)',
+						border: '1px solid rgba(240, 84, 79, 0.25)',
+						color: '#f0544f',
 						fontSize: '0.8rem',
 						fontWeight: 700,
 						display: 'flex',
 						alignItems: 'center',
 						gap: '0.5rem',
 					}}>
-						<Icons.IconAlert size={16} color="#A85448" />
+						<Icons.IconAlert size={16} color="#f0544f" />
 						<span>{error}</span>
 					</div>
 				)}
@@ -243,7 +226,7 @@ export default function Login() {
 							display: 'block',
 							fontSize: '0.78rem',
 							fontWeight: 700,
-							color: '#78786C',
+							color: '#6b7080',
 							textTransform: 'uppercase',
 							letterSpacing: '0.06em',
 							marginBottom: '0.45rem',
@@ -262,8 +245,8 @@ export default function Login() {
 									width: '100%',
 									padding: '0.85rem 3rem 0.85rem 1.25rem',
 									borderRadius: '9999px',
-									background: 'rgba(255, 255, 255, 0.8)',
-									border: '1px solid #DED8CF',
+									background: '#ffffff',
+									border: '1px solid #e2e5f0',
 									fontSize: '0.9rem',
 									outline: 'none',
 									boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.04)',
@@ -281,7 +264,7 @@ export default function Login() {
 									background: 'none',
 									border: 'none',
 									cursor: 'pointer',
-									color: '#78786C',
+									color: '#6b7080',
 									display: 'flex',
 									alignItems: 'center',
 									padding: '4px',
@@ -291,7 +274,7 @@ export default function Login() {
 							</button>
 						</div>
 						{capsLock && (
-							<div style={{ fontSize: '0.72rem', color: '#C18C5D', marginTop: '0.4rem', fontWeight: 600 }}>
+							<div style={{ fontSize: '0.72rem', color: '#f5a623', marginTop: '0.4rem', fontWeight: 600 }}>
 								⚠️ Caps Lock is ON
 							</div>
 						)}

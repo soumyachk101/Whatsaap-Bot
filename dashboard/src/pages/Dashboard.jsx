@@ -16,16 +16,16 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        background: '#FEFEFA',
-        border: '1px solid #DED8CF',
-        borderRadius: '16px',
+        background: '#ffffff',
+        border: '1px solid #e2e5f0',
+        borderRadius: '12px',
         padding: '0.75rem 1rem',
-        boxShadow: '0 8px 24px rgba(93, 112, 82, 0.15)',
-        color: '#2C2C24',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+        color: '#1a1d2b',
       }}>
-        <p style={{ fontSize: '0.75rem', color: '#78786C', marginBottom: '0.2rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-        <p style={{ fontSize: '1.05rem', fontWeight: 700, color: '#5D7052', margin: 0, fontFamily: "'Fraunces', Georgia, serif" }}>
-          {payload[0].value?.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#78786C' }}>msgs</span>
+        <p style={{ fontSize: '0.75rem', color: '#6b7080', marginBottom: '0.2rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+        <p style={{ fontSize: '1.05rem', fontWeight: 700, color: '#4f8ef7', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+          {payload[0].value?.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7080' }}>msgs</span>
         </p>
       </div>
     )
@@ -37,9 +37,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 function ConnectionBanner({ isConnected, onReconnect, phone, setPhone, pairCode, pairingLoading, onPairSubmit }) {
   return (
     <div className="card" style={{
-      background: '#FEFEFA',
-      border: `1px solid ${isConnected ? 'rgba(93, 112, 82, 0.3)' : 'rgba(168, 84, 72, 0.3)'}`,
-      boxShadow: '0 4px 20px -2px rgba(93, 112, 82, 0.12)',
+      background: '#ffffff',
+      border: `1px solid ${isConnected ? 'rgba(79, 142, 247, 0.3)' : 'rgba(240, 84, 79, 0.3)'}`,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -47,20 +47,20 @@ function ConnectionBanner({ isConnected, onReconnect, phone, setPhone, pairCode,
             width: 46,
             height: 46,
             borderRadius: '50%',
-            background: isConnected ? 'rgba(93, 112, 82, 0.12)' : 'rgba(168, 84, 72, 0.12)',
-            border: `1px solid ${isConnected ? 'rgba(93, 112, 82, 0.25)' : 'rgba(168, 84, 72, 0.25)'}`,
+            background: isConnected ? '#eef4ff' : '#fef2f2',
+            border: `1px solid ${isConnected ? 'rgba(79, 142, 247, 0.25)' : 'rgba(240, 84, 79, 0.25)'}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <Icons.IconWhatsApp size={24} style={{ color: isConnected ? '#5D7052' : '#A85448' }} />
+            <Icons.IconWhatsApp size={24} style={{ color: isConnected ? '#4f8ef7' : '#f0544f' }} />
           </div>
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2C2C24', fontFamily: "'Fraunces', Georgia, serif" }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1d2b', fontFamily: "'Space Grotesk', sans-serif" }}>
               WhatsApp Connection
             </h3>
-            <p style={{ fontSize: '0.8rem', color: '#78786C', marginTop: '0.15rem', fontWeight: 500 }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7080', marginTop: '0.15rem', fontWeight: 500 }}>
               {isConnected ? 'Bot is active and receiving group events' : 'No active connection. Link a device to begin.'}
             </p>
           </div>
@@ -74,9 +74,9 @@ function ConnectionBanner({ isConnected, onReconnect, phone, setPhone, pairCode,
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(222, 216, 207, 0.6)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #e2e5f0' }}>
         <form onSubmit={onPairSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#78786C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7080', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             <Icons.IconPhone size={14} style={{ marginRight: 6 }} />
             Link via Phone Number
           </label>
@@ -93,13 +93,13 @@ function ConnectionBanner({ isConnected, onReconnect, phone, setPhone, pairCode,
               {pairingLoading ? 'Generating...' : 'Get Code'}
             </button>
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#8E8E80' }}>Full number with country code, digits only</span>
+          <span style={{ fontSize: '0.72rem', color: '#9ca1b5' }}>Full number with country code, digits only</span>
         </form>
 
         <div style={{
-          background: '#FDFCF8',
-          border: '1px solid #DED8CF',
-          borderRadius: '1.5rem',
+          background: '#f8f9fc',
+          border: '1px solid #e2e5f0',
+          borderRadius: '12px',
           padding: '1.25rem',
           display: 'flex',
           flexDirection: 'column',
@@ -109,28 +109,28 @@ function ConnectionBanner({ isConnected, onReconnect, phone, setPhone, pairCode,
         }}>
           {pairCode ? (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#78786C', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+              <div style={{ fontSize: '0.7rem', color: '#6b7080', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
                 Pairing Code
               </div>
               <div style={{
                 fontSize: '2rem',
                 fontWeight: 700,
                 letterSpacing: '0.25em',
-                color: '#5D7052',
+                color: '#4f8ef7',
                 fontFamily: "'JetBrains Mono', monospace",
               }}>
                 {pairCode}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#78786C', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '0.72rem', color: '#6b7080', marginTop: '0.35rem' }}>
                 WhatsApp → Linked Devices → Link with code
               </div>
             </div>
           ) : (
-            <div style={{ textAlign: 'center', color: '#78786C', fontSize: '0.8rem' }}>
+            <div style={{ textAlign: 'center', color: '#6b7080', fontSize: '0.8rem' }}>
               {isConnected ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
                   <div className="status-dot online" />
-                  <span style={{ color: '#5D7052', fontWeight: 700 }}>Connected &amp; Active</span>
+                  <span style={{ color: '#4f8ef7', fontWeight: 700 }}>Connected &amp; Active</span>
                 </div>
               ) : 'Enter number to generate pairing code'}
             </div>
@@ -145,8 +145,8 @@ function ConnectionBanner({ isConnected, onReconnect, phone, setPhone, pairCode,
 function MaintenanceCard({ maintenanceMode, onToggle, loading }) {
   return (
     <div className="card" style={{
-      background: '#FEFEFA',
-      border: `1px solid ${maintenanceMode ? 'rgba(193, 140, 93, 0.4)' : 'rgba(222, 216, 207, 0.7)'}`,
+      background: '#ffffff',
+      border: `1px solid ${maintenanceMode ? 'rgba(245, 166, 35, 0.4)' : 'rgba(226, 229, 240, 0.8)'}`,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -154,19 +154,19 @@ function MaintenanceCard({ maintenanceMode, onToggle, loading }) {
             width: 44,
             height: 44,
             borderRadius: '50%',
-            background: maintenanceMode ? 'rgba(193, 140, 93, 0.15)' : 'rgba(93, 112, 82, 0.12)',
+            background: maintenanceMode ? '#fef8e8' : '#eef4ff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: maintenanceMode ? '#C18C5D' : '#5D7052',
+            color: maintenanceMode ? '#f5a623' : '#4f8ef7',
           }}>
             {maintenanceMode ? <Icons.IconLock size={20} /> : <Icons.IconUnlock size={20} />}
           </div>
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2C2C24', fontFamily: "'Fraunces', Georgia, serif" }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1d2b', fontFamily: "'Space Grotesk', sans-serif" }}>
               Command Restriction Mode
             </h3>
-            <p style={{ fontSize: '0.8rem', color: '#78786C', marginTop: '0.15rem' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7080', marginTop: '0.15rem' }}>
               {maintenanceMode
                 ? 'Only start, stats, and search commands are active.'
                 : 'All commands active. Toggle on to restrict public bot commands.'}
@@ -199,10 +199,10 @@ function ActionButtons({ actionLoading, onReconnect, onClearAuth, onRestart }) {
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(222, 216, 207, 0.6)' }}>
         <div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2C2C24', fontFamily: "'Fraunces', Georgia, serif" }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1d2b', fontFamily: "'Space Grotesk', sans-serif" }}>
             Process &amp; Lifecycle Controls
           </h3>
-          <p style={{ fontSize: '0.8rem', color: '#78786C', marginTop: '0.15rem' }}>Manage bot lifecycle and runtime connections</p>
+          <p style={{ fontSize: '0.8rem', color: '#6b7080', marginTop: '0.15rem' }}>Manage bot lifecycle and runtime connections</p>
         </div>
       </div>
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -226,37 +226,37 @@ function TopGroupsList({ groups }) {
       {groups.slice(0, 5).map((g, i) => (
         <div key={i} style={{
           padding: '1rem 1.25rem',
-          background: '#FDFCF8',
-          borderRadius: '1.5rem',
-          border: '1px solid #DED8CF',
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e5f0',
           display: 'flex',
           alignItems: 'center',
           gap: '0.85rem',
-          transition: 'all 0.25s ease',
-          boxShadow: '0 2px 10px rgba(93, 112, 82, 0.06)'
+          transition: 'all 0.25s var(--ease)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
         }}>
           <div style={{
             width: 32,
             height: 32,
             borderRadius: '50%',
-            background: i === 0 ? 'rgba(193, 140, 93, 0.2)' : 'rgba(93, 112, 82, 0.12)',
-            border: `1px solid ${i === 0 ? '#C18C5D' : '#5D7052'}`,
+            background: i === 0 ? '#fef8e8' : '#eef4ff',
+            border: `1px solid ${i === 0 ? 'rgba(245,166,35,0.5)' : 'rgba(79,142,247,0.5)'}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '0.8rem',
             fontWeight: 800,
-            color: i === 0 ? '#C18C5D' : '#5D7052',
+            color: i === 0 ? '#f5a623' : '#4f8ef7',
             flexShrink: 0,
-            fontFamily: "'Fraunces', serif"
+            fontFamily: "'Space Grotesk', sans-serif"
           }}>
             {i + 1}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#2C2C24' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#1a1d2b' }}>
               {g.name}
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#78786C', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.72rem', color: '#6b7080', fontWeight: 600 }}>
               {g.messages.toLocaleString()} msgs
             </div>
           </div>
@@ -264,7 +264,7 @@ function TopGroupsList({ groups }) {
             width: 8,
             height: 8,
             borderRadius: '50%',
-            background: g.active ? '#5D7052' : '#B2B2A4',
+            background: g.active ? '#34c77b' : '#9ca1b5',
             flexShrink: 0,
           }} />
         </div>
@@ -356,7 +356,7 @@ export default function Dashboard() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '1rem' }}>
         <div className="spinner" />
-        <span style={{ fontSize: '0.85rem', color: '#78786C', fontWeight: 600 }}>Loading control center...</span>
+        <span style={{ fontSize: '0.85rem', color: '#6b7080', fontWeight: 600 }}>Loading control center...</span>
       </div>
     )
   }
@@ -367,7 +367,7 @@ export default function Dashboard() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="section-title" style={{ fontSize: '1.85rem', fontWeight: 700, color: '#2C2C24' }}>
+          <h1 className="section-title" style={{ fontSize: '1.85rem', fontWeight: 700, color: '#1a1d2b' }}>
             System Overview &amp; Pairing
           </h1>
           <p className="section-subtitle">Real-time statistics, active connections, and session controls</p>
@@ -416,13 +416,13 @@ export default function Dashboard() {
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2C2C24', fontFamily: "'Fraunces', Georgia, serif", display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Icons.IconBarChart size={18} style={{ color: '#5D7052' }} />
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1d2b', fontFamily: "'Space Grotesk', sans-serif", display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icons.IconBarChart size={18} style={{ color: '#4f8ef7' }} />
               Group Activity Volume
             </h3>
-            <p style={{ fontSize: '0.8rem', color: '#78786C', marginTop: '0.15rem' }}>Message throughput across highest volume groups</p>
+            <p style={{ fontSize: '0.8rem', color: '#6b7080', marginTop: '0.15rem' }}>Message throughput across highest volume groups</p>
           </div>
-          <span className="badge badge-emerald">Top 10 Groups</span>
+          <span className="badge badge-blue">Top 10 Groups</span>
         </div>
 
         {analytics?.topGroups?.length ? (
@@ -430,31 +430,31 @@ export default function Dashboard() {
             <AreaChart data={analytics.topGroups.slice(0, 10)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5D7052" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#5D7052" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#4f8ef7" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#4f8ef7" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#DED8CF" opacity={0.6} />
-              <XAxis dataKey="name" tick={{ fill: '#78786C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#78786C', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e5f0" opacity={0.6} />
+              <XAxis dataKey="name" tick={{ fill: '#6b7080', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#6b7080', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="messages" stroke="#5D7052" strokeWidth={3} fill="url(#areaGrad)" />
+              <Area type="monotone" dataKey="messages" stroke="#4f8ef7" strokeWidth={2.5} fill="url(#areaGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <p style={{ fontSize: '0.85rem', color: '#78786C', textAlign: 'center', padding: '2rem' }}>No group activity recorded yet.</p>
+          <p style={{ fontSize: '0.85rem', color: '#6b7080', textAlign: 'center', padding: '2rem' }}>No group activity recorded yet.</p>
         )}
       </div>
 
-      {/* ── Top Groups List ────────────────────────────────────────── */}
+      {/* ── Most Active Groups ────────────────────────────────────────── */}
       {analytics?.topGroups?.length ? (
         <div className="card">
           <div style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2C2C24', fontFamily: "'Fraunces', Georgia, serif", display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Icons.IconTrendingUp size={18} style={{ color: '#C18C5D' }} />
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1d2b', fontFamily: "'Space Grotesk', sans-serif", display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icons.IconTrendingUp size={18} style={{ color: '#f5a623' }} />
               Most Active Groups
             </h3>
-            <p style={{ fontSize: '0.8rem', color: '#78786C', marginTop: '0.15rem' }}>Highest throughput WhatsApp groups</p>
+            <p style={{ fontSize: '0.8rem', color: '#6b7080', marginTop: '0.15rem' }}>Highest throughput WhatsApp groups</p>
           </div>
           <TopGroupsList groups={analytics.topGroups} />
         </div>

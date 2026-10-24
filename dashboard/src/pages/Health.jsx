@@ -25,7 +25,7 @@ function DangerAction({ label, confirmLabel, description, warning, onConfirm, di
  <div style={{ flex: 1, minWidth: 0 }}>
  <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>{label}</h4>
  <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: '0.2rem', lineHeight: 1.5 }}>{description}</p>
- {confirm && <p style={{ fontSize: '0.72rem', color: '#fbbf24', marginTop: '0.4rem', fontWeight: 500 }}>Click again to confirm.</p>}
+ {confirm && <p style={{ fontSize: '0.72rem', color: '#f5a623', marginTop: '0.4rem', fontWeight: 500 }}>Click again to confirm.</p>}
  </div>
  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
  <button className={`btn ${confirm ? 'btn-danger' : 'btn-secondary'}`} onClick={handle} disabled={loading || disabled} style={{ minWidth: '130px' }}>
@@ -38,7 +38,7 @@ function DangerAction({ label, confirmLabel, description, warning, onConfirm, di
 }
 
 function MetricBox({ label, value, sub, pct }) {
- const color = pct >= 90 ? '#f87171' : pct >= 70 ? '#fbbf24' : '#34d399'
+ const color = pct >= 90 ? '#f0544f' : pct >= 70 ? '#f5a623' : '#34c77b'
  const glow = pct >= 90 ? 'rgba(248,113,113,0.15)' : pct >= 70 ? 'rgba(251,191,36,0.12)' : 'rgba(52,211,153,0.08)'
  return (
  <div className="stat-card">
@@ -47,7 +47,7 @@ function MetricBox({ label, value, sub, pct }) {
  <div style={{ fontSize: '1.4rem', fontWeight: 800, color, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{value}</div>
  {sub && <p style={{ fontSize: '0.7rem', color: 'var(--text-faint)', marginTop: '0.2rem' }}>{sub}</p>}
  {pct !== undefined && (
- <div style={{ marginTop: '0.85rem', height: '4px', background: 'rgba(255,255,255,0.04)', borderRadius: 9999, overflow: 'hidden', boxShadow: `inset 0 1px 2px rgba(0,0,0,0.2)` }}>
+ <div style={{ marginTop: '0.85rem', height: '4px', background: '#e2e5f0', borderRadius: 9999, overflow: 'hidden', boxShadow: `inset 0 1px 2px rgba(0,0,0,0.2)` }}>
  <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: `linear-gradient(90deg, ${color}cc, ${color})`, transition: 'width 0.8s ease', boxShadow: `0 0 8px ${glow}`, borderRadius: 9999 }} />
  </div>
  )}
@@ -107,7 +107,7 @@ export default function Health() {
  }
 
  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', color: 'var(--text-dim)', fontSize: '0.85rem' }}>Loading system health...</div>
- if (error) return <div className="card" style={{ padding: '1.5rem', color: '#fb7185', borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.04)', textAlign: 'center' }}>{error}</div>
+ if (error) return <div className="card" style={{ padding: '1.5rem', color: '#f0544f', borderColor: 'rgba(240,84,79,0.3)', background: 'rgba(240,84,79,0.04)', textAlign: 'center' }}>{error}</div>
  if (!data) return null
 
  const { memory = {}, uptime = 0, connected = false, nodeVersion = '—', pid = '—', platform = '—' } = data || {}
@@ -135,9 +135,9 @@ export default function Health() {
 
  {/* Memory */}
  <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent)' }} />
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(79,142,247,0.25), transparent)' }} />
  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
- <Icons.IconServer size={18} style={{ color: '#a5b4fc' }} />
+ <Icons.IconServer size={18} style={{ color: '#4f8ef7' }} />
  <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>Memory Utilization</h3>
  </div>
  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
@@ -150,9 +150,9 @@ export default function Health() {
 
  {/* Process Info */}
  <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent)' }} />
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(79,142,247,0.25), transparent)' }} />
  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
- <Icons.IconCpu size={18} style={{ color: '#a5b4fc' }} />
+ <Icons.IconCpu size={18} style={{ color: '#4f8ef7' }} />
  <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>Process Info</h3>
  </div>
  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
@@ -165,9 +165,9 @@ export default function Health() {
 
  {/* Core Management */}
  <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
- <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent)' }} />
+ <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(79,142,247,0.25), transparent)' }} />
  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
- <Icons.IconWrench size={18} style={{ color: '#a5b4fc' }} />
+ <Icons.IconWrench size={18} style={{ color: '#4f8ef7' }} />
  <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>Core Management</h3>
  </div>
 
@@ -193,7 +193,7 @@ export default function Health() {
  </button>
  </div>
  {pairCode && (
- <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(99,102,241,0.04)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(99,102,241,0.15)', textAlign: 'center' }}>
+ <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(99,102,241,0.04)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(79,142,247,0.15)', textAlign: 'center' }}>
  <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Pairing Code</p>
  <p className="pairing-code" style={{ margin: '0.4rem 0' }}>{pairCode}</p>
  <button className="btn btn-sm btn-primary" onClick={() => { navigator.clipboard.writeText(pairCode); toast('Copied!') }}>

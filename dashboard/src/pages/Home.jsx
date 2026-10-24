@@ -20,7 +20,7 @@ import {
 } from '../components/Icons.jsx'
 
 // ── Organic Sparkline ───────────────────────────────────────────────────
-function Sparkline({ data = [], color = '#5D7052', height = 36 }) {
+function Sparkline({ data = [], color = '#4f8ef7', height = 36 }) {
 	const max = Math.max(...data, 1)
 	const bars = data.slice(-20)
 	return (
@@ -28,7 +28,7 @@ function Sparkline({ data = [], color = '#5D7052', height = 36 }) {
 			{bars.map((v, i) => (
 				<div key={i} className="spark-bar" style={{
 					height: `${Math.max((v / max) * 100, 6)}%`,
-					background: `linear-gradient(180deg, ${color}, rgba(93, 112, 82, 0.25))`,
+					background: `linear-gradient(180deg, ${color}, rgba(79, 142, 247, 0.25))`,
 					opacity: 0.5 + (i / bars.length) * 0.5,
 					borderRadius: '4px 4px 0 0',
 				}} />
@@ -38,7 +38,7 @@ function Sparkline({ data = [], color = '#5D7052', height = 36 }) {
 }
 
 // ── Organic Activity Item ───────────────────────────────────────────────
-function ActivityItem({ text, time, color = '#5D7052' }) {
+function ActivityItem({ text, time, color = '#4f8ef7' }) {
 	return (
 		<div className="activity-item">
 			<div className="activity-dot" style={{ background: color, boxShadow: `0 0 8px ${color}55` }} />
@@ -147,12 +147,12 @@ export default function Home() {
 			return analytics.recentActivity.map(a => ({
 				text: a.text,
 				time: a.time,
-				color: a.color || '#5D7052',
+				color: a.color || '#4f8ef7',
 			}))
 		}
 		return [
-			{ text: 'Bot Engine online and listening for messages', time: 'Just now', color: '#5D7052' },
-			{ text: 'All active WhatsApp groups monitored with 0ms cache', time: 'Just now', color: '#C18C5D' },
+			{ text: 'Bot Engine online and listening for messages', time: 'Just now', color: '#4f8ef7' },
+			{ text: 'All active WhatsApp groups monitored with 0ms cache', time: 'Just now', color: '#f5a623' },
 		]
 	}, [analytics?.recentActivity])
 
@@ -162,7 +162,7 @@ export default function Home() {
 		return (
 			<div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '1rem' }}>
 				<div className="spinner" />
-				<span style={{ fontSize: '0.85rem', color: '#78786C', fontWeight: 600 }}>Loading control center...</span>
+				<span style={{ fontSize: '0.85rem', color: '#6b7080', fontWeight: 600 }}>Loading control center...</span>
 			</div>
 		)
 	}
@@ -173,7 +173,7 @@ export default function Home() {
 			{/* ── Header ─────────────────────────────────────────────── */}
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
 				<div>
-					<h1 className="section-title" style={{ fontSize: '1.85rem', fontWeight: 700, color: '#2C2C24' }}>
+					<h1 className="section-title" style={{ fontSize: '1.85rem', fontWeight: 700, color: '#1a1d2b' }}>
 						Bot Control Center
 					</h1>
 					<p className="section-subtitle">Monitor, configure, and manage your WhatsApp bot engine</p>
@@ -181,13 +181,13 @@ export default function Home() {
 				<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
 					<span style={{
 						fontSize: '0.75rem',
-						color: '#78786C',
+						color: '#6b7080',
 						fontFamily: "'JetBrains Mono', monospace",
-						background: '#FEFEFA',
+						background: '#ffffff',
 						padding: '0.4rem 0.95rem',
 						borderRadius: '9999px',
-						border: '1px solid #DED8CF',
-						boxShadow: '0 2px 6px rgba(93, 112, 82, 0.06)'
+						border: '1px solid #e2e5f0',
+						boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
 					}}>
 						{formatTime(currentTime)}
 					</span>
@@ -267,16 +267,16 @@ export default function Home() {
 				{/* Activity Chart + Activity Feed */}
 				<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', gridColumn: 'span 2' }}>
 					<GlassCard title="Activity Pulse" subtitle="Messages per minute over the last 20 minutes" accent="moss">
-						<Sparkline data={activityData} color="#5D7052" height={52} />
+						<Sparkline data={activityData} color="#4f8ef7" height={52} />
 						<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.65rem' }}>
-							<span style={{ fontSize: '0.72rem', color: '#8E8E80', fontWeight: 600 }}>20 min ago</span>
-							<span style={{ fontSize: '0.72rem', color: '#5D7052', fontWeight: 700 }}>Real-time</span>
+							<span style={{ fontSize: '0.72rem', color: '#9ca1b5', fontWeight: 600 }}>20 min ago</span>
+							<span style={{ fontSize: '0.72rem', color: '#4f8ef7', fontWeight: 700 }}>Real-time</span>
 						</div>
 					</GlassCard>
 
 					<GlassCard title="Recent Activity" subtitle="Latest live events from your bot engine" accent="clay" padding="1.5rem 1.75rem">
 						{activities.length === 0 ? (
-							<div style={{ padding: '2rem 0', textAlign: 'center', color: '#78786C', fontSize: '0.85rem' }}>
+							<div style={{ padding: '2rem 0', textAlign: 'center', color: '#6b7080', fontSize: '0.85rem' }}>
 								No recent activity
 							</div>
 						) : (
@@ -307,10 +307,10 @@ export default function Home() {
 					<GlassCard title="Restriction Mode" subtitle={maintenanceMode ? 'Bot is in maintenance' : 'Bot is fully operational'} accent={maintenanceMode ? 'clay' : 'moss'}>
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 							<div>
-								<div style={{ fontSize: '0.85rem', color: '#2C2C24', fontWeight: 700 }}>
+								<div style={{ fontSize: '0.85rem', color: '#1a1d2b', fontWeight: 700 }}>
 									{maintenanceMode ? 'Maintenance Active' : 'Fully Operational'}
 								</div>
-								<div style={{ fontSize: '0.72rem', color: '#78786C', marginTop: '0.2rem' }}>
+								<div style={{ fontSize: '0.72rem', color: '#6b7080', marginTop: '0.2rem' }}>
 									{maintenanceMode ? 'All public commands paused' : 'Accepting commands normally'}
 								</div>
 							</div>
@@ -325,22 +325,22 @@ export default function Home() {
 					<GlassCard title="Session Health" subtitle="WhatsApp Web socket session" accent={isConnected ? 'moss' : 'sienna'}>
 						<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Status</span>
-								<span style={{ fontSize: '0.82rem', color: isConnected ? '#5D7052' : '#A85448', fontWeight: 700 }}>
+								<span style={{ fontSize: '0.82rem', color: '#6b7080' }}>Status</span>
+								<span style={{ fontSize: '0.82rem', color: isConnected ? '#4f8ef7' : '#f0544f', fontWeight: 700 }}>
 									{isConnected ? 'Connected' : 'Disconnected'}
 								</span>
 							</div>
 							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Uptime</span>
-								<span className="mono" style={{ fontSize: '0.82rem', color: '#2C2C24', fontWeight: 600 }}>{uptime}</span>
+								<span style={{ fontSize: '0.82rem', color: '#6b7080' }}>Uptime</span>
+								<span className="mono" style={{ fontSize: '0.82rem', color: '#1a1d2b', fontWeight: 600 }}>{uptime}</span>
 							</div>
 							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Active Groups</span>
-								<span style={{ fontSize: '0.82rem', color: '#2C2C24', fontWeight: 700 }}>{groups}</span>
+								<span style={{ fontSize: '0.82rem', color: '#6b7080' }}>Active Groups</span>
+								<span style={{ fontSize: '0.82rem', color: '#1a1d2b', fontWeight: 700 }}>{groups}</span>
 							</div>
 							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-								<span style={{ fontSize: '0.82rem', color: '#78786C' }}>Logged Errors</span>
-								<span style={{ fontSize: '0.82rem', color: errors > 0 ? '#A85448' : '#5D7052', fontWeight: 700 }}>{errors}</span>
+								<span style={{ fontSize: '0.82rem', color: '#6b7080' }}>Logged Errors</span>
+								<span style={{ fontSize: '0.82rem', color: errors > 0 ? '#f0544f' : '#4f8ef7', fontWeight: 700 }}>{errors}</span>
 							</div>
 						</div>
 					</GlassCard>

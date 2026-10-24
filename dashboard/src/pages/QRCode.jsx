@@ -48,7 +48,7 @@ export default function QRCode() {
 		<div className="page-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 			<div>
 				<h1 className="section-title text-gradient" style={{ fontSize: '1.35rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-					<Icons.IconQrCode size={22} style={{ color: '#a5b4fc' }} />
+					<Icons.IconQrCode size={22} style={{ color: '#4f8ef7' }} />
 					QR Pairing
 				</h1>
 				<p className="section-subtitle">Scan the QR code with WhatsApp to link your device</p>
@@ -85,8 +85,8 @@ export default function QRCode() {
 								)}
 							</div>
 							<div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', }}>
-								<span className={`status-dot ${connected ? 'online' : ''}`} style={{ background: connected ? '#10b981' : '#f59e0b', boxShadow: connected ? '0 0 8px rgba(16,185,129,0.5)' : '0 0 8px rgba(245,158,11,0.5)', width: 7, height: 7, borderRadius: '50%' }} />
-								<span style={{ fontSize: '0.78rem', color: connected ? '#34d399' : '#fbbf24', fontWeight: 600 }}>
+								<span className={`status-dot ${connected ? 'online' : ''}`} style={{ background: connected ? '#34c77b' : '#f59e0b', boxShadow: connected ? '0 0 8px rgba(16,185,129,0.5)' : '0 0 8px rgba(245,166,35,0.5)', width: 7, height: 7, borderRadius: '50%' }} />
+								<span style={{ fontSize: '0.78rem', color: connected ? '#34c77b' : '#f5a623', fontWeight: 600 }}>
 									{connected ? 'Connected' : 'Waiting for scan...'}
 								</span>
 							</div>
@@ -96,16 +96,16 @@ export default function QRCode() {
 								disabled={refreshing}
 								style={{ width: '100%' }}
 							>
-								<Icons.RefreshIcon size={15} color="#a5b4fc" />
+								<Icons.RefreshIcon size={15} color="#4f8ef7" />
 								{refreshing ? 'Refreshing...' : 'Refresh QR Code'}
 							</button>
 						</div>
 					) : (
 						<div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '280px', gap: '0.75rem' }}>
-							<Icons.IconAlert size={32} color="#fbbf24" />
+							<Icons.IconAlert size={32} color="#f5a623" />
 							<span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 600 }}>No QR code available</span>
 							<button className="btn btn-secondary" onClick={fetchQR} style={{ marginTop: '0.5rem' }}>
-								<Icons.RefreshIcon size={15} color="#a5b4fc" />
+								<Icons.RefreshIcon size={15} color="#4f8ef7" />
 								Retry
 							</button>
 						</div>
@@ -116,9 +116,9 @@ export default function QRCode() {
 					<GlassCard title="How to Pair" subtitle="Step-by-step instructions" accent="blue">
 						<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.25rem 0' }}>
 							{[
-								{ step: 1, text: 'Open WhatsApp on your phone', color: '#6366f1' },
-								{ step: 2, text: 'Go to Settings > Linked Devices', color: '#818cf8' },
-								{ step: 3, text: 'Tap "Link a Device"', color: '#a78bfa' },
+								{ step: 1, text: 'Open WhatsApp on your phone', color: '#4f8ef7' },
+								{ step: 2, text: 'Go to Settings > Linked Devices', color: '#4f8ef7' },
+								{ step: 3, text: 'Tap "Link a Device"', color: '#8b5cf6' },
 								{ step: 4, text: 'Point your camera at the QR code', color: '#c084fc' },
 								{ step: 5, text: 'Confirm the pairing on your phone', color: '#8b5cf6' },
 							].map(({ step, text, color }) => (

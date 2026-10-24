@@ -69,14 +69,14 @@ export default function Logs() {
 			{/* Log Stats */}
 			<div className="grid grid-cols-5" style={{ gap: '0.75rem' }}>
 				{[
-					{ label: 'Total', value: stats.total, color: 'var(--text-main)', bg: 'var(--stone)' },
-					{ label: 'Info', value: stats.info, color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
-					{ label: 'Warn', value: stats.warn, color: '#d97706', bg: 'rgba(217,119,6,0.08)' },
-					{ label: 'Error', value: stats.error, color: 'var(--burnt-sienna)', bg: 'rgba(168,84,72,0.1)' },
-					{ label: 'Debug', value: stats.debug, color: 'var(--primary)', bg: 'rgba(93,112,82,0.1)' },
+					{ label: 'Total', value: stats.total, color: 'var(--text-main)', bg: '#f1f3f9' },
+					{ label: 'Info', value: stats.info, color: '#4f8ef7', bg: '#eef4ff' },
+					{ label: 'Warn', value: stats.warn, color: '#f5a623', bg: '#fef8e8' },
+					{ label: 'Error', value: stats.error, color: 'var(--burnt-sienna)', bg: 'rgba(240,84,79,0.1)' },
+					{ label: 'Debug', value: stats.debug, color: 'var(--primary)', bg: 'rgba(79,142,247,0.1)' },
 				].map((s, i) => (
 					<div key={s.label} className="anim-scale-in" style={{
-						background: s.bg, border: `1px solid var(--border-subtle)`, borderRadius: 'var(--radius-sm)',
+						background: s.bg, border: `1px solid var(--border)`, borderRadius: 'var(--radius-sm)',
 						padding: '0.75rem 1rem', animationDelay: `${i * 50}ms`,
 					}}>
 						<div style={{ fontSize: '1.35rem', fontWeight: 800, color: s.color, fontFamily: "'JetBrains Mono', monospace" }}>{s.value}</div>
@@ -91,7 +91,7 @@ export default function Logs() {
 			<div className="card" style={{ padding: '0.75rem 1.25rem' }}>
 				<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
 					{/* Level filters */}
-					<div style={{ display: 'inline-flex', background: 'var(--stone)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', gap: '4px' }}>
+					<div style={{ display: 'inline-flex', background: '#f1f3f9', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '4px' }}>
 						{['all', 'info', 'warn', 'error', 'debug'].map(level => {
 							const active = filter === level;
 							return (

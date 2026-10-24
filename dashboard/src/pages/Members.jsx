@@ -54,7 +54,7 @@ export default function Members() {
  catch (err) { toast(err.message, false) }
  }
 
- const rankColor = (r) => r === 1 ? '#fbbf24' : r === 2 ? '#d4d4d8' : r === 3 ? '#cd7f32' : 'var(--text-dim)'
+ const rankColor = (r) => r === 1 ? '#f5a623' : r === 2 ? '#9ca1b5' : r === 3 ? '#cd7f32' : 'var(--text-dim)'
 
  const pages = data ? Math.ceil(data.total / LIMIT) : 0
 
@@ -64,7 +64,7 @@ export default function Members() {
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
  <div>
  <h1 className="section-title" style={{ fontSize: '1.35rem' }}>
- <Icons.IconTrophy size={20} style={{ color: '#fbbf24' }} />
+ <Icons.IconTrophy size={20} style={{ color: '#f5a623' }} />
  Members Leaderboard
  </h1>
  <p className="section-subtitle">{data ? `${data.total.toLocaleString()} registered participants` : 'Loading...'}</p>
@@ -75,7 +75,7 @@ export default function Members() {
  </div>
  </div>
 
- 	<div style={{ display: 'inline-flex', background: 'var(--stone)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', gap: '4px' }}>
+ 	<div style={{ display: 'inline-flex', background: '#f1f3f9', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', gap: '4px' }}>
 		{SORTS.map(s => {
 			const active = sort === s.key;
 			return (
@@ -131,9 +131,9 @@ export default function Members() {
  const rank = (page - 1) * LIMIT + idx + 1
  const isTop = rank <= 3
  return (
- <tr key={m._id} style={{ opacity: m.isBlock ? 0.55 : 1, background: isTop ? 'rgba(255,255,255,0.015)' : 'transparent', transition: 'background 0.15s' }}
- onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
- onMouseLeave={e => e.currentTarget.style.background = isTop ? 'rgba(255,255,255,0.015)' : 'transparent'}
+ <tr key={m._id} style={{ opacity: m.isBlock ? 0.55 : 1, background: isTop ? '#f8f9fc' : 'transparent', transition: 'background 0.15s' }}
+ onMouseEnter={e => e.currentTarget.style.background = '#f1f3f9'}
+ onMouseLeave={e => e.currentTarget.style.background = isTop ? '#f8f9fc' : 'transparent'}
  >
  <td style={{ fontWeight: 800, color: rankColor(rank), fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.85rem' }}>
  #{rank}
