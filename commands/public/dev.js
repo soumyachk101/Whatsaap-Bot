@@ -1,18 +1,30 @@
-import { devCard } from "../../functions/messageFormatter.js";
-
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 	const { sendMessageWTyping } = msgInfoObj;
 	try {
-		const response = devCard(
-			"Soumya Chakraborty",
-			"@soumyachk101",
-			[
-				"🔗 *Links:*",
-				"  📦  github.com/soumyachk101",
-				"  ☕  buymeacoffee.com/soumyachk101",
-				"  💬  wa.me/qr/PAVVG4QPZUJXF1?s=v"
-			]
-		);
+		const response = [
+			`╭━━『 *Developer Info* 』━━╮`,
+			``,
+			`┏━━━━━━━━━━━━━━━━━`,
+			`┃ *Owner:*  Soumya Chakraborty`,
+			`┃ *Handle:*  @soumyachk101`,
+			`┗━━━━━━━━━━━━━━━━━`,
+			``,
+			`┏━━━━━━━━━━━━━━━━━`,
+			`┃ *WhatsApp:*  wa.me/qr/PAVVG4QPZUJXF1?s=v`,
+			`┗━━━━━━━━━━━━━━━━━`,
+			``,
+			`┏━━━━━━━━━━━━━━━━━`,
+			`┃ *GitHub:*  github.com/soumyachk101`,
+			`┗━━━━━━━━━━━━━━━━━`,
+			``,
+			`┏━━━━━━━━━━━━━━━━━`,
+			`┃ *Support:*  buymeacoffee.com/soumyachk101`,
+			`┗━━━━━━━━━━━━━━━━━`,
+			``,
+			`╰━━━━━━━━━━━━━━━━━`,
+			``,
+			`DownloadBuddy Bot Engine · v2.2.0`,
+		].join("\n");
 
 		return sendMessageWTyping(from, { text: response }, { quoted: msg });
 	} catch (err) {
