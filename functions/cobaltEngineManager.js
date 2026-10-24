@@ -17,13 +17,20 @@ let startPromise = null;
 
 /**
  * Checks if Cobalt Engine is responding on the local port.
+ * Uses GET / which returns 200 when the engine is alive (the Docker container
+ * on port 9000 will respond — this prevents a duplicate Node process from being
+ * spawned when the container is already serving requests).
  */
 export async function isEngineHealthy(timeoutMs = 1500) {
 	return new Promise((resolve) => {
 		const req = http.get(LOCAL_URL, { timeout: timeoutMs }, (res) => {
-			if (res.statusCode === 200) {
-				resolve(true);
+			// 200 = healthy; also treat 4xx as "engine is up but rejecting the request"
+			// (e.g. rate-limited, auth required) — the engine is running either way.
+			if (res.statusCode < 500) {
+				res.resume(); // drain
+				resolve(res.statusCode === 200 || res.statusCode === 429 || res.statusCode === 401 || res.statusCode === 403);
 			} else {
+				res.resume();
 				resolve(false);
 			}
 		});

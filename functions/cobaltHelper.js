@@ -16,28 +16,27 @@ import cobaltEngineManager from "./cobaltEngineManager.js";
 const standardBinPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
 process.env.PATH = Array.from(new Set([...standardBinPaths, ...(process.env.PATH || "").split(":")])).filter(Boolean).join(":");
 
-const findBinary = (name) => {
+const findBinarySync = (name) => {
+	// Quick existence check (no execFileSync) — safe at module load
 	const candidates = [
-		name,
 		path.join("/opt/homebrew/bin", name),
 		path.join("/usr/local/bin", name),
 		path.join("/usr/bin", name),
 		path.join("/bin", name),
 	];
-	for (const candidate of candidates) {
-		try {
-			execFileSync(candidate, ["--version"], { stdio: "ignore" });
-			return candidate;
-		} catch {}
+	for (const c of candidates) {
+		try { if (fs.existsSync(c)) return c; } catch {}
 	}
 	return null;
 };
 
-const ytDlpPath = findBinary("yt-dlp");
+const findBinary = (name) => findBinarySync(name) || name;
+
+const ytDlpPath = findBinarySync("yt-dlp");
 const ytDlpAvailable = Boolean(ytDlpPath);
 
-const resolvedFfmpeg = process.env.FFMPEG_PATH || ffmpegStatic || findBinary("ffmpeg") || "ffmpeg";
-const ffmpegAvailable = Boolean(findBinary("ffmpeg") || ffmpegStatic);
+const resolvedFfmpeg = process.env.FFMPEG_PATH || ffmpegStatic || findBinarySync("ffmpeg") || "ffmpeg";
+const ffmpegAvailable = Boolean(findBinarySync("ffmpeg") || ffmpegStatic);
 const ffmpegPath = resolvedFfmpeg;
 
 if (!ytDlpAvailable) {
@@ -158,8 +157,8 @@ const validateDownloadedFile = (filePath, expectedType = "auto") => {
 
 		const signature = buffer.toString("hex").toLowerCase();
 
-		// Video signatures
-		const videoSigs = ["000000", "667479", "6d6f6f", "000001", "464c56", "41564931", "1a45dfa3"];
+		// Video signatures (narrow — avoids false positives from 4 zero bytes)
+		const videoSigs = ["000001", "667479", "6d6f6f", "464c56", "41564931", "1a45dfa3"];
 		// Image signatures
 		const imageSigs = ["ffd8", "89504e", "474946", "524946", "504b03"];
 		// Audio signatures
@@ -550,7 +549,9 @@ export async function ensureWhatsAppCompatibleMedia(filePath) {
 		const stats = await fs.promises.stat(filePath);
 		if (stats.size === 0) return filePath;
 
-		const ffprobeBin = findBinary("ffprobe") || "ffprobe";
+		const ffprobeBin = findBinary("ffprobe")
+			|| (process.env.FFMPEG_DIR ? path.join(process.env.FFMPEG_DIR, "ffprobe") : null)
+			|| "ffprobe";
 		const probeOutput = await new Promise((resolve, reject) => {
 			execFile(
 				ffprobeBin,
@@ -823,13 +824,14 @@ export const downloadInstagramMedia = async (url, outputDir = null, audioOnly = 
 			// Photo item (or audioOnly fallback)
 			const thumbs = item.thumbnails || [];
 			const bestThumb = thumbs.length > 0 ? thumbs[thumbs.length - 1] : { url: item.thumbnail };
-			if (bestThumb?.url) {
-				console.log(`[Instagram DL] Downloading photo item ${playlistIndex} (${bestThumb.resolution || "best"})...`);
+			const thumbUrl = bestThumb?.url || item.url;
+			if (thumbUrl) {
+				console.log(`[Instagram DL] Downloading photo item ${playlistIndex} (${bestThumb?.resolution || "best"})...`);
 				const tempFile = path.join(outDir, `ig_${Date.now()}_${playlistIndex}_${crypto.randomUUID().split("-")[0]}.jpg`);
 				memoryManager.markFileStatus(tempFile, "downloading");
 				const fileStream = fs.createWriteStream(tempFile);
 				try {
-					const dlRes = await axios.get(bestThumb.url, {
+					const dlRes = await axios.get(thumbUrl, {
 						responseType: "stream",
 						timeout: 30000,
 						signal: signal,
@@ -1214,20 +1216,11 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 	}
 
 	// 2. Build prioritized list of Cobalt endpoints:
-	// - Local Cobalt engine (docker or node on port 9000)
-	// - Configured COBALT_API_URL
-	// - Fallback public instances
+	// - Local Cobalt engine (docker or node on port 9000) — always first
+	// - Public fallback (last resort, no cookies available there)
 	const endpoints = [];
 	const localUrl = `http://127.0.0.1:${process.env.LOCAL_COBALT_PORT || "9000"}/`;
 	endpoints.push(localUrl);
-
-	const envApiUrl = (process.env.COBALT_API_URL || "").trim();
-	if (envApiUrl) {
-		const formatted = envApiUrl.endsWith("/") ? envApiUrl : `${envApiUrl}/`;
-		if (!endpoints.includes(formatted)) {
-			endpoints.push(formatted);
-		}
-	}
 
 	try {
 		const mgrUrl = await cobaltEngineManager.ensureEngineRunning();
@@ -1236,6 +1229,15 @@ export const downloadViaCobalt = async (url, outputDir = null, audioOnly = false
 		}
 	} catch (e) {
 		console.warn("[MediaDL] Local Cobalt manager check:", e.message);
+	}
+
+	// COBALT_API_URL (if set) — only if it differs from the local engine
+	const envApiUrl = (process.env.COBALT_API_URL || "").trim();
+	if (envApiUrl) {
+		const formatted = envApiUrl.endsWith("/") ? envApiUrl : `${envApiUrl}/`;
+		if (!endpoints.some((e) => e.replace(/\/+$/, "") === formatted.replace(/\/+$/, ""))) {
+			endpoints.push(formatted);
+		}
 	}
 
 	const fallbackList = [

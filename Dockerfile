@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgif-dev \
     librsvg2-dev \
     ffmpeg \
+    ffprobe \
     webp \
     git \
     wget \
