@@ -699,18 +699,14 @@ export const featureComingSoon = (f) => premiumBox([
 	"_Coming soon! Stay tuned._ ✨"
 ], "COMING SOON", "🚧", null, { variant: "light" });
 
-export const devCard = (name, handle, github, links) => {
+export const devCard = (name, handle, github, links, footer) => {
 	const lns = [
 		"👨‍💻 *Developer*",
+		`${name} · ${handle}`,
 		"",
-		`*${name}*`,
-		handle,
-		"",
-		"🔗 *Links:*",
-		`GitHub → ${github}`
+		...links
 	];
-	for (const l of links) lns.push(l);
-	return premiumBox(lns, "DEV INFO", "👨‍💻", null, { variant: "default" });
+	return premiumBox(lns, "DEV", "👨‍💻", footer, { variant: "default" });
 };
 
 export const tagAllMsg = (count) =>
