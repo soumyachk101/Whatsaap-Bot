@@ -7,12 +7,6 @@ import { downloadViaCobalt, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError }
 import { isValidVideoFile } from "../../functions/fileUtils.js";
 import downloadQueue from "../../functions/downloadQueue.js";
 
-const extractUrl = (text) => {
-	if (!text) return null;
-	const match = text.match(/https?:\/\/[^\s]+/i);
-	return match ? match[0] : null;
-};
-
 const isValidHttpUrl = (url) => {
 	try {
 		const u = new URL(url);
@@ -22,14 +16,51 @@ const isValidHttpUrl = (url) => {
 	}
 };
 
+const extractUrl = (text) => {
+	if (!text) return null;
+	const match = text.match(/https?:\/\/[^\s]+/i);
+	if (match) return match[0];
+
+	// Check for URL without http(s) prefix (e.g., youtube.com/watch?v=..., youtu.be/...)
+	const words = text.trim().split(/\s+/);
+	for (const word of words) {
+		const cleaned = word.replace(/^[<(\[]|[>)\].,;]$/g, "");
+		if (
+			/^(?:www\.|[a-zA-Z0-9-]+\.(?:com|org|net|io|co|be|app|me|tv|ai|gg|cc|ly|in|it|to|is))\b/i.test(cleaned) ||
+			/^(?:youtu\.be|youtube\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|pin\.it|pinterest\.com|spotify\.com|soundcloud\.com)/i.test(cleaned)
+		) {
+			const candidate = `https://${cleaned}`;
+			if (isValidHttpUrl(candidate)) {
+				return candidate;
+			}
+		}
+	}
+	return null;
+};
+
 const findVideoURL = async (query) => {
 	try {
 		const r = await yts(query);
-		if (r && r.videos && r.videos.length > 0) {
-			return r.videos[0];
+		if (!r) return null;
+
+		let video = null;
+		if (Array.isArray(r.videos) && r.videos.length > 0) {
+			video = r.videos[0];
+		} else if (Array.isArray(r.all) && r.all.length > 0) {
+			video = r.all.find((item) => item.type === "video") || null;
+		} else if (r.type === "video") {
+			video = r;
 		}
-		if (r && r.type === "video") {
-			return r;
+
+		if (video) {
+			const videoUrl = video.url || (video.videoId ? `https://www.youtube.com/watch?v=${video.videoId}` : null);
+			if (videoUrl) {
+				return {
+					...video,
+					url: videoUrl,
+					title: video.title || query,
+				};
+			}
 		}
 		return null;
 	} catch (err) {
@@ -62,10 +93,18 @@ const detectMediaFileType = async (filePath) => {
 		if (isValidVideoFile(filePath) || lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".webm")) {
 			return { ext: "mp4", mime: "video/mp4", detected: "video" };
 		}
-		if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) {
+		if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp")) {
 			return { ext: "jpg", mime: "image/jpeg", detected: "image" };
 		}
-		if (lower.endsWith(".mp3") || lower.endsWith(".m4a") || lower.endsWith(".wav")) {
+		if (
+			lower.endsWith(".mp3") ||
+			lower.endsWith(".m4a") ||
+			lower.endsWith(".wav") ||
+			lower.endsWith(".ogg") ||
+			lower.endsWith(".opus") ||
+			lower.endsWith(".aac") ||
+			lower.endsWith(".flac")
+		) {
 			return { ext: "mp3", mime: "audio/mp4", detected: "audio" };
 		}
 		return { ext: "bin", mime: "application/octet-stream", detected: "other" };
@@ -74,10 +113,22 @@ const detectMediaFileType = async (filePath) => {
 	}
 };
 
-const handler = async (sock, msg, from, args, msgInfoObj) => {
-	const { sendMessageWTyping, prefix, evv } = msgInfoObj;
+const sendMediaSafely = async (sock, from, payload, quotedMsg) => {
+	const sendOpts = { useCachedGroupMetadata: true };
+	if (quotedMsg) {
+		try {
+			return await sock.sendMessage(from, payload, { ...sendOpts, quoted: quotedMsg });
+		} catch (qErr) {
+			console.warn(`[Universal DL] Quoted send failed (${qErr.message}), retrying unquoted...`);
+		}
+	}
+	return await sock.sendMessage(from, payload, sendOpts);
+};
 
-	let inputQuery = evv ? evv.trim() : "";
+const handler = async (sock, msg, from, args, msgInfoObj) => {
+	const { sendMessageWTyping, prefix, command, evv } = msgInfoObj;
+
+	let inputQuery = (evv ? evv.trim() : "") || (args && args.length > 0 ? args.join(" ").trim() : "");
 	if (!inputQuery && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
 		const quoted = msg.message.extendedTextMessage.contextInfo.quotedMessage;
 		inputQuery = (quoted.conversation || quoted.extendedTextMessage?.text || quoted.imageMessage?.caption || "").trim();
@@ -87,20 +138,51 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		return sendMessageWTyping(
 			from,
 			{
-				text: `📥 *Universal Downloader*\n\n` +
+				text:
+					`📥 *Universal Downloader*\n\n` +
 					`Download videos & media from ANY platform using 1 command!\n\n` +
 					`💡 *Usage:*\n` +
-					`• Direct Link: \`${prefix}download <URL>\`\n` +
-					`• Search & Download: \`${prefix}download <video/song name>\`\n\n` +
+					`• Direct Link: \`${prefix}${command || "download"} <URL>\`\n` +
+					`• Audio / MP3: \`${prefix}${command || "download"} <URL or name> mp3\`\n` +
+					`• Search & Download: \`${prefix}${command || "download"} <video/song name>\`\n\n` +
 					`🌐 *Supported:* YouTube, Instagram, Facebook, Twitter/X, TikTok, Pinterest, etc.`,
 			},
 			{ quoted: msg }
 		);
 	}
 
+	let isAudioOnly = ["mp3", "audio", "song", "yta"].includes(command?.toLowerCase());
+
+	// Detect audio download triggers from input query or args
+	if (/\b(?:--mp3|--audio|-a)\b/i.test(inputQuery)) {
+		isAudioOnly = true;
+		inputQuery = inputQuery.replace(/\b(?:--mp3|--audio|-a)\b/gi, "").trim();
+	} else if (/^(?:mp3|audio)\s+/i.test(inputQuery)) {
+		isAudioOnly = true;
+		inputQuery = inputQuery.replace(/^(?:mp3|audio)\s+/i, "").trim();
+	} else if (/\s+(?:mp3|audio)$/i.test(inputQuery)) {
+		isAudioOnly = true;
+		inputQuery = inputQuery.replace(/\s+(?:mp3|audio)$/i, "").trim();
+	} else if (inputQuery.toLowerCase() === "mp3" || inputQuery.toLowerCase() === "audio") {
+		isAudioOnly = true;
+		inputQuery = "";
+	}
+
 	let targetUrl = extractUrl(inputQuery);
 
-	if (!targetUrl) {
+	if (targetUrl) {
+		const remaining = inputQuery.replace(targetUrl, "").trim();
+		if (/\b(?:mp3|audio)\b/i.test(remaining)) {
+			isAudioOnly = true;
+		}
+		// SSRF: validate direct URL
+		if (!(await isSafeUrl(targetUrl))) {
+			return sendMessageWTyping(from, { text: "❌ Unsafe URL. Only public links are supported." }, { quoted: msg });
+		}
+	} else {
+		if (!inputQuery) {
+			return sendMessageWTyping(from, { text: "❌ *Please provide a URL or search query!*" }, { quoted: msg });
+		}
 		const videoMeta = await findVideoURL(inputQuery);
 		if (!videoMeta || !videoMeta.url) {
 			return sendMessageWTyping(from, { text: `❌ *No video found for:* \`${inputQuery}\`` }, { quoted: msg });
@@ -113,10 +195,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	}
 
-	try {
-		const u = new URL(targetUrl);
-		if (!["http:", "https:"].includes(u.protocol)) throw new Error("Invalid protocol");
-	} catch {
+	if (!isValidHttpUrl(targetUrl)) {
 		return sendMessageWTyping(from, { text: "❌ Invalid URL. Please send a valid https:// link." }, { quoted: msg });
 	}
 
@@ -126,7 +205,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await downloadQueue.acquire(from);
 		acquired = true;
 
-		downloadedPaths = await downloadViaCobalt(targetUrl, null, false, msgInfoObj?.signal || null, () => downloadQueue.heartbeat(from));
+		downloadedPaths = await downloadViaCobalt(targetUrl, null, isAudioOnly, msgInfoObj?.signal || null, () => downloadQueue.heartbeat(from));
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Could not download media from link.");
 		}
@@ -157,29 +236,29 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			throw new Error("All downloaded files were too large or empty.");
 		}
 
-const sendMediaSafely = async (sock, from, payload, quotedMsg) => {
-	const sendOpts = { useCachedGroupMetadata: true };
-	if (quotedMsg) {
-		try {
-			return await sock.sendMessage(from, payload, { ...sendOpts, quoted: quotedMsg });
-		} catch (qErr) {
-			console.warn(`[Universal DL] Quoted send failed (${qErr.message}), retrying unquoted...`);
-		}
-	}
-	return await sock.sendMessage(from, payload, sendOpts);
-};
-
 		for (const filePath of validFiles) {
 			if (!fs.existsSync(filePath)) continue;
 			memoryManager.markFileReady(filePath);
 			const mediaInfo = await detectMediaFileType(filePath);
+			const isAudio = isAudioOnly || mediaInfo.detected === "audio";
 			const stats = await fs.promises.stat(filePath).catch(() => ({ size: 0 }));
 			const sizeMB = stats.size / (1024 * 1024);
 
 			try {
-				if (mediaInfo.detected === "video") {
+				if (isAudio) {
+					const mime = filePath.toLowerCase().endsWith(".mp3")
+						? "audio/mpeg"
+						: mediaInfo.mime?.startsWith("audio/")
+						? mediaInfo.mime
+						: "audio/mp4";
+					if (sizeMB <= 30) {
+						const audioBuf = fs.readFileSync(filePath);
+						await sendMediaSafely(sock, from, { audio: audioBuf, mimetype: mime, ptt: false }, msg);
+					} else {
+						await sendMediaSafely(sock, from, { audio: { url: filePath }, mimetype: mime, ptt: false }, msg);
+					}
+				} else if (mediaInfo.detected === "video") {
 					if (sizeMB <= 35) {
-						// For files <= 35MB, buffer delivery is instantaneous and avoids Baileys stream ENOENT races
 						const videoBuf = fs.readFileSync(filePath);
 						await sendMediaSafely(sock, from, { video: videoBuf, mimetype: "video/mp4" }, msg);
 					} else {
@@ -192,16 +271,13 @@ const sendMediaSafely = async (sock, from, payload, quotedMsg) => {
 					} else {
 						await sendMediaSafely(sock, from, { image: { url: filePath } }, msg);
 					}
-				} else if (mediaInfo.detected === "audio") {
-					const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-					if (sizeMB <= 30) {
-						const audioBuf = fs.readFileSync(filePath);
-						await sendMediaSafely(sock, from, { audio: audioBuf, mimetype: mime, ptt: false }, msg);
-					} else {
-						await sendMediaSafely(sock, from, { audio: { url: filePath }, mimetype: mime, ptt: false }, msg);
-					}
 				} else {
-					await sendMediaSafely(sock, from, { document: { url: filePath }, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, msg);
+					await sendMediaSafely(
+						sock,
+						from,
+						{ document: { url: filePath }, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime },
+						msg
+					);
 				}
 				memoryManager.markFileSent(filePath);
 			} catch (sendErr) {
@@ -215,30 +291,52 @@ const sendMediaSafely = async (sock, from, payload, quotedMsg) => {
 				const fallbackMB = fallbackStats.size / (1024 * 1024);
 				if (fallbackMB > 200) {
 					console.warn(`[Universal DL] Buffer fallback skipped: ${fallbackMB.toFixed(1)}MB exceeds 200MB limit.`);
-					await sendMessageWTyping(from, { text: `⚠️ File too large for direct upload (${fallbackMB.toFixed(1)}MB). Limit: 200MB. Please try again later.` }, { quoted: msg });
+					await sendMessageWTyping(
+						from,
+						{ text: `⚠️ File too large for direct upload (${fallbackMB.toFixed(1)}MB). Limit: 200MB. Please try again later.` },
+						{ quoted: msg }
+					);
 					continue;
 				}
 				try {
 					const readStream = memoryManager.createOptimizedReadStream(filePath);
-					if (mediaInfo.detected === "video") {
-						await sendMediaSafely(sock, from, { video: readStream, mimetype: "video/mp4" }, null);
-					} else if (mediaInfo.detected === "audio") {
-						const mime = filePath.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
+					if (isAudio) {
+						const mime = filePath.toLowerCase().endsWith(".mp3")
+							? "audio/mpeg"
+							: mediaInfo.mime?.startsWith("audio/")
+							? mediaInfo.mime
+							: "audio/mp4";
 						await sendMediaSafely(sock, from, { audio: readStream, mimetype: mime, ptt: false }, null);
+					} else if (mediaInfo.detected === "video") {
+						await sendMediaSafely(sock, from, { video: readStream, mimetype: "video/mp4" }, null);
 					} else if (mediaInfo.detected === "image") {
 						await sendMediaSafely(sock, from, { image: readStream }, null);
 					} else {
-						await sendMediaSafely(sock, from, { document: readStream, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime }, null);
+						await sendMediaSafely(
+							sock,
+							from,
+							{ document: readStream, fileName: `media.${mediaInfo.ext}`, mimetype: mediaInfo.mime },
+							null
+						);
 					}
 					memoryManager.markFileSent(filePath);
 				} catch (fallbackErr) {
 					console.error("[Universal DL] Media send failed, trying document fallback (up to 200MB/2GB):", fallbackErr.message);
 					try {
-						await sendMediaSafely(sock, from, {
-							document: { url: filePath },
-							fileName: path.basename(filePath) || `media.${mediaInfo.ext || "mp4"}`,
-							mimetype: mediaInfo.mime || "application/octet-stream"
-						}, null);
+						const isDocAudio = isAudioOnly || mediaInfo.detected === "audio";
+						const docMime = isDocAudio
+							? filePath.toLowerCase().endsWith(".mp3")
+								? "audio/mpeg"
+								: mediaInfo.mime?.startsWith("audio/")
+								? mediaInfo.mime
+								: "audio/mp4"
+							: mediaInfo.mime || "application/octet-stream";
+						const ext = isDocAudio ? (filePath.toLowerCase().endsWith(".mp3") ? "mp3" : "m4a") : mediaInfo.ext || "mp4";
+						const docPayload =
+							sizeMB <= 30 && fs.existsSync(filePath)
+								? { document: fs.readFileSync(filePath), fileName: path.basename(filePath) || `media.${ext}`, mimetype: docMime }
+								: { document: { url: filePath }, fileName: path.basename(filePath) || `media.${ext}`, mimetype: docMime };
+						await sendMediaSafely(sock, from, docPayload, null);
 						memoryManager.markFileSent(filePath);
 					} catch (docErr) {
 						console.error("[Universal DL] Document fallback also failed:", docErr.message);
@@ -256,27 +354,41 @@ const sendMediaSafely = async (sock, from, payload, quotedMsg) => {
 		err.userNotified = true;
 		throw err;
 	} finally {
-		if (downloadedPaths.length > 0) {
-			// Wait 8s to ensure Baileys finishes streaming file to WhatsApp servers before unlinking
-			await new Promise((res) => setTimeout(res, 8000));
-			for (const p of downloadedPaths) {
-				if (fs.existsSync(p)) memoryManager.safeUnlink(p);
-			}
-		}
 		if (acquired) {
 			downloadQueue.release();
+		}
+		if (downloadedPaths && downloadedPaths.length > 0) {
+			setTimeout(() => {
+				for (const p of downloadedPaths) {
+					if (fs.existsSync(p)) memoryManager.safeUnlink(p);
+				}
+			}, 10000);
 		}
 	}
 };
 
 export default () => ({
 	cmd: [
-		"download", "dl", "d", "v", "video", "mp4",
-		"yt", "ytv", "vs",
-		"insta", "i",
-		"fb", "facebook", "fbdl",
-		"twitter", "tw", "x",
-		"pin", "tiktok", "tt"
+		"download",
+		"dl",
+		"d",
+		"v",
+		"video",
+		"mp4",
+		"yt",
+		"ytv",
+		"vs",
+		"insta",
+		"i",
+		"fb",
+		"facebook",
+		"fbdl",
+		"twitter",
+		"tw",
+		"x",
+		"pin",
+		"tiktok",
+		"tt",
 	],
 	desc: "Universal downloader (Short commands: #dl | #d | #v)",
 	usage: "dl | d | v | download <url or search>",

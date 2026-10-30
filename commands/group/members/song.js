@@ -1,25 +1,44 @@
 import fs from "fs";
+import path from "path";
 import yts from "yt-search";
 import { downloadViaCobalt, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError } from "../../../functions/cobaltHelper.js";
 import memoryManager from "../../../functions/memoryUtils.js";
 import downloadQueue from "../../../functions/downloadQueue.js";
 
 const findSongURL = async (name) => {
+	if (!name || typeof name !== "string" || !name.trim()) {
+		throw new Error("No search query provided");
+	}
 	try {
-		const r = await yts(`${name}`);
-		if (r && Array.isArray(r.videos) && r.videos.length > 0) {
-			const videoInfo = r.videos[0];
-			if (!videoInfo || !videoInfo.url) {
-				throw new Error("No video URL found in search results");
-			}
-			return videoInfo;
+		const r = await yts(name.trim());
+		if (!r) {
+			throw new Error("No search results returned from YouTube");
 		}
-		if (r && r.type === "video") {
-			const videoInfo = r;
-			if (!videoInfo || !videoInfo.url) {
+		if (Array.isArray(r.videos) && r.videos.length > 0) {
+			const videoInfo = r.videos.find((v) => v && (v.url || v.videoId));
+			if (!videoInfo) {
 				throw new Error("No video URL found in search results");
 			}
-			return videoInfo;
+			const url = videoInfo.url || (videoInfo.videoId ? `https://www.youtube.com/watch?v=${videoInfo.videoId}` : null);
+			if (!url) {
+				throw new Error("No video URL found in search results");
+			}
+			return {
+				...videoInfo,
+				url,
+				title: videoInfo.title || name.trim(),
+			};
+		}
+		if (r.type === "video" && (r.url || r.videoId)) {
+			const url = r.url || (r.videoId ? `https://www.youtube.com/watch?v=${r.videoId}` : null);
+			if (!url) {
+				throw new Error("No video URL found in search results");
+			}
+			return {
+				...r,
+				url,
+				title: r.title || name.trim(),
+			};
 		}
 		throw new Error("No results found");
 	} catch (error) {
@@ -34,6 +53,24 @@ const isValidHttpUrl = (url) => {
 		return ["http:", "https:"].includes(u.protocol) && u.hostname.length > 2;
 	} catch {
 		return false;
+	}
+};
+
+const getAudioMimeType = (filePath) => {
+	const ext = path.extname(filePath || "").toLowerCase();
+	switch (ext) {
+		case ".mp3":
+			return "audio/mpeg";
+		case ".m4a":
+		case ".mp4":
+		case ".aac":
+			return "audio/mp4";
+		case ".opus":
+		case ".webm":
+		case ".ogg":
+			return "audio/ogg; codecs=opus";
+		default:
+			return "audio/mpeg";
 	}
 };
 
@@ -57,6 +94,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 	console.log("Song request query:", songQuery);
 
 	let acquired = false;
+	let downloadedPaths = [];
 	let fileDown = null;
 
 	try {
@@ -74,6 +112,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			if (!isValidHttpUrl(URL)) {
 				return sendMessageWTyping(from, { text: `❌ *Invalid URL.* Please provide a valid link.` }, { quoted: msg });
 			}
+			if (!(await isSafeUrl(URL))) {
+				return sendMessageWTyping(from, { text: `❌ Unsafe URL provided. Please provide a safe public link.` }, { quoted: msg });
+			}
 		} else {
 			try {
 				const videoInfo = await findSongURL(songQuery);
@@ -90,7 +131,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			}
 		}
 
-		const downloadedPaths = await downloadViaCobalt(URL, null, true);
+		downloadedPaths = await downloadViaCobalt(URL, null, true);
 
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Failed to download audio from stream servers.");
@@ -124,8 +165,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			return await sock.sendMessage(from, payload, sendOpts);
 		};
 
+		const mime = getAudioMimeType(fileDown);
+		let sent = false;
+
+		// 1. Primary: send as audio message via URL
 		try {
-			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
 			await sendAudioSafely(
 				{
 					audio: { url: fileDown },
@@ -135,32 +179,68 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 				msg
 			);
 			memoryManager.markFileSent(fileDown);
-		} catch (sendErr) {
-			console.error("[Song] Send with URL failed, trying buffer/stream fallback:", sendErr.message);
-			const mime = fileDown.toLowerCase().endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
-			try {
-				if (fileSizeMB <= 35) {
-					const buf = fs.readFileSync(fileDown);
-					await sendAudioSafely({ audio: buf, mimetype: mime, ptt: false }, null);
-				} else {
-					const readStream = memoryManager.createOptimizedReadStream(fileDown);
-					await sendAudioSafely({ audio: readStream, mimetype: mime, ptt: false }, null);
-				}
-				memoryManager.markFileSent(fileDown);
-			} catch (fallbackErr) {
-				console.error("[Song] Audio fallback failed, trying document fallback:", fallbackErr.message);
+			sent = true;
+		} catch (urlErr) {
+			console.warn(`[Song] Audio URL send failed (${urlErr.message}), attempting audio buffer fallback...`);
+			// Fallback A: send audio buffer if file is within manageable memory size
+			if (fileSizeMB <= 50) {
 				try {
-					await sendAudioSafely({
-						document: { url: fileDown },
-						fileName: `${title || "song"}.mp3`,
-						mimetype: "audio/mpeg"
-					}, null);
+					const buf = await fs.promises.readFile(fileDown);
+					await sendAudioSafely(
+						{
+							audio: buf,
+							mimetype: mime,
+							ptt: false,
+						},
+						msg
+					);
 					memoryManager.markFileSent(fileDown);
-				} catch (docErr) {
-					console.error("[Song] Document fallback also failed:", docErr.message);
-					await sendMessageWTyping(from, { text: "❌ Failed to upload song file. Please try again later." }, { quoted: msg });
+					sent = true;
+				} catch (bufErr) {
+					console.warn(`[Song] Audio buffer send failed (${bufErr.message}), falling back to document...`);
 				}
 			}
+		}
+
+		// Fallback B: if audio message send failed, send as document with audio/mpeg
+		if (!sent) {
+			const cleanTitle = (title || "song").replace(/[\\/:*?"<>|]/g, "").trim() || "song";
+			const fileName = `${cleanTitle}.mp3`;
+			try {
+				await sendAudioSafely(
+					{
+						document: { url: fileDown },
+						mimetype: "audio/mpeg",
+						fileName,
+					},
+					msg
+				);
+				memoryManager.markFileSent(fileDown);
+				sent = true;
+			} catch (docErr) {
+				console.warn(`[Song] Document URL send failed (${docErr.message}), attempting document buffer...`);
+				if (fileSizeMB <= 50) {
+					try {
+						const buf = await fs.promises.readFile(fileDown);
+						await sendAudioSafely(
+							{
+								document: buf,
+								mimetype: "audio/mpeg",
+								fileName,
+							},
+							msg
+						);
+						memoryManager.markFileSent(fileDown);
+						sent = true;
+					} catch (docBufErr) {
+						console.error("[Song] Document buffer send failed:", docBufErr.message);
+					}
+				}
+			}
+		}
+
+		if (!sent) {
+			await sendMessageWTyping(from, { text: "❌ Failed to upload song file. Please try again later." }, { quoted: msg });
 		}
 	} catch (err) {
 		console.error("Song download error:", err.message);
@@ -168,10 +248,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		const userMsg = clean.startsWith("❌") ? clean : `❌ ${clean}`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
 	} finally {
-		if (fileDown) {
+		const filesToClean = new Set([
+			...(Array.isArray(downloadedPaths) ? downloadedPaths : []),
+			...(fileDown ? [fileDown] : []),
+		]);
+		if (filesToClean.size > 0) {
 			setTimeout(() => {
-				if (fs.existsSync(fileDown)) memoryManager.safeUnlink(fileDown);
-			}, 60000);
+				for (const filePath of filesToClean) {
+					try {
+						if (filePath && fs.existsSync(filePath)) {
+							memoryManager.safeUnlink(filePath);
+						}
+					} catch (cleanupErr) {
+						console.warn(`[Song] Cleanup error for ${filePath}:`, cleanupErr.message);
+					}
+				}
+			}, 30000);
 		}
 		if (acquired) {
 			downloadQueue.release();
