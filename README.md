@@ -810,4 +810,4 @@ sqlite3 database.db ".backup db.$(date +%F).bak"
 - [Groq](https://groq.com), [Google Gemini](https://aistudio.google.com), [OpenAI](https://openai.com) — LLM providers
 - [Sarvam AI](https://sarvam.ai) — Hindi / English TTS
 
-MIT © Mahesh Kumar / Soumyachk. Star ⭐ the repo if this saved you some time!
+MIT © Soumya Chakraborty. Star ⭐ the repo if this saved you some time!
