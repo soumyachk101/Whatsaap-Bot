@@ -134,11 +134,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		try {
 			downloadedPaths = await downloadViaCobalt(URL, null, true);
 		} catch (dlErr) {
-			// If YouTube failed (bot check / cookies rotation) and user searched by song name, fall back to SoundCloud
-			if (!isDirectUrl) {
-				console.log(`[Song] Primary YouTube download failed (${dlErr.message}), trying SoundCloud search fallback for: "${songQuery}"...`);
+			console.log(`[Song] Primary YouTube download failed (${dlErr.message}), trying SoundCloud search fallback...`);
+			let searchFallbackTerm = songQuery;
+			if (isDirectUrl && (URL.includes("youtube.com") || URL.includes("youtu.be"))) {
 				try {
-					downloadedPaths = await downloadWithYtDlp(`scsearch1:${songQuery}`, null, true);
+					const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(URL)}&format=json`);
+					if (res.ok) {
+						const oembed = await res.json();
+						if (oembed?.title) {
+							searchFallbackTerm = oembed.title.replace(/#[a-zA-Z0-9_]+/g, "").replace(/\(.*?\)|\[.*?\]/g, "").trim();
+						}
+					}
+				} catch (_) {}
+			}
+			if (searchFallbackTerm) {
+				try {
+					downloadedPaths = await downloadWithYtDlp(`scsearch1:${searchFallbackTerm}`, null, true);
 				} catch (scErr) {
 					console.warn(`[Song] SoundCloud search fallback failed: ${scErr.message}`);
 					throw dlErr;

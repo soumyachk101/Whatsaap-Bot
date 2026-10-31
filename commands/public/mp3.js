@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yts from "yt-search";
-import { downloadViaCobalt, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError } from "../../functions/cobaltHelper.js";
+import { downloadViaCobalt, downloadWithYtDlp, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError } from "../../functions/cobaltHelper.js";
 import memoryManager from "../../functions/memoryUtils.js";
 import downloadQueue from "../../functions/downloadQueue.js";
 
@@ -121,7 +121,33 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		await downloadQueue.acquire(from);
 		acquired = true;
 
-		downloadedPaths = await downloadViaCobalt(targetUrl, null, true, msgInfoObj?.signal || null, () => downloadQueue.heartbeat(from));
+		try {
+			downloadedPaths = await downloadViaCobalt(targetUrl, null, true, msgInfoObj?.signal || null, () => downloadQueue.heartbeat(from));
+		} catch (dlErr) {
+			console.log(`[MP3] Primary download failed (${dlErr.message}), trying SoundCloud search fallback...`);
+			let searchFallbackTerm = input;
+			if (targetUrl && (targetUrl.includes("youtube.com") || targetUrl.includes("youtu.be"))) {
+				try {
+					const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(targetUrl)}&format=json`);
+					if (res.ok) {
+						const oembed = await res.json();
+						if (oembed?.title) {
+							searchFallbackTerm = oembed.title.replace(/#[a-zA-Z0-9_]+/g, "").replace(/\(.*?\)|\[.*?\]/g, "").trim();
+						}
+					}
+				} catch (_) {}
+			}
+			if (searchFallbackTerm) {
+				try {
+					downloadedPaths = await downloadWithYtDlp(`scsearch1:${searchFallbackTerm}`, null, true, msgInfoObj?.signal || null);
+				} catch (scErr) {
+					console.warn(`[MP3] SoundCloud fallback failed: ${scErr.message}`);
+					throw dlErr;
+				}
+			} else {
+				throw dlErr;
+			}
+		}
 
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Audio file was not downloaded from servers.");
