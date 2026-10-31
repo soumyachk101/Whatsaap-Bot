@@ -244,9 +244,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	} catch (err) {
 		console.error("Song download error:", err.message);
-		const clean = sanitizeYtDlpError(err.message);
+		const clean = sanitizeYtDlpError(err.message, err.code);
 		const userMsg = clean.startsWith("❌") ? clean : `❌ ${clean}`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg });
+		err.userNotified = true;
+		throw err;
 	} finally {
 		const filesToClean = new Set([
 			...(Array.isArray(downloadedPaths) ? downloadedPaths : []),

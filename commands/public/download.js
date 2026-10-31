@@ -348,7 +348,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	} catch (err) {
 		console.error("[Universal DL] Error:", err.message);
-		let clean = sanitizeYtDlpError(err.message);
+		let clean = sanitizeYtDlpError(err.message, err.code);
 		let userMsg = clean.startsWith("❌") ? clean : `❌ ${clean}`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg }).catch(() => {});
 		err.userNotified = true;

@@ -181,9 +181,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 		}
 	} catch (error) {
 		console.error("MP3 Download Error:", error.message);
-		const clean = sanitizeYtDlpError(error.message);
+		const clean = sanitizeYtDlpError(error.message, error.code);
 		const userMsg = clean.startsWith("❌") ? clean : `❌ ${clean}`;
 		await sendMessageWTyping(from, { text: userMsg }, { quoted: msg }).catch(() => {});
+		error.userNotified = true;
+		throw error;
 	} finally {
 		if (acquired) {
 			downloadQueue.release();
