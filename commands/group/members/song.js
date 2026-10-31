@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yts from "yt-search";
-import { downloadViaCobalt, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError } from "../../../functions/cobaltHelper.js";
+import { downloadViaCobalt, downloadWithYtDlp, CobaltDownloadError, isSafeUrl, sanitizeYtDlpError } from "../../../functions/cobaltHelper.js";
 import memoryManager from "../../../functions/memoryUtils.js";
 import downloadQueue from "../../../functions/downloadQueue.js";
 
@@ -131,7 +131,22 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 			}
 		}
 
-		downloadedPaths = await downloadViaCobalt(URL, null, true);
+		try {
+			downloadedPaths = await downloadViaCobalt(URL, null, true);
+		} catch (dlErr) {
+			// If YouTube failed (bot check / cookies rotation) and user searched by song name, fall back to SoundCloud
+			if (!isDirectUrl) {
+				console.log(`[Song] Primary YouTube download failed (${dlErr.message}), trying SoundCloud search fallback for: "${songQuery}"...`);
+				try {
+					downloadedPaths = await downloadWithYtDlp(`scsearch1:${songQuery}`, null, true);
+				} catch (scErr) {
+					console.warn(`[Song] SoundCloud search fallback failed: ${scErr.message}`);
+					throw dlErr;
+				}
+			} else {
+				throw dlErr;
+			}
+		}
 
 		if (!downloadedPaths || downloadedPaths.length === 0) {
 			throw new Error("Failed to download audio from stream servers.");

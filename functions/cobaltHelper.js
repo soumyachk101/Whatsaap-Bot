@@ -469,6 +469,8 @@ function buildYtDlpArgsForClient(url, outputDir, audioOnly, playerClient, cookie
 				`ytdlp_cookie_${Date.now()}_${crypto.randomUUID().slice(0, 8)}.txt`
 			);
 			fs.copyFileSync(activeCookiePath, isolatedCookiePath);
+			// Ensure the temp file is writable so yt-dlp does not throw PermissionError on save_cookies
+			try { fs.chmodSync(isolatedCookiePath, 0o600); } catch {}
 		} catch {
 			isolatedCookiePath = activeCookiePath;
 		}
