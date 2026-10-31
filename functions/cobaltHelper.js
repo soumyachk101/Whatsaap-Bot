@@ -12,17 +12,25 @@ import instanceHealth from "./instanceHealth.js";
 import ffmpegStatic from "ffmpeg-static";
 import cobaltEngineManager from "./cobaltEngineManager.js";
 
-// Prepend standard system and homebrew paths to process.env.PATH
-const standardBinPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
+// Prepend standard system, homebrew, and deno paths to process.env.PATH
+const userHomeDir = process.env.HOME || "";
+const standardBinPaths = [
+	"/opt/homebrew/bin",
+	"/usr/local/bin",
+	"/usr/bin",
+	"/bin",
+	...(userHomeDir ? [path.join(userHomeDir, ".deno/bin"), path.join(userHomeDir, ".local/bin")] : []),
+];
 process.env.PATH = Array.from(new Set([...standardBinPaths, ...(process.env.PATH || "").split(":")])).filter(Boolean).join(":");
 
 const findBinarySync = (name) => {
 	// Quick existence check (no execFileSync) — safe at module load
 	const candidates = [
-		path.join("/opt/homebrew/bin", name),
 		path.join("/usr/local/bin", name),
+		path.join("/opt/homebrew/bin", name),
 		path.join("/usr/bin", name),
 		path.join("/bin", name),
+		...(userHomeDir ? [path.join(userHomeDir, ".deno/bin", name), path.join(userHomeDir, ".local/bin", name)] : []),
 	];
 	for (const c of candidates) {
 		try { if (fs.existsSync(c)) return c; } catch {}
@@ -34,6 +42,14 @@ const findBinary = (name) => findBinarySync(name) || name;
 
 const ytDlpPath = findBinarySync("yt-dlp");
 const ytDlpAvailable = Boolean(ytDlpPath);
+
+const getYtDlpJsRuntimeArgs = () => {
+	const denoPath = findBinarySync("deno");
+	if (denoPath) {
+		return ["--js-runtimes", "deno", "--remote-components", "ejs:github"];
+	}
+	return ["--remote-components", "ejs:github"];
+};
 
 const resolvedFfmpeg = process.env.FFMPEG_PATH || ffmpegStatic || findBinarySync("ffmpeg") || "ffmpeg";
 const ffmpegAvailable = Boolean(findBinarySync("ffmpeg") || ffmpegStatic);
@@ -444,8 +460,22 @@ function buildYtDlpArgsForClient(url, outputDir, audioOnly, playerClient, cookie
 
 	const activeCookiePath = cookiePath || (isYouTube ? getYouTubeCookieFilePath() : (isInstagram ? getInstagramCookieFilePath() : null));
 
-	const cookieArgs = activeCookiePath
-		? ["--cookies", activeCookiePath]
+	// Make a temporary isolated copy of the cookie file so yt-dlp's writeback does not corrupt the master cookie file
+	let isolatedCookiePath = null;
+	if (activeCookiePath && fs.existsSync(activeCookiePath)) {
+		try {
+			isolatedCookiePath = path.join(
+				process.env.TEMP_DIR || "/tmp",
+				`ytdlp_cookie_${Date.now()}_${crypto.randomUUID().slice(0, 8)}.txt`
+			);
+			fs.copyFileSync(activeCookiePath, isolatedCookiePath);
+		} catch {
+			isolatedCookiePath = activeCookiePath;
+		}
+	}
+
+	const cookieArgs = isolatedCookiePath
+		? ["--cookies", isolatedCookiePath]
 		: [];
 
 	const formatArg = audioOnly
@@ -460,8 +490,7 @@ function buildYtDlpArgsForClient(url, outputDir, audioOnly, playerClient, cookie
 			"--no-update",
 			"--windows-filenames",
 			"--restrict-filenames",
-			"--js-runtimes",
-			"node",
+			...getYtDlpJsRuntimeArgs(),
 			"--retries",
 			"3",
 			"--extractor-retries",
@@ -472,7 +501,7 @@ function buildYtDlpArgsForClient(url, outputDir, audioOnly, playerClient, cookie
 			"1",
 			...clientArgs,
 			...cookieArgs,
-			...(!activeCookiePath && isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
+			...(!isolatedCookiePath && isInstagram && igCookie ? ["--add-header", `Cookie: ${igCookie}`] : []),
 			...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 			"--max-filesize",
 			"200M",
@@ -484,6 +513,7 @@ function buildYtDlpArgsForClient(url, outputDir, audioOnly, playerClient, cookie
 			url,
 		],
 		tempFile,
+		isolatedCookiePath,
 	};
 }
 
@@ -530,6 +560,7 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 		"/usr/local/bin",
 		"/usr/bin",
 		"/bin",
+		userHome ? `${userHome}/.deno/bin` : null,
 		userHome ? `${userHome}/.local/bin` : null,
 		userHome ? `${userHome}/Library/Python/3.9/bin` : null,
 		userHome ? `${userHome}/Library/Python/3.10/bin` : null,
@@ -546,65 +577,71 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 	for (const config of configsToTry) {
 		const client = config.client;
 		const activeCookies = config.cookies;
-		const { args, tempFile } = buildYtDlpArgsForClient(url, outputDir, audioOnly, client, activeCookies);
+		const { args, tempFile, isolatedCookiePath } = buildYtDlpArgsForClient(url, outputDir, audioOnly, client, activeCookies);
 		const clientLabel = isYouTube
 			? ` (client=${client}, cookies=${Boolean(activeCookies)})`
 			: (isInstagram ? ` (instagram, cookies=${Boolean(activeCookies)})` : "");
 
-		for (let attempt = 1; attempt <= 2; attempt++) {
-			try {
-				console.log(`[yt-dlp] Trying${clientLabel} attempt ${attempt}...`);
-				await new Promise((resolve, reject) => {
-					const opts = { timeout: 45000, env };
-					if (signal) opts.signal = signal;
-					const child = execFile(ytDlpPath || findBinary("yt-dlp") || "yt-dlp", args, opts, (err, stdout, stderr) => {
-						if (err) {
-							const msg = stderr ? stderr.trim() : err.message;
-							// If this is a 429/bot detection error, log it and let the next client try
-							if (msg.includes("429") || msg.includes("bot") || msg.includes("Sign in")) {
-								return reject(new Error(`BLOCKED: ${msg}`));
+		try {
+			for (let attempt = 1; attempt <= 2; attempt++) {
+				try {
+					console.log(`[yt-dlp] Trying${clientLabel} attempt ${attempt}...`);
+					await new Promise((resolve, reject) => {
+						const opts = { timeout: 45000, env };
+						if (signal) opts.signal = signal;
+						const child = execFile(ytDlpPath || findBinary("yt-dlp") || "yt-dlp", args, opts, (err, stdout, stderr) => {
+							if (err) {
+								const msg = stderr ? stderr.trim() : err.message;
+								// If this is a 429/bot detection error, log it and let the next client try
+								if (msg.includes("429") || msg.includes("bot") || msg.includes("Sign in")) {
+									return reject(new Error(`BLOCKED: ${msg}`));
+								}
+								return reject(new Error(msg));
 							}
-							return reject(new Error(msg));
+							resolve();
+						});
+						if (signal) {
+							signal.addEventListener(
+								"abort",
+								() => {
+									child.kill("SIGTERM");
+									reject(new Error("Download cancelled"));
+								},
+								{ once: true }
+							);
 						}
-						resolve();
 					});
-					if (signal) {
-						signal.addEventListener(
-							"abort",
-							() => {
-								child.kill("SIGTERM");
-								reject(new Error("Download cancelled"));
-							},
-							{ once: true }
-						);
-					}
-				});
 
-				const resolvedFile = resolveDownloadedFile(tempFile);
-				if (resolvedFile && fs.existsSync(resolvedFile) && fs.statSync(resolvedFile).size > 0) {
-					console.log(`[yt-dlp] Downloaded successfully with client=${client}: ${resolvedFile}`);
-					const comp = await ensureWhatsAppCompatibleMedia(resolvedFile, audioOnly);
-					if (comp && fs.existsSync(comp) && fs.statSync(comp).size > 0) {
-						memoryManager.markFileStatus(comp, "ready");
-						return [comp];
+					const resolvedFile = resolveDownloadedFile(tempFile);
+					if (resolvedFile && fs.existsSync(resolvedFile) && fs.statSync(resolvedFile).size > 0) {
+						console.log(`[yt-dlp] Downloaded successfully with client=${client}: ${resolvedFile}`);
+						const comp = await ensureWhatsAppCompatibleMedia(resolvedFile, audioOnly);
+						if (comp && fs.existsSync(comp) && fs.statSync(comp).size > 0) {
+							memoryManager.markFileStatus(comp, "ready");
+							return [comp];
+						}
+					}
+					lastErr = new Error("yt-dlp produced an empty file");
+				} catch (err) {
+					lastErr = err;
+					// Preserve the first BLOCKED error so it can be surfaced if all fallbacks fail
+					if (err.message.startsWith("BLOCKED:") && !firstYtDlpError) {
+						firstYtDlpError = err;
+					}
+					if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
+					// If client is hard blocked or cookie failed, skip duplicate attempt and move to next config
+					if (err.message.startsWith("BLOCKED:") || /cookie/i.test(err.message)) {
+						console.warn(`[yt-dlp] Config failed (${err.message.slice(0, 80)}...), trying next config...`);
+						break;
+					}
+					if (attempt < 2) {
+						await new Promise((r) => setTimeout(r, 2000));
 					}
 				}
-				lastErr = new Error("yt-dlp produced an empty file");
-			} catch (err) {
-				lastErr = err;
-				// Preserve the first BLOCKED error so it can be surfaced if all fallbacks fail
-				if (err.message.startsWith("BLOCKED:") && !firstYtDlpError) {
-					firstYtDlpError = err;
-				}
-				if (fs.existsSync(tempFile)) memoryManager.safeUnlink(tempFile);
-				// If client is hard blocked or cookie failed, skip duplicate attempt and move to next config
-				if (err.message.startsWith("BLOCKED:") || /cookie/i.test(err.message)) {
-					console.warn(`[yt-dlp] Config failed (${err.message.slice(0, 80)}...), trying next config...`);
-					break;
-				}
-				if (attempt < 2) {
-					await new Promise((r) => setTimeout(r, 2000));
-				}
+			}
+		} finally {
+			if (isolatedCookiePath && isolatedCookiePath !== activeCookies && fs.existsSync(isolatedCookiePath)) {
+				try { fs.unlinkSync(isolatedCookiePath); } catch {}
 			}
 		}
 	}
@@ -806,7 +843,7 @@ export const downloadInstagramMedia = async (url, outputDir = null, audioOnly = 
 			"--no-update",
 			"--windows-filenames",
 			"--restrict-filenames",
-			"--js-runtimes", "node",
+			...getYtDlpJsRuntimeArgs(),
 			...(cookiePath ? ["--cookies", cookiePath] : []),
 			...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 			"--max-filesize", "200M",
@@ -849,7 +886,7 @@ export const downloadInstagramMedia = async (url, outputDir = null, audioOnly = 
 		"--no-update",
 		"--windows-filenames",
 		"--restrict-filenames",
-		"--js-runtimes", "node",
+		...getYtDlpJsRuntimeArgs(),
 		...(cookiePath ? ["--cookies", cookiePath] : []),
 		"--ignore-no-formats-error",
 		"--ignore-errors",
@@ -907,7 +944,7 @@ export const downloadInstagramMedia = async (url, outputDir = null, audioOnly = 
 							"--no-update",
 							"--windows-filenames",
 							"--restrict-filenames",
-							"--js-runtimes", "node",
+							...getYtDlpJsRuntimeArgs(),
 							...(cookiePath ? ["--cookies", cookiePath] : []),
 							...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 							"--playlist-items", String(playlistIndex),
@@ -955,7 +992,7 @@ export const downloadInstagramMedia = async (url, outputDir = null, audioOnly = 
 							"--no-update",
 							"--windows-filenames",
 							"--restrict-filenames",
-							"--js-runtimes", "node",
+							...getYtDlpJsRuntimeArgs(),
 							...(cookiePath ? ["--cookies", cookiePath] : []),
 							...(ffmpegPath ? ["--ffmpeg-location", ffmpegPath] : []),
 							"--playlist-items", String(playlistIndex),
