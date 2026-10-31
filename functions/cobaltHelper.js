@@ -528,15 +528,18 @@ export const downloadWithYtDlp = async (url, outputDir = null, audioOnly = false
 	if (isYouTube) {
 		if (cookiePath) {
 			configsToTry.push(
+				{ client: "mweb", cookies: cookiePath },
 				{ client: "default", cookies: cookiePath },
 				{ client: "tv", cookies: cookiePath },
 				{ client: "ios", cookies: cookiePath },
+				{ client: "mweb", cookies: null },
 				{ client: "android", cookies: null },
 				{ client: "tv", cookies: null },
 				{ client: "ios", cookies: null }
 			);
 		} else {
 			configsToTry.push(
+				{ client: "mweb", cookies: null },
 				{ client: "android", cookies: null },
 				{ client: "tv", cookies: null },
 				{ client: "ios", cookies: null },
